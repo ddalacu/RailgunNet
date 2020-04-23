@@ -19,6 +19,7 @@
  */
 
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Railgun
 {
@@ -41,9 +42,9 @@ namespace Railgun
                     BUFFER_CAPACITY);
         }
 
-#if CLIENT
+        [OnlyIn(Component.Client)]
+        [CanBeNull]
         public IRailEntity Entity { get; set; }
-#endif
 
         public EntityId EntityId { get; private set; }
 
@@ -74,7 +75,7 @@ namespace Railgun
             commands.Clear();
         }
 
-#if CLIENT
+        [OnlyIn(Component.Client)]
         public void Encode(RailBitBuffer buffer)
         {
             // Write: [EntityId]
@@ -87,9 +88,8 @@ namespace Railgun
             foreach (RailCommand command in commands.GetValues())
                 command.Encode(buffer);
         }
-#endif
 
-#if SERVER
+        [OnlyIn(Component.Server)]
         public static RailCommandUpdate Decode(
             RailResource resource,
             RailBitBuffer buffer)
@@ -108,7 +108,6 @@ namespace Railgun
 
             return update;
         }
-#endif
 
         #region Pooling
 

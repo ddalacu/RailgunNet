@@ -579,7 +579,7 @@ namespace Railgun
             RailDebug.Assert(Controller != null);
             if (outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
             {
-                RailCommand command = RailCommand.Create(resource);
+                RailCommand command = resource.CreateCommand();
 
                 command.ClientTick = localTick;
                 command.IsNewCommand = true;

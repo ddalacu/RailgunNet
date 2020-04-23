@@ -18,89 +18,10 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using JetBrains.Annotations;
+
 namespace Railgun
 {
-    /// <summary>
-    ///     Commands contain input data from the client to be applied to entities.
-    /// </summary>
-    public abstract class RailCommand :
-        IRailPoolable<RailCommand>, IRailTimedValue
-    {
-        /// <summary>
-        ///     The client's local tick (not server predicted) at the time of sending.
-        /// </summary>
-        public Tick ClientTick { get; set; } // Synchronized
-
-        public bool IsNewCommand { get; set; }
-
-        #region Interface
-
-        Tick IRailTimedValue.Tick => ClientTick;
-
-        #endregion
-
-        public static RailCommand Create(RailResource resource)
-        {
-            return resource.CreateCommand();
-        }
-
-        protected abstract void SetDataFrom(RailCommand other);
-
-        protected abstract void EncodeData(RailBitBuffer buffer);
-        protected abstract void DecodeData(RailBitBuffer buffer);
-        protected abstract void ResetData();
-
-        private void Reset()
-        {
-            ClientTick = Tick.INVALID;
-            ResetData();
-        }
-
-        #region Pooling
-
-        IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
-
-        void IRailPoolable<RailCommand>.Reset()
-        {
-            Reset();
-        }
-
-        #endregion
-
-        #region Encode/Decode/etc.
-
-#if CLIENT
-        public void Encode(
-            RailBitBuffer buffer)
-        {
-            // Write: [SenderTick]
-            buffer.WriteTick(ClientTick);
-
-            // Write: [Command Data]
-            EncodeData(buffer);
-        }
-#endif
-
-#if SERVER
-        public static RailCommand Decode(
-            RailResource resource,
-            RailBitBuffer buffer)
-        {
-            RailCommand command = Create(resource);
-
-            // Read: [SenderTick]
-            command.ClientTick = buffer.ReadTick();
-
-            // Read: [Command Data]
-            command.DecodeData(buffer);
-
-            return command;
-        }
-#endif
-
-        #endregion
-    }
-
     /// <summary>
     ///     This is the class to override to attach user-defined data to an entity.
     /// </summary>
@@ -111,11 +32,83 @@ namespace Railgun
 
         protected override void SetDataFrom(RailCommand other)
         {
-            SetDataFrom((T) other);
+            CopyDataFrom((T)other);
         }
 
         #endregion
+        protected abstract void CopyDataFrom(T other);
+    }
 
-        protected abstract void SetDataFrom(T other);
+    /// <summary>
+    ///     Commands contain input data from the client to be applied to entities.
+    /// </summary>
+    public abstract class RailCommand :
+        IRailPoolable<RailCommand>, 
+        IRailTimedValue
+    {
+        #region To be implemented by API consumer.
+        [PublicAPI]
+        protected abstract void SetDataFrom(RailCommand other);
+        [PublicAPI]
+        protected abstract void WriteData(RailBitBuffer buffer);
+        [PublicAPI]
+        protected abstract void ReadData(RailBitBuffer buffer);
+        [PublicAPI]
+        protected abstract void ResetData();
+        #endregion
+
+        /// <summary>
+        ///     The client's local tick (not server predicted) at the time of sending.
+        /// </summary>
+        public Tick ClientTick { get; set; } // Synchronized
+
+        public bool IsNewCommand { get; set; }
+
+        #region Implementation: IRailPoolable
+        IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
+
+        void IRailPoolable<RailCommand>.Reset()
+        {
+            Reset();
+        }
+        #endregion
+        #region Implementation: IRailTimedValue
+        Tick IRailTimedValue.Tick => ClientTick;
+        #endregion
+
+        #region Encode/Decode/internals
+        private void Reset()
+        {
+            ClientTick = Tick.INVALID;
+            ResetData();
+        }
+
+        [OnlyIn(Component.Client)]
+        public void Encode(
+            RailBitBuffer buffer)
+        {
+            // Write: [SenderTick]
+            buffer.WriteTick(ClientTick);
+
+            // Write: [Command Data]
+            WriteData(buffer);
+        }
+
+        [OnlyIn(Component.Server)]
+        public static RailCommand Decode(
+            ICommandCreator creator,
+            RailBitBuffer buffer)
+        {
+            RailCommand command = creator.CreateCommand();
+
+            // Read: [SenderTick]
+            command.ClientTick = buffer.ReadTick();
+
+            // Read: [Command Data]
+            command.ReadData(buffer);
+
+            return command;
+        }
+        #endregion
     }
 }

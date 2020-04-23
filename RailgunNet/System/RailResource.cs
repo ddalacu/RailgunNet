@@ -24,7 +24,7 @@ using JetBrains.Annotations;
 
 namespace Railgun
 {
-    public class RailResource
+    public class RailResource : ICommandCreator
     {
         private readonly IRailMemoryPool<RailCommand> commandPool;
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
