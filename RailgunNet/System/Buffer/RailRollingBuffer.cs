@@ -38,7 +38,7 @@ namespace Railgun
         public RailRollingBuffer(int capacity)
         {
             if (capacity <= 0)
-                throw new ArgumentOutOfRangeException("capacity");
+                throw new ArgumentOutOfRangeException(nameof(capacity));
 
             this.capacity = capacity;
 

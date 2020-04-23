@@ -18,6 +18,9 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
+using System.Collections.Generic;
+
 namespace Railgun
 {
     /// <summary>
@@ -213,7 +216,7 @@ namespace Railgun
         private bool shouldBeFrozen;
 #endif
 
-        public RailEntity()
+        protected RailEntity()
         {
 #if SERVER
             // We use no divisor for storing commands because commands are sent in

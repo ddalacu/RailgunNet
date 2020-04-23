@@ -96,8 +96,7 @@ namespace Railgun
             EntityId entityId,
             RailViewEntry entry)
         {
-            RailViewEntry currentEntry;
-            if (latestUpdates.TryGetValue(entityId, out currentEntry))
+            if (latestUpdates.TryGetValue(entityId, out RailViewEntry currentEntry))
                 if (currentEntry.LastReceivedTick > entry.LastReceivedTick)
                     return;
 

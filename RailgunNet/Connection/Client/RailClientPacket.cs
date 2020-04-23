@@ -47,17 +47,17 @@ namespace Railgun
         #endregion
 
 #if SERVER
-        public RailView View { get; }
+        public RailView View { get { return this.view; } }
 #endif
 #if CLIENT
         public IEnumerable<RailCommandUpdate> Sent { get { return this.commandUpdates.Sent; } }
 #endif
-
+        private readonly RailView view;
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
 
         public RailClientPacket()
         {
-            View = new RailView();
+            view = new RailView();
             commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
         }
 
@@ -65,7 +65,7 @@ namespace Railgun
         {
             base.Reset();
 
-            View.Clear();
+            view.Clear();
             commandUpdates.Clear();
         }
 
@@ -151,17 +151,16 @@ namespace Railgun
             IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
                 buffer.UnpackAll(
                     () =>
-                    {
-                        return new KeyValuePair<EntityId, RailViewEntry>(
+                        new KeyValuePair<EntityId, RailViewEntry>(
                             buffer.ReadEntityId(), // Read: [EntityId] 
                             new RailViewEntry(
                                 buffer.ReadTick(), // Read: [LastReceivedTick]
                                 Tick.INVALID, // (Local tick not transmitted)
-                                buffer.ReadBool())); // Read: [IsFrozen]
-                    });
+                                buffer.ReadBool())) // Read: [IsFrozen]
+                    );
 
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
-                View.RecordUpdate(pair.Key, pair.Value);
+                view.RecordUpdate(pair.Key, pair.Value);
 #endif
         }
 

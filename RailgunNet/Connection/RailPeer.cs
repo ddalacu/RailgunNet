@@ -46,7 +46,7 @@ namespace Railgun
         /// </summary>
         private Tick localTick;
 
-        public RailPeer(
+        protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
             int remoteSendRate,
@@ -279,8 +279,7 @@ namespace Railgun
         /// </summary>
         private void ProcessEvent(RailEvent evnt)
         {
-            if (EventReceived != null)
-                EventReceived.Invoke(evnt, this);
+            EventReceived?.Invoke(evnt, this);
             eventHistory.Store(evnt.EventId);
         }
 

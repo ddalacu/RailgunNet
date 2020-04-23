@@ -114,7 +114,7 @@ namespace Railgun
         public abstract void MarkForRemoval(IRailEntity entity);
 #endif
 
-        public RailRoom(RailResource resource, RailConnection connection)
+        protected RailRoom(RailResource resource, RailConnection connection)
         {
             this.resource = resource;
             this.connection = connection;

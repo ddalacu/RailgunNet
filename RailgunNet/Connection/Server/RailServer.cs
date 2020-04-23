@@ -73,9 +73,10 @@ namespace Railgun
                     new RailServerPeer(
                         resource,
                         netPeer,
-                        Interpreter);
-
-                client.Identifier = identifier;
+                        Interpreter)
+                    {
+                        Identifier = identifier
+                    };
                 client.EventReceived += OnEventReceived;
                 client.PacketReceived += OnPacketReceived;
                 clients.Add(netPeer, client);
@@ -159,8 +160,10 @@ namespace Railgun
                     toRemove.Add(entity);
             }
 
-            for (int i = 0; i < toRemove.Count; i++)
-                removedEntities.Remove(toRemove[i].Id);
+            foreach (IRailEntity entityToRemove in toRemove)
+            {
+                removedEntities.Remove(entityToRemove.Id);
+            }
             toRemove.Clear();
         }
 

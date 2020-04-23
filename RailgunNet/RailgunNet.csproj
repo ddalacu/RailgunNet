@@ -11,7 +11,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DefineConstants>TRACE;SERVER</DefineConstants>
+    <DefineConstants>TRACE;CLIENT, SERVER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

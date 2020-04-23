@@ -137,21 +137,18 @@ namespace Railgun
 
             if (currentTick == Tick.INVALID)
                 return;
-
-            for (int i = 0; i < data.Length; i++)
+            foreach (T value in data)
             {
-                T value = data[i];
-                if (value != null)
+                if (value == null) continue;
+
+                if (value.Tick > currentTick)
                 {
-                    if (value.Tick > currentTick)
-                    {
-                        if (next == null || value.Tick < next.Tick)
-                            next = value;
-                    }
-                    else if (current == null || value.Tick > current.Tick)
-                    {
-                        current = value;
-                    }
+                    if (next == null || value.Tick < next.Tick)
+                        next = value;
+                }
+                else if (current == null || value.Tick > current.Tick)
+                {
+                    current = value;
                 }
             }
         }
@@ -168,17 +165,17 @@ namespace Railgun
             if (result != null)
                 return result;
 
-            for (int i = 0; i < data.Length; i++)
+            foreach (T value in data)
             {
-                T value = data[i];
-                if (value != null)
-                {
-                    if (value.Tick == tick)
-                        return value;
+                if (value == null) continue;
 
-                    if (value.Tick < tick)
-                        if (result == null || result.Tick < value.Tick)
-                            result = value;
+                if (value.Tick == tick)
+                    return value;
+
+                if (value.Tick < tick)
+                {
+                    if (result == null || result.Tick < value.Tick)
+                        result = value;
                 }
             }
 
@@ -194,9 +191,8 @@ namespace Railgun
             if (start == Tick.INVALID)
                 return returnList;
 
-            for (int i = 0; i < data.Length; i++)
+            foreach (T val in data)
             {
-                T val = data[i];
                 if (val != null && val.Tick >= start)
                     returnList.Add(val);
             }
@@ -217,19 +213,19 @@ namespace Railgun
                 return returnList;
 
             Tick lowest = Tick.INVALID;
-            for (int i = 0; i < data.Length; i++)
+            foreach (T val in data)
             {
-                T val = data[i];
-                if (val != null)
-                {
-                    if (val.Tick >= start && val.Tick <= end) returnList.Add(val);
+                if (val == null) continue;
 
-                    if (val.Tick > end)
-                        if (lowest == Tick.INVALID || val.Tick < lowest)
-                        {
-                            next = val;
-                            lowest = val.Tick;
-                        }
+                if (val.Tick >= start && val.Tick <= end) returnList.Add(val);
+
+                if (val.Tick > end)
+                {
+                    if (lowest == Tick.INVALID || val.Tick < lowest)
+                    {
+                        next = val;
+                        lowest = val.Tick;
+                    }
                 }
             }
 

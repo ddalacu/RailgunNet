@@ -63,7 +63,7 @@ namespace Railgun
     /// <summary>
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
-    public interface IRailEntity<TState> : IRailEntity
+    public interface IRailEntity<out TState> : IRailEntity
         where TState : RailState, new()
     {
         TState State { get; }

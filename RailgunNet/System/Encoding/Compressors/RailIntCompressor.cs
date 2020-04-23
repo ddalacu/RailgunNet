@@ -59,11 +59,11 @@ namespace Railgun
             int[] values)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-                for (int i = 0; i < values.Length; i++)
-                    buffer.WriteUInt(compressor.Pack(values[i]));
+                foreach (int value in values)
+                    buffer.WriteUInt(compressor.Pack(value));
             else
-                for (int i = 0; i < values.Length; i++)
-                    buffer.Write(compressor.RequiredBits, compressor.Pack(values[i]));
+                foreach (int value in values)
+                    buffer.Write(compressor.RequiredBits, compressor.Pack(value));
         }
 
         public static void ReadInts(

@@ -39,7 +39,7 @@ namespace Railgun
         }
     }
 
-    public struct ByteBuffer8
+    public readonly struct ByteBuffer8
     {
         public const int MAX_COUNT = 8;
 

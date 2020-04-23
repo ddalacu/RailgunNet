@@ -46,8 +46,7 @@ namespace Railgun
             Scope = new RailScope(this, resource);
 #endif
 
-            if (netPeer != null)
-                netPeer.BindController(this);
+            netPeer?.BindController(this);
         }
 
         public object UserData { get; set; }

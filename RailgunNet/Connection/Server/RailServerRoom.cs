@@ -108,20 +108,16 @@ namespace Railgun
                     toUpdate.Add(entity);
 
             // Wave 0: Remove all sunsetted entities
-            for (int i = 0; i < toRemove.Count; i++)
-                RemoveEntity(toRemove[i]);
+            toRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].Startup();
+            toUpdate.ForEach(e => e.Startup());
 
             // Wave 2: Update all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].ServerUpdate();
+            toUpdate.ForEach(e => e.ServerUpdate());
 
             // Wave 3: Post-update all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].PostUpdate();
+            toUpdate.ForEach(e => e.PostUpdate());
 
             toRemove.Clear();
             toUpdate.Clear();

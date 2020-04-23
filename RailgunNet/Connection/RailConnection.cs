@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using JetBrains.Annotations;
 using System;
 
 namespace Railgun
@@ -45,6 +46,7 @@ namespace Railgun
 
         public event Action Started;
 
+        [PublicAPI]
         public abstract void Update();
 
         protected void SetRoom(RailRoom room, Tick startTick)
@@ -61,8 +63,7 @@ namespace Railgun
         protected void DoStart()
         {
             if (hasStarted == false)
-                if (Started != null)
-                    Started.Invoke();
+                Started?.Invoke();
             hasStarted = true;
         }
     }

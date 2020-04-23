@@ -40,7 +40,7 @@ namespace Railgun
         }
     }
 
-    public struct BitArray8
+    public readonly struct BitArray8
     {
         #region Encoding/Decoding
 

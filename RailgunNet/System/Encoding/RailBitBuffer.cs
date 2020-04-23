@@ -90,7 +90,7 @@ namespace Railgun
             byte[] buffer,
             ref int position)
         {
-            byte dataByte = 0;
+            byte dataByte;
             uint value = 0;
 
             do
@@ -118,7 +118,7 @@ namespace Railgun
 
         private static byte ToASCII(char character)
         {
-            byte value = 0;
+            byte value;
 
             try
             {
@@ -387,8 +387,7 @@ namespace Railgun
                 }
                 else
                 {
-                    if (packed != null)
-                        packed.Invoke(val);
+                    packed?.Invoke(val);
                     count++;
                 }
             }
@@ -449,12 +448,10 @@ namespace Railgun
         /// </summary>
         public void WriteUInt(uint val)
         {
-            uint buffer = 0x0u;
-
             do
             {
                 // Take the lowest 7 bits
-                buffer = val & 0x7Fu;
+                uint buffer = val & 0x7Fu;
                 val >>= 7;
 
                 // If there is more data, set the 8th bit to true
@@ -468,7 +465,7 @@ namespace Railgun
 
         public uint ReadUInt()
         {
-            uint buffer = 0x0u;
+            uint buffer;
             uint val = 0x0u;
             int s = 0;
 
