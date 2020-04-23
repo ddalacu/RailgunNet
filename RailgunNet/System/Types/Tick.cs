@@ -59,7 +59,7 @@ namespace Railgun
   /// operations and encoding. All internal values are offset by +1 (zero
   /// is invalid, 1 is tick zero, etc.).
   /// </summary>
-  public struct Tick
+  public readonly struct Tick
   {
     #region Encoding/Decoding
     internal void Write(RailBitBuffer buffer)

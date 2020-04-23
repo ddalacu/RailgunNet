@@ -20,109 +20,99 @@
 
 namespace Railgun
 {
-  /// <summary>
-  /// Used for keeping track of the remote peer's clock.
-  /// </summary>
-  internal class RailClock
-  {
-    public const int INVALID_TICK = -1;
-
-    private const int DELAY_MIN = 3;
-    private const int DELAY_MAX = 9;
-
-    private int remoteRate;
-    private int delayDesired;
-    private int delayMin;
-    private int delayMax;
-
-    private Tick latestRemote;
-    private Tick estimatedRemote;
-
-    private bool shouldUpdateEstimate;
-    private bool shouldTick;
-
-    public bool ShouldTick { get { return this.shouldTick; } }
-    public Tick EstimatedRemote { get { return this.estimatedRemote; } }
-    public Tick LatestRemote { get { return this.latestRemote; } }
-
-    internal RailClock(
-      int remoteSendRate,
-      int delayMin = RailClock.DELAY_MIN,
-      int delayMax = RailClock.DELAY_MAX)
+    /// <summary>
+    /// Used for keeping track of the remote peer's clock.
+    /// </summary>
+    public class RailClock
     {
-      this.remoteRate = remoteSendRate;
-      this.estimatedRemote = Tick.INVALID;
-      this.latestRemote = Tick.INVALID;
+        public bool ShouldTick { get; private set; }
+        public Tick EstimatedRemote { get; private set; }
+        public Tick LatestRemote { get; private set; }
 
-      this.delayMin = delayMin;
-      this.delayMax = delayMax;
-      this.delayDesired = ((delayMax - delayMin) / 2) + delayMin;
+        private const int DELAY_MIN = 3;
+        private const int DELAY_MAX = 9;
 
-      this.shouldUpdateEstimate = false;
-      this.shouldTick = false;
+        private readonly int remoteRate;
+        private readonly int delayDesired;
+        private readonly int delayMin;
+        private readonly int delayMax;
+
+        private bool shouldUpdateEstimate;
+
+        public RailClock(
+          int remoteSendRate,
+          int delayMin = RailClock.DELAY_MIN,
+          int delayMax = RailClock.DELAY_MAX)
+        {
+            this.remoteRate = remoteSendRate;
+            this.EstimatedRemote = Tick.INVALID;
+            this.LatestRemote = Tick.INVALID;
+
+            this.delayMin = delayMin;
+            this.delayMax = delayMax;
+            this.delayDesired = ((delayMax - delayMin) / 2) + delayMin;
+
+            this.shouldUpdateEstimate = false;
+            this.ShouldTick = false;
+        }
+
+        public void UpdateLatest(Tick latestTick)
+        {
+            if (this.LatestRemote.IsValid == false)
+                this.LatestRemote = latestTick;
+            if (this.EstimatedRemote.IsValid == false)
+                this.EstimatedRemote = Tick.Subtract(this.LatestRemote, this.delayDesired);
+
+            if (latestTick > this.LatestRemote)
+            {
+                this.LatestRemote = latestTick;
+                this.shouldUpdateEstimate = true;
+                this.ShouldTick = true;
+            }
+        }
+
+        // See http://www.gamedev.net/topic/652186-de-jitter-buffer-on-both-the-client-and-server/
+        public void Update()
+        {
+            if (this.ShouldTick == false)
+                return; // 0;
+
+            this.EstimatedRemote = this.EstimatedRemote + 1;
+            if (this.shouldUpdateEstimate == false)
+                return; // 1;
+
+            int delta = this.LatestRemote - this.EstimatedRemote;
+
+            if (this.ShouldSnapTick(delta))
+            {
+                // Reset
+                this.EstimatedRemote = this.LatestRemote - this.delayDesired;
+                return; // 0;
+            }
+            else if (delta > this.delayMax)
+            {
+                // Jump 1
+                this.EstimatedRemote = this.EstimatedRemote + 1;
+                return; // 2;
+            }
+            else if (delta < this.delayMin)
+            {
+                // Stall 1
+                this.EstimatedRemote = this.EstimatedRemote - 1;
+                return; // 0;
+            }
+
+            this.shouldUpdateEstimate = false;
+            return; // 1;
+        }
+
+        private bool ShouldSnapTick(float delta)
+        {
+            if (delta < (this.delayMin - this.remoteRate))
+                return true;
+            if (delta > (this.delayMax + this.remoteRate))
+                return true;
+            return false;
+        }
     }
-
-    public void UpdateLatest(Tick latestTick)
-    {
-      if (this.latestRemote.IsValid == false)
-        this.latestRemote = latestTick;
-      if (this.estimatedRemote.IsValid == false)
-        this.estimatedRemote = 
-          Tick.Subtract(this.latestRemote, this.delayDesired);
-
-      if (latestTick > this.latestRemote)
-      {
-        this.latestRemote = latestTick;
-        this.shouldUpdateEstimate = true;
-        this.shouldTick = true;
-      }
-    }
-
-    // See http://www.gamedev.net/topic/652186-de-jitter-buffer-on-both-the-client-and-server/
-    public void Update()
-    {
-      if (this.shouldTick == false)
-        return; // 0;
-
-      this.estimatedRemote = this.estimatedRemote + 1;
-      if (this.shouldUpdateEstimate == false)
-        return; // 1;
-
-      int delta = this.latestRemote - this.estimatedRemote;
-
-      if (this.ShouldSnapTick(delta))
-      {
-        // Reset
-        //RailDebug.LogMessage("Reset");
-        this.estimatedRemote = this.latestRemote - this.delayDesired;
-        return; // 0;
-      }
-      else if (delta > this.delayMax)
-      {
-        // Jump 1
-        //RailDebug.LogMessage("Jump 1");
-        this.estimatedRemote = this.estimatedRemote + 1;
-        return; // 2;
-      }
-      else if (delta < this.delayMin)
-      {
-        // Stall 1
-        //RailDebug.LogMessage("Stall 1");
-        this.estimatedRemote = this.estimatedRemote - 1;
-        return; // 0;
-      }
-
-      this.shouldUpdateEstimate = false;
-      return; // 1;
-    }
-      
-    private bool ShouldSnapTick(float delta)
-    {
-      if (delta < (this.delayMin - this.remoteRate))
-        return true;
-      if (delta > (this.delayMax + this.remoteRate))
-        return true;
-      return false;
-    }
-  }
 }
