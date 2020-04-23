@@ -66,15 +66,8 @@ namespace RailgunNet.Logic
         public int Attempts { get; set; }
 
         private RailRoom Room { get; set; }
-        private RailController Sender { get; set; }
 
-        public static TEvent Create<TEvent>(RailResource resource)
-            where TEvent : RailEvent
-        {
-            int factoryType = resource.GetEventFactoryType<TEvent>();
-            TEvent evnt = (TEvent) Create(resource, factoryType);
-            return evnt;
-        }
+        private RailController Sender { get; set; }
 
         private static RailEvent Create(IRailEventCreator creator, int factoryType)
         {

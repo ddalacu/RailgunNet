@@ -85,12 +85,6 @@ namespace RailgunNet.Logic
             return entities.TryGetValue(id, out value);
         }
 
-        public TEvent CreateEvent<TEvent>()
-            where TEvent : RailEvent, new()
-        {
-            return RailEvent.Create<TEvent>(Resource);
-        }
-
         public void Initialize(Tick tick)
         {
             Tick = tick;
