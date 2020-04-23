@@ -20,8 +20,11 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection;
+using RailgunNet.Factory;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Logic
 {
     public abstract class RailRoom
     {

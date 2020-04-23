@@ -21,8 +21,14 @@
 #if CLIENT
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection.Server;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Connection.Client
 {
     /// <summary>
     ///     The peer created by the client representing the server.
@@ -31,9 +37,9 @@ namespace Railgun
         : RailPeer<RailServerPacket, RailClientPacket>
     {
         private readonly RailView localView;
-        private readonly Comparer<Tick> tickComparer;
 
         private readonly List<IRailEntity> sortingList;
+        private readonly Comparer<Tick> tickComparer;
 
         public RailClientPeer(
             RailResource resource,

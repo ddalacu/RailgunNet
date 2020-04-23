@@ -21,8 +21,13 @@
 #if SERVER
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection.Client;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Connection.Server
 {
     /// <summary>
     ///     A peer created by the server representing a connected client.

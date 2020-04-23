@@ -20,8 +20,16 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.System;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Connection
 {
     public delegate void EventReceived(RailEvent evnt, RailPeer sender);
 

@@ -18,7 +18,13 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Factory;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Encoding.Compressors;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Pooling;
+
+namespace RailgunNet.Logic
 {
     public enum RailPolicy
     {

@@ -20,7 +20,7 @@
 
 using System;
 
-namespace Railgun
+namespace RailgunNet.Util
 {
     public static class RailUtil
     {

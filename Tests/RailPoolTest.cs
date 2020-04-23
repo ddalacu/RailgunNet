@@ -1,5 +1,6 @@
 ﻿using Moq;
-using Railgun;
+using RailgunNet.Factory;
+using RailgunNet.Util.Pooling;
 using Xunit;
 
 namespace Tests

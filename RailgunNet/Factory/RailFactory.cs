@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Railgun
+namespace RailgunNet.Factory
 {
     public interface IRailFactory<out T>
     {

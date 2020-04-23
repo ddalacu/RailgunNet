@@ -19,8 +19,13 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Connection.Server
 {
 #if CLIENT
     public interface IRailServerPacket : IRailPacket

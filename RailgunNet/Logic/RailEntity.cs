@@ -20,16 +20,22 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection.Client;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Logic
 {
     /// <summary>
     ///     Entities represent any object existent in the world. These can be
     ///     "physical" objects that move around and do things like pawns and
     ///     vehicles, or conceptual objects like scoreboards and teams that
     ///     mainly serve as blackboards for transmitting state data.
-    ///     In order to register an Entity class with Railgun, tag it with the
-    ///     [RegisterEntity] attribute. See RailRegistry.cs for more information.
     /// </summary>
     public abstract class RailEntity
         : IRailPoolable<RailEntity>

@@ -18,7 +18,12 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Factory;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Pooling;
+
+namespace RailgunNet.Logic.Wrappers
 {
     public class RailStateDelta
         : IRailPoolable<RailStateDelta>

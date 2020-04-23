@@ -20,8 +20,13 @@
 
 #if SERVER
 using System.Collections.Generic;
+using RailgunNet.Connection.Server;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Logic.Scope
 {
     public class RailScope
     {

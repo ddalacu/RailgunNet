@@ -18,7 +18,10 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Logic;
+using RailgunNet.System.Types;
+
+namespace RailgunNet
 {
     public interface IRailEntity
     {

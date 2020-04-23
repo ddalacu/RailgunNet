@@ -20,8 +20,14 @@
 
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using RailgunNet.Factory;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Logic.Wrappers
 {
     public class RailCommandUpdate
         : IRailPoolable<RailCommandUpdate>
@@ -42,9 +48,7 @@ namespace Railgun
                     BUFFER_CAPACITY);
         }
 
-        [OnlyIn(Component.Client)]
-        [CanBeNull]
-        public IRailEntity Entity { get; set; }
+        [OnlyIn(Component.Client)] [CanBeNull] public IRailEntity Entity { get; set; }
 
         public EntityId EntityId { get; private set; }
 

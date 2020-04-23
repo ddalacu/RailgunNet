@@ -1,5 +1,5 @@
 using System;
-using Railgun;
+using RailgunNet.Factory;
 using Xunit;
 
 namespace Tests

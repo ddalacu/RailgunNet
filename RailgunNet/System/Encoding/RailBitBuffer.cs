@@ -21,8 +21,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.System.Encoding
 {
     /// <summary>
     ///     A first-in-first-out (FIFO) bit encoding buffer.

@@ -19,8 +19,9 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.System
 {
     public readonly struct RailViewEntry
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Railgun
+namespace RailgunNet.Util
 {
     public class OnlyInAttribute : Attribute
     {

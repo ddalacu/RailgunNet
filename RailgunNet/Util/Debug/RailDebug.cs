@@ -21,7 +21,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Railgun
+namespace RailgunNet.Util.Debug
 {
     public static class RailDebug
     {

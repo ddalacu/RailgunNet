@@ -18,15 +18,23 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
 using System.Collections.Generic;
+using RailgunNet.Connection.Client;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Connection.Server
 {
     /// <summary>
     ///     Server is the core executing class on the server. It is responsible for
     ///     managing connection contexts and payload I/O.
     /// </summary>
+    [OnlyIn(Component.Server)]
     public class RailServer : RailConnection
     {
         /// <summary>
@@ -207,4 +215,3 @@ namespace Railgun
         #endregion
     }
 }
-#endif

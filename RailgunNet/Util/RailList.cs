@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Railgun
+namespace RailgunNet.Util
 {
     public interface IRailListNode<T>
         where T : class, IRailListNode<T>

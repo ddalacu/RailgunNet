@@ -19,8 +19,11 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.System.Encoding;
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.System.Types.BitArray
 {
     public static class BitArray8Extensions
     {

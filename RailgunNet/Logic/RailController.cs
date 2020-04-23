@@ -20,8 +20,13 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Scope;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.Logic
 {
     public class RailController
     {

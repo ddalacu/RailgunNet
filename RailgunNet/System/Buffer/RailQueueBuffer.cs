@@ -19,8 +19,10 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.System.Buffer
 {
     /// <summary>
     ///     A rolling queue that maintains entries in order. Designed to access

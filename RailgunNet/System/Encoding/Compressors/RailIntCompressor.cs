@@ -18,7 +18,10 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
+
+namespace RailgunNet.System.Encoding.Compressors
 {
     public static class RailIntCompressorExtensions
     {

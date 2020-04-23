@@ -20,8 +20,13 @@
 
 #if CLIENT
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.Connection.Client
 {
     internal class RailClientRoom : RailRoom
     {
@@ -31,15 +36,15 @@ namespace Railgun
         private readonly RailClient client;
 
         /// <summary>
+        ///     All known entities, either in-world or pending.
+        /// </summary>
+        private readonly Dictionary<EntityId, RailEntity> knownEntities;
+
+        /// <summary>
         ///     The local controller for predicting control and authority.
         ///     This is a dummy peer that can't send or receive events.
         /// </summary>
         private readonly RailController localPeer;
-
-        /// <summary>
-        ///     All known entities, either in-world or pending.
-        /// </summary>
-        private readonly Dictionary<EntityId, RailEntity> knownEntities;
 
         /// <summary>
         ///     Entities that are waiting to be added to the world.
@@ -101,20 +106,16 @@ namespace Railgun
                     toUpdate.Add(entity);
 
             // Wave 0: Remove all sunsetted entities
-            for (int i = 0; i < toRemove.Count; i++)
-                RemoveEntity(toRemove[i]);
+            toRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].Startup();
+            toUpdate.ForEach(e => e.Startup());
 
             // Wave 2: Update all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].ClientUpdate(localTick);
+            toUpdate.ForEach(e => e.ClientUpdate(localTick));
 
             // Wave 3: Post-update all entities
-            for (int i = 0; i < toUpdate.Count; i++)
-                toUpdate[i].PostUpdate();
+            toUpdate.ForEach(e => e.PostUpdate());
 
             toRemove.Clear();
             toUpdate.Clear();
@@ -126,8 +127,7 @@ namespace Railgun
         /// </summary>
         public bool ProcessDelta(RailStateDelta delta)
         {
-            RailEntity entity;
-            if (knownEntities.TryGetValue(delta.EntityId, out entity) == false)
+            if (knownEntities.TryGetValue(delta.EntityId, out RailEntity entity) == false)
             {
                 RailDebug.Assert(delta.IsFrozen == false, "Frozen unknown entity");
                 if (delta.IsFrozen || delta.IsRemoving)

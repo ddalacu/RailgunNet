@@ -21,15 +21,10 @@
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using RailgunNet.Logic;
 
-namespace Railgun
+namespace RailgunNet.Factory
 {
-    public enum Component
-    {
-        Client,
-        Server
-    }
-
     public class RailRegistry
     {
         private readonly List<KeyValuePair<Type, Type>> entityTypes;

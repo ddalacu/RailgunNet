@@ -1,6 +1,9 @@
 ﻿using System;
 using Moq;
-using Railgun;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
 using Xunit;
 
 namespace Tests

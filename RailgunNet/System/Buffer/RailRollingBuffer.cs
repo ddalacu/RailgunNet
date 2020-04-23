@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Railgun
+namespace RailgunNet.System.Buffer
 {
     /// <summary>
     ///     A rolling buffer that contains a sliding window of the most recent

@@ -18,7 +18,14 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Factory;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
+
+namespace RailgunNet.Logic.Wrappers
 {
     /// <summary>
     ///     Used to differentiate/typesafe state records. Not strictly necessary.

@@ -18,7 +18,11 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Factory;
+using RailgunNet.System.Encoding;
+using RailgunNet.Util.Debug;
+
+namespace RailgunNet.Connection.Traffic
 {
     /// <summary>
     ///     Responsible for encoding and decoding packet information.

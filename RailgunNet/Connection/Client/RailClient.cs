@@ -18,7 +18,17 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.Connection.Server;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
+
+namespace RailgunNet.Connection.Client
 {
     [OnlyIn(Component.Client)]
     public class RailClient
@@ -111,8 +121,7 @@ namespace Railgun
             bool freeWhenDone = true)
         {
             RailDebug.Assert(serverPeer != null);
-            if (serverPeer != null)
-                serverPeer.RaiseEvent(evnt, attempts, freeWhenDone);
+            serverPeer?.RaiseEvent(evnt, attempts, freeWhenDone);
         }
 
         private void OnPacketReceived(IRailServerPacket packet)

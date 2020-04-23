@@ -20,8 +20,12 @@
 
 using System;
 using JetBrains.Annotations;
+using RailgunNet.Connection.Traffic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.Connection
 {
     /// <summary>
     ///     Server is the core executing class for communication. It is responsible

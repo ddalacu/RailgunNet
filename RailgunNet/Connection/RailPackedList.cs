@@ -20,8 +20,10 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.System.Encoding;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Connection
 {
     internal class RailPackedListS2C<T>
         where T : IRailPoolable<T>

@@ -20,8 +20,9 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.System.Encoding;
 
-namespace Railgun
+namespace RailgunNet.System.Types.ByteBuffer
 {
     public static class ByteBuffer8Extensions
     {

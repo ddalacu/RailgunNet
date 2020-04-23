@@ -20,8 +20,11 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
 
-namespace Railgun
+namespace RailgunNet.Tools
 {
     /// <summary>
     ///     Helper function for delaying events and other timed occurences.

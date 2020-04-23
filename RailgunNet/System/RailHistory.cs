@@ -20,8 +20,9 @@
 
 using System;
 using System.Text;
+using RailgunNet.System.Types;
 
-namespace Railgun
+namespace RailgunNet.System
 {
     /// <summary>
     ///     A rolling history buffer to keep track of seen SequenceIds.

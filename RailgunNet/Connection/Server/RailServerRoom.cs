@@ -20,8 +20,12 @@
 
 using System;
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
 
-namespace Railgun
+namespace RailgunNet.Connection.Server
 {
     [OnlyIn(Component.Server)]
     internal class RailServerRoom : RailRoom

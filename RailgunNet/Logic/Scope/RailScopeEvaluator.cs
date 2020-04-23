@@ -19,7 +19,7 @@
  */
 
 #if SERVER
-namespace Railgun
+namespace RailgunNet.Logic.Scope
 {
     public class RailScopeEvaluator
     {

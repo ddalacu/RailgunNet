@@ -21,8 +21,13 @@
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using RailgunNet.Logic;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Encoding.Compressors;
+using RailgunNet.Util;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Factory
 {
     public class RailResource : ICommandCreator
     {

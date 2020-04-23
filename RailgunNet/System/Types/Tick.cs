@@ -19,8 +19,10 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.System.Encoding;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.System.Types
 {
     public static class TickExtensions
     {

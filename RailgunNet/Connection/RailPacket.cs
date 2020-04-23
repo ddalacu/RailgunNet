@@ -19,8 +19,14 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Connection
 {
     public interface IRailPacket
     {

@@ -19,8 +19,14 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Encoding.Compressors;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Logic
 {
     /// <summary>
     ///     States are the fundamental data management class of Railgun. They
@@ -37,8 +43,6 @@ namespace Railgun
     ///     Sent only once at creation. Can not be changed after.
     ///     Removal Data (Not currently implemented):
     ///     Sent when the state is removed. Arrives at the time of removal.
-    ///     In order to register a State class with Railgun, tag it with the
-    ///     [RegisterState] attribute. See RailRegistry.cs for more information.
     /// </summary>
     public abstract class RailState
         : IRailPoolable<RailState>

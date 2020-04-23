@@ -18,7 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+namespace RailgunNet.Util.Pooling
 {
     /// <summary>
     ///     Interface for all types that can be managed by a RailMemoryPool

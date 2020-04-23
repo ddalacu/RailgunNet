@@ -19,8 +19,10 @@
  */
 
 using System.Collections.Generic;
+using RailgunNet.Factory;
+using RailgunNet.Util.Debug;
 
-namespace Railgun
+namespace RailgunNet.Util.Pooling
 {
     public static class RailPool
     {

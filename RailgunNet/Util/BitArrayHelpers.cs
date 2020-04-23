@@ -20,7 +20,7 @@
 
 using System.Collections.Generic;
 
-namespace Railgun
+namespace RailgunNet.Util
 {
     public static class BitArrayHelpers
     {

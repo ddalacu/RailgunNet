@@ -19,8 +19,14 @@
  */
 
 using JetBrains.Annotations;
+using RailgunNet.Factory;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Encoding;
+using RailgunNet.System.Types;
+using RailgunNet.Util;
+using RailgunNet.Util.Pooling;
 
-namespace Railgun
+namespace RailgunNet.Logic
 {
     /// <summary>
     ///     This is the class to override to attach user-defined data to an entity.
@@ -32,10 +38,11 @@ namespace Railgun
 
         protected override void SetDataFrom(RailCommand other)
         {
-            CopyDataFrom((T)other);
+            CopyDataFrom((T) other);
         }
 
         #endregion
+
         protected abstract void CopyDataFrom(T other);
     }
 
@@ -43,20 +50,9 @@ namespace Railgun
     ///     Commands contain input data from the client to be applied to entities.
     /// </summary>
     public abstract class RailCommand :
-        IRailPoolable<RailCommand>, 
+        IRailPoolable<RailCommand>,
         IRailTimedValue
     {
-        #region To be implemented by API consumer.
-        [PublicAPI]
-        protected abstract void SetDataFrom(RailCommand other);
-        [PublicAPI]
-        protected abstract void WriteData(RailBitBuffer buffer);
-        [PublicAPI]
-        protected abstract void ReadData(RailBitBuffer buffer);
-        [PublicAPI]
-        protected abstract void ResetData();
-        #endregion
-
         /// <summary>
         ///     The client's local tick (not server predicted) at the time of sending.
         /// </summary>
@@ -64,19 +60,41 @@ namespace Railgun
 
         public bool IsNewCommand { get; set; }
 
+        #region Implementation: IRailTimedValue
+
+        Tick IRailTimedValue.Tick => ClientTick;
+
+        #endregion
+
+        #region To be implemented by API consumer.
+
+        [PublicAPI]
+        protected abstract void SetDataFrom(RailCommand other);
+
+        [PublicAPI]
+        protected abstract void WriteData(RailBitBuffer buffer);
+
+        [PublicAPI]
+        protected abstract void ReadData(RailBitBuffer buffer);
+
+        [PublicAPI]
+        protected abstract void ResetData();
+
+        #endregion
+
         #region Implementation: IRailPoolable
+
         IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
 
         void IRailPoolable<RailCommand>.Reset()
         {
             Reset();
         }
-        #endregion
-        #region Implementation: IRailTimedValue
-        Tick IRailTimedValue.Tick => ClientTick;
+
         #endregion
 
         #region Encode/Decode/internals
+
         private void Reset()
         {
             ClientTick = Tick.INVALID;
@@ -109,6 +127,7 @@ namespace Railgun
 
             return command;
         }
+
         #endregion
     }
 }

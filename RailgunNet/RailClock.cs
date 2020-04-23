@@ -18,7 +18,9 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-namespace Railgun
+using RailgunNet.System.Types;
+
+namespace RailgunNet
 {
     /// <summary>
     ///     Used for keeping track of the remote peer's clock.
