@@ -33,7 +33,7 @@ namespace RailgunNet.Connection
     /// </summary>
     public abstract class RailConnection
     {
-        protected readonly RailResource resource;
+        protected RailResource resource { get; }
         private bool hasStarted;
 
         protected RailConnection(RailRegistry registry)

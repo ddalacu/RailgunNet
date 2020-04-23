@@ -23,7 +23,9 @@ using RailgunNet.System.Types;
 
 namespace RailgunNet.System
 {
+#pragma warning disable CA1815 // Override equals and operator equals on value types
     public readonly struct RailViewEntry
+#pragma warning restore CA1815 // Override equals and operator equals on value types
     {
         public static readonly RailViewEntry INVALID =
             new RailViewEntry(Tick.INVALID, Tick.INVALID, true);

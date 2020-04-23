@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Scope;
@@ -38,14 +39,15 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     The network I/O peer for sending/receiving data.
         /// </summary>
-        protected readonly IRailNetPeer netPeer;
+        [CanBeNull]
+        protected IRailNetPeer NetPeer { get; }
 
         public RailController(
             RailResource resource,
             IRailNetPeer netPeer = null)
         {
             controlledEntities = new HashSet<IRailEntity>();
-            this.netPeer = netPeer;
+            NetPeer = netPeer;
 
 #if SERVER
             Scope = new RailScope(this, resource);
@@ -61,8 +63,6 @@ namespace RailgunNet.Logic
                 "Local controller has no remote tick");
 
         public IEnumerable<IRailEntity> ControlledEntities => controlledEntities;
-
-        public IRailNetPeer NetPeer => netPeer;
 
         /// <summary>
         ///     Queues an event to send directly to this peer.

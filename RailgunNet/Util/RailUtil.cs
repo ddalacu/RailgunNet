@@ -31,17 +31,6 @@ namespace RailgunNet.Util
             8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
         };
 
-        public static bool ValuesEqual<T>(T[] a, T[] b)
-            where T : struct
-        {
-            if (a.Length != b.Length)
-                throw new ArgumentException();
-            for (int i = 0; i < a.Length; i++)
-                if (a[i].Equals(b[i]) == false)
-                    return false;
-            return true;
-        }
-
         public static int Log2(uint v)
         {
             v |= v >> 1; // Round down to one less than a power of 2 
@@ -51,32 +40,6 @@ namespace RailgunNet.Util
             v |= v >> 16;
 
             return DeBruijnLookup[(v * 0x07C4ACDDU) >> 27];
-        }
-
-        public static void Swap<T>(ref T a, ref T b)
-        {
-            T temp = b;
-            b = a;
-            a = temp;
-        }
-
-        public static bool GetFlag(byte field, byte flag)
-        {
-            return (field & flag) > 0;
-        }
-
-        public static byte SetFlag(byte field, byte flag, bool value)
-        {
-            if (value)
-                return (byte) (field | flag);
-            return (byte) (field & ~flag);
-        }
-
-        public static int Abs(int a)
-        {
-            if (a < 0)
-                return -a;
-            return a;
         }
 
         public static float Clamp(float value, float min, float max)

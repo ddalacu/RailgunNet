@@ -45,9 +45,9 @@ namespace RailgunNet.Connection
         /// </summary>
         private readonly RailClock remoteClock;
 
-        protected readonly RailResource resource;
-        protected readonly RailPacket reusableIncoming;
-        protected readonly RailPacket reusableOutgoing;
+        protected RailResource Resource { get; }
+        private readonly RailPacket reusableIncoming;
+        private readonly RailPacket reusableOutgoing;
 
         /// <summary>
         ///     Our local tick. Set during update.
@@ -63,14 +63,14 @@ namespace RailgunNet.Connection
             RailPacket reusableOutgoing)
             : base(resource, netPeer)
         {
-            this.resource = resource;
+            this.Resource = resource;
             remoteClock = new RailClock(remoteSendRate);
             this.interpreter = interpreter;
 
             outgoingEvents = new Queue<RailEvent>();
             this.reusableIncoming = reusableIncoming;
             this.reusableOutgoing = reusableOutgoing;
-            lastQueuedEventId = SequenceId.START.Next;
+            lastQueuedEventId = SequenceId.Start.Next;
             eventHistory = new RailHistory(RailConfig.HISTORY_CHUNKS);
 
             localTick = Tick.START;
@@ -89,7 +89,7 @@ namespace RailgunNet.Connection
 
         public void SendPacket(RailPacket packet)
         {
-            interpreter.SendPacket(resource, netPeer, packet);
+            interpreter.SendPacket(Resource, NetPeer, packet);
         }
 
         protected void OnPayloadReceived(
@@ -101,7 +101,7 @@ namespace RailgunNet.Connection
             {
                 RailBitBuffer bitBuffer = interpreter.LoadData(buffer, length);
                 reusableIncoming.Reset();
-                reusableIncoming.Decode(resource, bitBuffer);
+                reusableIncoming.Decode(Resource, bitBuffer);
 
                 if (bitBuffer.IsFinished)
                     ProcessPacket(reusableIncoming, localTick);
@@ -187,7 +187,7 @@ namespace RailgunNet.Connection
             ushort attempts)
         {
             // TODO: Event scoping
-            RailEvent clone = evnt.Clone(resource);
+            RailEvent clone = evnt.Clone(Resource);
 
             clone.EventId = lastQueuedEventId;
             clone.Attempts = attempts;
@@ -240,7 +240,7 @@ namespace RailgunNet.Connection
             // something is wrong with reliable event acking. You can always increase
             // the number of history chunks if this becomes an issue.
 
-            SequenceId firstId = SequenceId.INVALID;
+            SequenceId firstId = SequenceId.Invalid;
             foreach (RailEvent evnt in outgoingEvents)
             {
                 // Ignore dead events, they'll be cleaned up eventually

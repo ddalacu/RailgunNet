@@ -9,7 +9,7 @@ namespace RailgunNet.Factory
 
     public class RailFactory<T> : IRailFactory<T>
     {
-        protected readonly Type typeToCreate;
+        private readonly Type typeToCreate;
 
         public RailFactory()
         {

@@ -31,22 +31,21 @@ namespace RailgunNet.Logic
         private readonly RailConnection connection;
         private readonly Dictionary<EntityId, IRailEntity> entities;
 
-        public readonly RailResource resource;
-        protected List<RailEntity> toRemove; // Pre-allocated removal list
-
-        protected List<RailEntity> toUpdate; // Pre-allocated update list
+        protected RailResource Resource { get; }
+        protected List<RailEntity> ToRemove { get; } // Pre-allocated removal list
+        protected List<RailEntity> ToUpdate { get; } // Pre-allocated update list
 
         protected RailRoom(RailResource resource, RailConnection connection)
         {
-            this.resource = resource;
+            this.Resource = resource;
             this.connection = connection;
             entities =
                 new Dictionary<EntityId, IRailEntity>(
                     EntityId.CreateEqualityComparer());
             Tick = Tick.INVALID;
 
-            toUpdate = new List<RailEntity>();
-            toRemove = new List<RailEntity>();
+            ToUpdate = new List<RailEntity>();
+            ToRemove = new List<RailEntity>();
         }
 
         public object UserData { get; set; }
@@ -89,7 +88,7 @@ namespace RailgunNet.Logic
         public TEvent CreateEvent<TEvent>()
             where TEvent : RailEvent, new()
         {
-            return RailEvent.Create<TEvent>(resource);
+            return RailEvent.Create<TEvent>(Resource);
         }
 
         public void Initialize(Tick tick)

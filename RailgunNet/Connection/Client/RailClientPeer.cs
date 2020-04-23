@@ -18,7 +18,6 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if CLIENT
 using System;
 using System.Collections.Generic;
 using RailgunNet.Connection.Server;
@@ -27,14 +26,16 @@ using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Client
 {
     /// <summary>
     ///     The peer created by the client representing the server.
     /// </summary>
+    [OnlyIn(Component.Client)]
     public class RailClientPeer
-        : RailPeer<RailServerPacket, RailClientPacket>
+        : RailPeer<RailServerPacket, RailPacketToServer>
     {
         private readonly RailView localView;
 
@@ -64,7 +65,7 @@ namespace RailgunNet.Connection.Client
         {
             // TODO: Sort controlledEntities by most recently sent
 
-            RailClientPacket packet = PrepareSend<RailClientPacket>(localTick);
+            RailPacketToServer packet = PrepareSend<RailPacketToServer>(localTick);
             packet.Populate(
                 ProduceCommandUpdates(controlledEntities),
                 localView);
@@ -82,7 +83,7 @@ namespace RailgunNet.Connection.Client
         {
             base.ProcessPacket(packet, localTick);
 
-            RailServerPacket serverPacket = (RailServerPacket) packet;
+            RailServerPacket serverPacket = packet as RailServerPacket;
             foreach (RailStateDelta delta in serverPacket.Deltas)
                 localView.RecordUpdate(
                     delta.EntityId,
@@ -108,7 +109,7 @@ namespace RailgunNet.Connection.Client
             {
                 RailCommandUpdate commandUpdate =
                     RailCommandUpdate.Create(
-                        resource,
+                        Resource,
                         entity.Id,
                         entity.AsBase.OutgoingCommands);
                 commandUpdate.Entity = entity;
@@ -117,4 +118,3 @@ namespace RailgunNet.Connection.Client
         }
     }
 }
-#endif

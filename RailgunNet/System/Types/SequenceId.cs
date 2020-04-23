@@ -90,11 +90,10 @@ namespace RailgunNet.System.Types
 
         private const int BITS_USED = 10; // Max: 1023 unique (0 is invalid)
         private const int MAX_VALUE = (1 << BITS_USED) - 1;
-        private const int HALF_WAY_POINT = MAX_VALUE / 2;
         private const int BIT_SHIFT = 32 - BITS_USED;
 
-        public static readonly SequenceId INVALID = new SequenceId(0);
-        public static readonly SequenceId START = new SequenceId(1);
+        public static readonly SequenceId Invalid = new SequenceId(0);
+        public static readonly SequenceId Start = new SequenceId(1);
 
         #region Operators
 
@@ -237,7 +236,7 @@ namespace RailgunNet.System.Types
         {
             if (IsValid)
                 return "SequenceId:" + (rawValue - 1);
-            return "SequenceId:INVALID";
+            return "SequenceId:Invalid";
         }
     }
 }

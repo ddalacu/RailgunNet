@@ -26,18 +26,18 @@ namespace RailgunNet.Util.Pooling
 {
     public static class RailPool
     {
-        public static void Free<T>(T obj)
+        public static void Free<T>(T instance)
             where T : IRailPoolable<T>
         {
-            obj.Pool.Deallocate(obj);
+            instance.Pool.Deallocate(instance);
         }
 
-        public static void SafeReplace<T>(ref T destination, T obj)
+        public static void SafeReplace<T>(ref T destination, T instance)
             where T : IRailPoolable<T>
         {
             if (destination != null)
                 Free(destination);
-            destination = obj;
+            destination = instance;
         }
 
         public static void DrainQueue<T>(Queue<T> queue)
@@ -51,36 +51,36 @@ namespace RailgunNet.Util.Pooling
     public interface IRailMemoryPool<T>
     {
         T Allocate();
-        void Deallocate(T obj);
+        void Deallocate(T instance);
     }
 
     public class RailMemoryPool<T> : IRailMemoryPool<T>
         where T : IRailPoolable<T>
     {
-        protected readonly IRailFactory<T> factory;
+        protected IRailFactory<T> Factory { get; }
         private readonly Stack<T> freeList;
 
         public RailMemoryPool(IRailFactory<T> factory)
         {
-            this.factory = factory;
+            this.Factory = factory;
             freeList = new Stack<T>();
         }
 
         public T Allocate()
         {
-            T obj = freeList.Count > 0 ? freeList.Pop() : factory.Create();
+            T obj = freeList.Count > 0 ? freeList.Pop() : Factory.Create();
             obj.Pool = this;
             obj.Reset();
             return obj;
         }
 
-        public void Deallocate(T obj)
+        public void Deallocate(T instance)
         {
-            RailDebug.Assert(obj.Pool == this);
+            RailDebug.Assert(instance.Pool == this);
 
-            obj.Reset();
-            obj.Pool = null; // Prevent multiple frees
-            freeList.Push(obj);
+            instance.Reset();
+            instance.Pool = null; // Prevent multiple frees
+            freeList.Push(instance);
         }
     }
 }

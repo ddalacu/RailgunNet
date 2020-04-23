@@ -48,7 +48,7 @@ namespace RailgunNet.System.Encoding
         /// <summary>
         ///     The position of the next-to-be-written bit.
         /// </summary>
-        public int writePos;
+        private int writePos;
 
         /// <summary>
         ///     Capacity is in data chunks: uint = 4 bytes
@@ -156,9 +156,9 @@ namespace RailgunNet.System.Encoding
         public void Write(int numBits, uint value)
         {
             if (numBits < 0)
-                throw new ArgumentOutOfRangeException("Pushing negatve bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
             if (numBits > 32)
-                throw new ArgumentOutOfRangeException("Pushing too many bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
 
             int index = writePos >> 5;
             int used = writePos & 0x0000001F;
@@ -192,9 +192,9 @@ namespace RailgunNet.System.Encoding
         public uint Peek(int numBits)
         {
             if (numBits < 0)
-                throw new ArgumentOutOfRangeException("Pushing negatve bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
             if (numBits > 32)
-                throw new ArgumentOutOfRangeException("Pushing too many bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
 
             int index = readPos >> 5;
             int used = readPos & 0x0000001F;
@@ -266,9 +266,9 @@ namespace RailgunNet.System.Encoding
         private void Insert(int position, int numBits, uint value)
         {
             if (numBits < 0)
-                throw new ArgumentOutOfRangeException("Pushing negatve bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
             if (numBits > 32)
-                throw new ArgumentOutOfRangeException("Pushing too many bits");
+                throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
 
             int index = position >> 5;
             int used = position & 0x0000001F;

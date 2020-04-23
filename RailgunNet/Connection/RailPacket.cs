@@ -49,7 +49,7 @@ namespace RailgunNet.Connection
         {
             senderTick = Tick.INVALID;
             AckTick = Tick.INVALID;
-            AckEventId = SequenceId.INVALID;
+            AckEventId = SequenceId.Invalid;
 
             pendingEvents = new List<RailEvent>();
             events = new List<RailEvent>();
@@ -94,7 +94,7 @@ namespace RailgunNet.Connection
         {
             senderTick = Tick.INVALID;
             AckTick = Tick.INVALID;
-            AckEventId = SequenceId.INVALID;
+            AckEventId = SequenceId.Invalid;
 
             pendingEvents.Clear();
             events.Clear();

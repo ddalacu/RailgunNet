@@ -35,7 +35,7 @@ namespace RailgunNet.System
 
         public RailHistory(int chunks)
         {
-            latest = SequenceId.START;
+            latest = SequenceId.Start;
             history = new HistoryBits(chunks);
         }
 

@@ -24,10 +24,12 @@ using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 
 namespace RailgunNet.Connection.Client
 {
+    [OnlyIn(Component.Client)]
     internal class RailClientRoom : RailRoom
     {
         /// <summary>
@@ -101,24 +103,24 @@ namespace RailgunNet.Connection.Client
             // separate them out for either update or removal
             foreach (RailEntity entity in GetAllEntities())
                 if (entity.ShouldRemove)
-                    toRemove.Add(entity);
+                    ToRemove.Add(entity);
                 else
-                    toUpdate.Add(entity);
+                    ToUpdate.Add(entity);
 
             // Wave 0: Remove all sunsetted entities
-            toRemove.ForEach(RemoveEntity);
+            ToRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            toUpdate.ForEach(e => e.Startup());
+            ToUpdate.ForEach(e => e.Startup());
 
             // Wave 2: Update all entities
-            toUpdate.ForEach(e => e.ClientUpdate(localTick));
+            ToUpdate.ForEach(e => e.ClientUpdate(localTick));
 
             // Wave 3: Post-update all entities
-            toUpdate.ForEach(e => e.PostUpdate());
+            ToUpdate.ForEach(e => e.PostUpdate());
 
-            toRemove.Clear();
-            toUpdate.Clear();
+            ToRemove.Clear();
+            ToUpdate.Clear();
             OnPostRoomUpdate(Tick);
         }
 
@@ -133,7 +135,7 @@ namespace RailgunNet.Connection.Client
                 if (delta.IsFrozen || delta.IsRemoving)
                     return false;
 
-                entity = delta.ProduceEntity(resource);
+                entity = delta.ProduceEntity(Resource);
                 entity.AssignId(delta.EntityId);
                 entity.PrimeState(delta);
                 pendingEntities.Add(entity.Id, entity);
@@ -157,8 +159,8 @@ namespace RailgunNet.Connection.Client
             {
                 if (!entity.HasReadyState(serverTick)) continue;
 
-                // Note: We're using toRemove here to remove from the *pending* list
-                toRemove.Add(entity);
+                // Note: We're using ToRemove here to remove from the *pending* list
+                ToRemove.Add(entity);
 
                 // If the entity was removed while pending, forget about it
                 Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
@@ -168,9 +170,9 @@ namespace RailgunNet.Connection.Client
                     RegisterEntity(entity);
             }
 
-            foreach (RailEntity entity in toRemove)
+            foreach (RailEntity entity in ToRemove)
                 pendingEntities.Remove(entity.Id);
-            toRemove.Clear();
+            ToRemove.Clear();
         }
 
         public void RequestControlUpdate(

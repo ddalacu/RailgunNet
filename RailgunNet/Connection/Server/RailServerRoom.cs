@@ -124,24 +124,24 @@ namespace RailgunNet.Connection.Server
             // separate them out for either update or removal
             foreach (RailEntity entity in GetAllEntities())
                 if (entity.ShouldRemove)
-                    toRemove.Add(entity);
+                    ToRemove.Add(entity);
                 else
-                    toUpdate.Add(entity);
+                    ToUpdate.Add(entity);
 
             // Wave 0: Remove all sunsetted entities
-            toRemove.ForEach(RemoveEntity);
+            ToRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            toUpdate.ForEach(e => e.Startup());
+            ToUpdate.ForEach(e => e.Startup());
 
             // Wave 2: Update all entities
-            toUpdate.ForEach(e => e.ServerUpdate());
+            ToUpdate.ForEach(e => e.ServerUpdate());
 
             // Wave 3: Post-update all entities
-            toUpdate.ForEach(e => e.PostUpdate());
+            ToUpdate.ForEach(e => e.PostUpdate());
 
-            toRemove.Clear();
-            toUpdate.Clear();
+            ToRemove.Clear();
+            ToUpdate.Clear();
             OnPostRoomUpdate(Tick);
         }
 
@@ -153,7 +153,7 @@ namespace RailgunNet.Connection.Server
 
         private T CreateEntity<T>() where T : RailEntity
         {
-            T entity = RailEntity.Create<T>(resource);
+            T entity = RailEntity.Create<T>(Resource);
             entity.AssignId(nextEntityId);
             nextEntityId = nextEntityId.GetNext();
             return entity;

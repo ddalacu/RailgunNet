@@ -148,7 +148,7 @@ namespace RailgunNet.Logic
 
         protected virtual void Reset()
         {
-            EventId = SequenceId.INVALID;
+            EventId = SequenceId.Invalid;
             Attempts = 0;
             Room = null;
             Sender = null;

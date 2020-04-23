@@ -24,57 +24,36 @@ using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Client
 {
-#if SERVER
-    public interface IRailClientPacket
-    {
-        IEnumerable<RailCommandUpdate> CommandUpdates { get; }
-    }
-#endif
-
     /// <summary>
     ///     Packet sent from client to server.
     /// </summary>
-    public class RailClientPacket
+    [OnlyIn(Component.Client)]
+    public sealed class RailPacketToServer
         : RailPacket
-#if SERVER
-            , IRailClientPacket
-#endif
     {
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
+        private readonly RailView view;
 
-        public RailClientPacket()
+        public RailPacketToServer()
         {
-            View = new RailView();
+            view = new RailView();
             commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
         }
 
-#if SERVER
-        public RailView View { get; }
-#endif
-#if CLIENT
         public IEnumerable<RailCommandUpdate> Sent => commandUpdates.Sent;
-#endif
-
-        #region Interface
-
-#if SERVER
-        IEnumerable<RailCommandUpdate> IRailClientPacket.CommandUpdates => commandUpdates.Received;
-#endif
-
-        #endregion
 
         public override void Reset()
         {
             base.Reset();
 
-            View.Clear();
+            view.Clear();
             commandUpdates.Clear();
         }
 
-#if CLIENT
         public void Populate(
             IEnumerable<RailCommandUpdate> commandUpdates,
             RailView view)
@@ -82,9 +61,8 @@ namespace RailgunNet.Connection.Client
             this.commandUpdates.AddPending(commandUpdates);
 
             // We don't care about sending/storing the local tick
-            View.Integrate(view);
+            view.Integrate(view);
         }
-#endif
 
         #region Encode/Decode
 
@@ -94,7 +72,6 @@ namespace RailgunNet.Connection.Client
             Tick localTick,
             int reservedBytes)
         {
-#if CLIENT
             // Write: [Commands]
             EncodeCommands(buffer);
 
@@ -102,7 +79,7 @@ namespace RailgunNet.Connection.Client
             EncodeView(buffer, localTick, reservedBytes);
         }
 
-        protected void EncodeCommands(RailBitBuffer buffer)
+        private void EncodeCommands(RailBitBuffer buffer)
         {
             commandUpdates.Encode(
                 buffer,
@@ -111,7 +88,7 @@ namespace RailgunNet.Connection.Client
                 commandUpdate => commandUpdate.Encode(buffer));
         }
 
-        protected void EncodeView(
+        private void EncodeView(
             RailBitBuffer buffer,
             Tick localTick,
             int reservedBytes)
@@ -119,7 +96,7 @@ namespace RailgunNet.Connection.Client
             buffer.PackToSize(
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 int.MaxValue,
-                View.GetOrdered(localTick),
+                view.GetOrdered(localTick),
                 pair =>
                 {
                     buffer.WriteEntityId(pair.Key); // Write: [EntityId]
@@ -127,46 +104,12 @@ namespace RailgunNet.Connection.Client
                     // (Local tick not transmitted)
                     buffer.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
                 });
-#endif
         }
 
         protected override void DecodePayload(
             RailResource resource,
             RailBitBuffer buffer)
         {
-#if SERVER
-            // Read: [Commands]
-            DecodeCommands(resource, buffer);
-
-            // Read: [View]
-            DecodeView(buffer);
-        }
-
-        protected void DecodeCommands(
-            RailResource resource,
-            RailBitBuffer buffer)
-        {
-            commandUpdates.Decode(
-                buffer,
-                () => RailCommandUpdate.Decode(resource, buffer));
-        }
-
-        public void DecodeView(RailBitBuffer buffer)
-        {
-            IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
-                buffer.UnpackAll(
-                    () =>
-                        new KeyValuePair<EntityId, RailViewEntry>(
-                            buffer.ReadEntityId(), // Read: [EntityId] 
-                            new RailViewEntry(
-                                buffer.ReadTick(), // Read: [LastReceivedTick]
-                                Tick.INVALID, // (Local tick not transmitted)
-                                buffer.ReadBool())) // Read: [IsFrozen]
-                );
-
-            foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
-                View.RecordUpdate(pair.Key, pair.Value);
-#endif
         }
 
         #endregion

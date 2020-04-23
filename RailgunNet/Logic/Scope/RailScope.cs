@@ -58,7 +58,7 @@ namespace RailgunNet.Logic.Scope
             removedList = new List<RailStateDelta>();
         }
 
-        public RailScopeEvaluator Evaluator { private get; set; }
+        public RailScopeEvaluator Evaluator { get; set; }
 
         public bool EvaluateEvent(
             RailEvent evnt)

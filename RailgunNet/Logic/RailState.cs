@@ -72,12 +72,12 @@ namespace RailgunNet.Logic
         protected abstract uint CompareMutableData(RailState basis);
         protected abstract bool IsControllerDataEqual(RailState basis);
 
-        protected bool GetFlag(uint flags, uint flag)
+        protected static bool GetFlag(uint flags, uint flag)
         {
             return (flags & flag) == flag;
         }
 
-        protected uint SetFlag(bool isEqual, uint flag)
+        protected static uint SetFlag(bool isEqual, uint flag)
         {
             if (isEqual == false)
                 return flag;
@@ -307,7 +307,7 @@ namespace RailgunNet.Logic
                     flags |= current.CompareMutableData(record.State);
             else
                 flags = FLAGS_ALL;
-            if (flags == 0 && shouldReturn == false)
+            if (flags == FLAGS_NONE && shouldReturn == false)
                 return null;
 
             RailState deltaState = Create(resource, current.factoryType);

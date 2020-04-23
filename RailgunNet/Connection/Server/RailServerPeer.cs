@@ -26,14 +26,16 @@ using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Server
 {
     /// <summary>
     ///     A peer created by the server representing a connected client.
     /// </summary>
+    [OnlyIn(Component.Server)]
     public class RailServerPeer
-        : RailPeer<RailClientPacket, RailServerPacket>
+        : RailPeer<RailPacketFromClient, RailServerPacket>
     {
         public RailServerPeer(
             RailResource resource,
@@ -78,7 +80,7 @@ namespace RailgunNet.Connection.Server
         {
             base.ProcessPacket(packet, localTick);
 
-            RailClientPacket clientPacket = (RailClientPacket) packet;
+            RailPacketFromClient clientPacket = (RailPacketFromClient) packet;
             Scope.IntegrateAcked(clientPacket.View);
             PacketReceived?.Invoke(this, clientPacket);
         }

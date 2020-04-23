@@ -20,7 +20,7 @@
 
 namespace RailgunNet
 {
-    public class RailConfig
+    public static class RailConfig
     {
         public enum RailApplication
         {

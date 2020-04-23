@@ -38,7 +38,7 @@ namespace RailgunNet.Connection.Server
     /// <summary>
     ///     Packet sent from server to client.
     /// </summary>
-    public class RailServerPacket
+    public sealed class RailServerPacket
         : RailPacket
 #if CLIENT
             , IRailServerPacket

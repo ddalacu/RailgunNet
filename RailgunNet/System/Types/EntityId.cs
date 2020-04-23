@@ -80,7 +80,7 @@ namespace RailgunNet.System.Types
 
         #endregion
 
-        public class EntityIdComparer : IEqualityComparer<EntityId>
+        private class EntityIdComparer : IEqualityComparer<EntityId>
         {
             public bool Equals(EntityId x, EntityId y)
             {
