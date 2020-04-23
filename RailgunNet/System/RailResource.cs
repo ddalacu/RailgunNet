@@ -20,80 +20,76 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using JetBrains.Annotations;
 
 namespace Railgun
 {
     public class RailResource
     {
-        public RailIntCompressor EventTypeCompressor { get; }
-        public RailIntCompressor EntityTypeCompressor { get; }
-
-        private readonly Dictionary<Type, int> entityTypeToKey;
-        private readonly Dictionary<Type, int> eventTypeToKey;
-
         private readonly IRailMemoryPool<RailCommand> commandPool;
-        private readonly Dictionary<int, IRailMemoryPool<RailEntity>> entityPools;
-        private readonly Dictionary<int, IRailMemoryPool<RailState>> statePools;
-        private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
-
-        private readonly IRailMemoryPool<RailStateDelta> deltaPool;
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
 
-        [OnlyIn(Component.Server)]
-        [CanBeNull]
-        private readonly IRailMemoryPool<RailStateRecord> recordPool = null;
+        private readonly IRailMemoryPool<RailStateDelta> deltaPool;
+        private readonly Dictionary<int, IRailMemoryPool<RailEntity>> entityPools;
+
+        private readonly Dictionary<Type, int> entityTypeToKey;
+        private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
+        private readonly Dictionary<Type, int> eventTypeToKey;
+
+        [OnlyIn(Component.Server)] [CanBeNull] private readonly IRailMemoryPool<RailStateRecord> recordPool;
+
+        private readonly Dictionary<int, IRailMemoryPool<RailState>> statePools;
 
         public RailResource(RailRegistry registry)
         {
-            this.entityTypeToKey = new Dictionary<Type, int>();
-            this.eventTypeToKey = new Dictionary<Type, int>();
+            entityTypeToKey = new Dictionary<Type, int>();
+            eventTypeToKey = new Dictionary<Type, int>();
 
-            this.commandPool = this.CreateCommandPool(registry);
-            this.entityPools = new Dictionary<int, IRailMemoryPool<RailEntity>>();
-            this.statePools = new Dictionary<int, IRailMemoryPool<RailState>>();
-            this.eventPools = new Dictionary<int, IRailMemoryPool<RailEvent>>();
+            commandPool = CreateCommandPool(registry);
+            entityPools = new Dictionary<int, IRailMemoryPool<RailEntity>>();
+            statePools = new Dictionary<int, IRailMemoryPool<RailState>>();
+            eventPools = new Dictionary<int, IRailMemoryPool<RailEvent>>();
 
-            this.RegisterEvents(registry);
-            this.RegisterEntities(registry);
+            RegisterEvents(registry);
+            RegisterEntities(registry);
 
-            this.EventTypeCompressor =
-              new RailIntCompressor(0, this.eventPools.Count + 1);
-            this.EntityTypeCompressor =
-              new RailIntCompressor(0, this.entityPools.Count + 1);
+            EventTypeCompressor =
+                new RailIntCompressor(0, eventPools.Count + 1);
+            EntityTypeCompressor =
+                new RailIntCompressor(0, entityPools.Count + 1);
 
-            this.deltaPool = new RailMemoryPool<RailStateDelta>(new RailFactory<RailStateDelta>());
-            this.commandUpdatePool = new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
+            deltaPool = new RailMemoryPool<RailStateDelta>(new RailFactory<RailStateDelta>());
+            commandUpdatePool = new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 
             if (registry.Component == Component.Server)
-            {
-                this.recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
-            }
+                recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
         }
 
+        public RailIntCompressor EventTypeCompressor { get; }
+        public RailIntCompressor EntityTypeCompressor { get; }
+
         private IRailMemoryPool<RailCommand> CreateCommandPool(
-          RailRegistry registry)
+            RailRegistry registry)
         {
             return new RailMemoryPool<RailCommand>(new RailFactory<RailCommand>(registry.CommandType));
         }
 
         private void RegisterEvents(
-          RailRegistry registry)
+            RailRegistry registry)
         {
             foreach (Type eventType in registry.EventTypes)
             {
                 IRailMemoryPool<RailEvent> statePool =
                     new RailMemoryPool<RailEvent>(new RailFactory<RailEvent>(eventType));
 
-                int typeKey = this.eventPools.Count + 1; // 0 is an invalid type
-                this.eventPools.Add(typeKey, statePool);
-                this.eventTypeToKey.Add(eventType, typeKey);
+                int typeKey = eventPools.Count + 1; // 0 is an invalid type
+                eventPools.Add(typeKey, statePool);
+                eventTypeToKey.Add(eventType, typeKey);
             }
         }
 
         private void RegisterEntities(
-          RailRegistry registry)
+            RailRegistry registry)
         {
             foreach (KeyValuePair<Type, Type> pair in registry.EntityTypes)
             {
@@ -103,64 +99,69 @@ namespace Railgun
                 IRailMemoryPool<RailState> statePool =
                     new RailMemoryPool<RailState>(new RailFactory<RailState>(stateType));
                 IRailMemoryPool<RailEntity> entityPool =
-                new RailMemoryPool<RailEntity>(new RailFactory<RailEntity>(entityType));
+                    new RailMemoryPool<RailEntity>(new RailFactory<RailEntity>(entityType));
 
-                int typeKey = this.statePools.Count + 1; // 0 is an invalid type
-                this.statePools.Add(typeKey, statePool);
-                this.entityPools.Add(typeKey, entityPool);
-                this.entityTypeToKey.Add(entityType, typeKey);
+                int typeKey = statePools.Count + 1; // 0 is an invalid type
+                statePools.Add(typeKey, statePool);
+                entityPools.Add(typeKey, entityPool);
+                entityTypeToKey.Add(entityType, typeKey);
             }
         }
 
         #region Allocation
+
         public RailCommand CreateCommand()
         {
-            return this.commandPool.Allocate();
+            return commandPool.Allocate();
         }
 
         public RailEntity CreateEntity(int factoryType)
         {
-            return this.entityPools[factoryType].Allocate();
+            return entityPools[factoryType].Allocate();
         }
 
         public RailState CreateState(int factoryType)
         {
-            return this.statePools[factoryType].Allocate();
+            return statePools[factoryType].Allocate();
         }
 
         public RailEvent CreateEvent(int factoryType)
         {
-            return this.eventPools[factoryType].Allocate();
+            return eventPools[factoryType].Allocate();
         }
 
         public RailStateDelta CreateDelta()
         {
-            return this.deltaPool.Allocate();
+            return deltaPool.Allocate();
         }
 
         public RailCommandUpdate CreateCommandUpdate()
         {
-            return this.commandUpdatePool.Allocate();
+            return commandUpdatePool.Allocate();
         }
 
         [OnlyIn(Component.Server)]
         public RailStateRecord CreateRecord()
         {
-            return this.recordPool?.Allocate();
+            return recordPool?.Allocate();
         }
+
         #region Typed
+
         public int GetEntityFactoryType<T>()
-          where T : RailEntity
+            where T : RailEntity
         {
-            return this.entityTypeToKey[typeof(T)];
+            return entityTypeToKey[typeof(T)];
         }
 
         public int GetEventFactoryType<T>()
-          where T : RailEvent
+            where T : RailEvent
         {
-            return this.eventTypeToKey[typeof(T)];
+            return eventTypeToKey[typeof(T)];
         }
+
         #endregion
+
         #endregion
     }
 }

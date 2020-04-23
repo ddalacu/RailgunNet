@@ -21,14 +21,20 @@
 namespace Railgun
 {
     /// <summary>
-    /// Commands contain input data from the client to be applied to entities.
+    ///     Commands contain input data from the client to be applied to entities.
     /// </summary>
     public abstract class RailCommand :
-      IRailPoolable<RailCommand>, IRailTimedValue
+        IRailPoolable<RailCommand>, IRailTimedValue
     {
         #region Pooling
+
         IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
-        void IRailPoolable<RailCommand>.Reset() { this.Reset(); }
+
+        void IRailPoolable<RailCommand>.Reset()
+        {
+            Reset();
+        }
+
         #endregion
 
         public static RailCommand Create(RailResource resource)
@@ -37,15 +43,17 @@ namespace Railgun
         }
 
         #region Interface
-        Tick IRailTimedValue.Tick { get { return this.ClientTick; } }
+
+        Tick IRailTimedValue.Tick => ClientTick;
+
         #endregion
 
         protected abstract void SetDataFrom(RailCommand other);
 
         /// <summary>
-        /// The client's local tick (not server predicted) at the time of sending.
+        ///     The client's local tick (not server predicted) at the time of sending.
         /// </summary>
-        public Tick ClientTick { get; set; }    // Synchronized
+        public Tick ClientTick { get; set; } // Synchronized
 
         protected abstract void EncodeData(RailBitBuffer buffer);
         protected abstract void DecodeData(RailBitBuffer buffer);
@@ -55,11 +63,12 @@ namespace Railgun
 
         private void Reset()
         {
-            this.ClientTick = Tick.INVALID;
-            this.ResetData();
+            ClientTick = Tick.INVALID;
+            ResetData();
         }
 
         #region Encode/Decode/etc.
+
 #if CLIENT
         public void Encode(
           RailBitBuffer buffer)
@@ -74,10 +83,10 @@ namespace Railgun
 
 #if SERVER
         public static RailCommand Decode(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
-            RailCommand command = RailCommand.Create(resource);
+            RailCommand command = Create(resource);
 
             // Read: [SenderTick]
             command.ClientTick = buffer.ReadTick();
@@ -88,20 +97,23 @@ namespace Railgun
             return command;
         }
 #endif
+
         #endregion
     }
 
     /// <summary>
-    /// This is the class to override to attach user-defined data to an entity.
+    ///     This is the class to override to attach user-defined data to an entity.
     /// </summary>
     public abstract class RailCommand<T> : RailCommand
-      where T : RailCommand<T>, new()
+        where T : RailCommand<T>, new()
     {
         #region Casting Overrides
+
         protected override void SetDataFrom(RailCommand other)
         {
-            this.SetDataFrom((T)other);
+            SetDataFrom((T) other);
         }
+
         #endregion
 
         protected abstract void SetDataFrom(T other);

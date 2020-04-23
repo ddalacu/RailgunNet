@@ -25,117 +25,106 @@ namespace Railgun
 {
     public class RailController
     {
-        public object UserData { get; set; }
-
-        public virtual Tick EstimatedRemoteTick
-        {
-            get
-            {
-                throw new InvalidOperationException(
-                  "Local controller has no remote tick");
-            }
-        }
-
-        public IEnumerable<IRailEntity> ControlledEntities
-        {
-            get { return this.controlledEntities; }
-        }
-
-        public IRailNetPeer NetPeer
-        {
-            get { return this.netPeer; }
-        }
-
-#if SERVER
         /// <summary>
-        /// Used for setting the scope evaluator heuristics.
-        /// </summary>
-        public RailScopeEvaluator ScopeEvaluator
-        {
-            set { this.scope.Evaluator = value; }
-        }
-
-        /// <summary>
-        /// Used for determining which entity updates to send.
-        /// </summary>
-        public RailScope Scope { get { return this.scope; } }
-
-        private readonly RailScope scope;
-#endif
-
-        /// <summary>
-        /// The entities controlled by this controller.
+        ///     The entities controlled by this controller.
         /// </summary>
         private readonly HashSet<IRailEntity> controlledEntities;
 
         /// <summary>
-        /// The network I/O peer for sending/receiving data.
+        ///     The network I/O peer for sending/receiving data.
         /// </summary>
         protected readonly IRailNetPeer netPeer;
 
         public RailController(
-          RailResource resource,
-          IRailNetPeer netPeer = null)
+            RailResource resource,
+            IRailNetPeer netPeer = null)
         {
-            this.controlledEntities = new HashSet<IRailEntity>();
+            controlledEntities = new HashSet<IRailEntity>();
             this.netPeer = netPeer;
 
 #if SERVER
-            this.scope = new RailScope(this, resource);
+            Scope = new RailScope(this, resource);
 #endif
 
             if (netPeer != null)
                 netPeer.BindController(this);
         }
 
+        public object UserData { get; set; }
+
+        public virtual Tick EstimatedRemoteTick =>
+            throw new InvalidOperationException(
+                "Local controller has no remote tick");
+
+        public IEnumerable<IRailEntity> ControlledEntities => controlledEntities;
+
+        public IRailNetPeer NetPeer => netPeer;
+
         /// <summary>
-        /// Queues an event to send directly to this peer.
+        ///     Queues an event to send directly to this peer.
         /// </summary>
         public virtual void RaiseEvent(
-          RailEvent evnt,
-          ushort attempts = 3,
-          bool freeWhenDone = true)
+            RailEvent evnt,
+            ushort attempts = 3,
+            bool freeWhenDone = true)
         {
             throw new InvalidOperationException(
-              "Cannot raise event to local controller");
+                "Cannot raise event to local controller");
         }
 
         /// <summary>
-        /// Queues an event to send directly to this peer.
+        ///     Queues an event to send directly to this peer.
         /// </summary>
         public virtual void SendEvent(
-      RailEvent evnt,
-      ushort attempts)
+            RailEvent evnt,
+            ushort attempts)
         {
             throw new InvalidOperationException(
-              "Cannot send event to local controller");
+                "Cannot send event to local controller");
         }
+
+#if SERVER
+        /// <summary>
+        ///     Used for setting the scope evaluator heuristics.
+        /// </summary>
+        public RailScopeEvaluator ScopeEvaluator
+        {
+            set => Scope.Evaluator = value;
+        }
+
+        /// <summary>
+        ///     Used for determining which entity updates to send.
+        /// </summary>
+        public RailScope Scope { get; }
+
+#endif
 
 #if SERVER
         public void GrantControl(IRailEntity entity)
         {
-            this.GrantControlInternal(entity);
+            GrantControlInternal(entity);
         }
 
         public void RevokeControl(IRailEntity entity)
         {
-            this.RevokeControlInternal(entity);
+            RevokeControlInternal(entity);
         }
 #endif
 
         #region Controller
+
         /// <summary>
-        /// Detaches the controller from all controlled entities.
+        ///     Detaches the controller from all controlled entities.
         /// </summary>
         public void Shutdown()
         {
-            foreach (RailEntity entity in this.controlledEntities)
+            foreach (RailEntity entity in controlledEntities)
                 entity.AssignController(null);
-            this.controlledEntities.Clear();
+            controlledEntities.Clear();
         }
 
         /// <summary>
-        /// Adds an entity to be controlled by this peer.
+        ///     Adds an entity to be controlled by this peer.
         /// </summary>
         public void GrantControlInternal(IRailEntity entity)
         {
@@ -149,20 +138,21 @@ namespace Railgun
                 return;
             RailDebug.Assert(entity.Controller == null);
 
-            this.controlledEntities.Add(entity);
+            controlledEntities.Add(entity);
             entity.AsBase.AssignController(this);
         }
 
         /// <summary>
-        /// Remove an entity from being controlled by this peer.
+        ///     Remove an entity from being controlled by this peer.
         /// </summary>
         public void RevokeControlInternal(IRailEntity entity)
         {
             RailDebug.Assert(entity.Controller == this);
 
-            this.controlledEntities.Remove(entity);
+            controlledEntities.Remove(entity);
             entity.AsBase.AssignController(null);
         }
+
         #endregion
     }
 }

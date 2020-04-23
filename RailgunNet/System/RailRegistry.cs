@@ -28,46 +28,45 @@ namespace Railgun
         Client,
         Server
     }
+
     public class RailRegistry
     {
-        public Component Component { get; }
-        public Type CommandType { get { return this.commandType; } }
-        public IEnumerable<Type> EventTypes { get { return this.eventTypes; } }
-        public IEnumerable<KeyValuePair<Type, Type>> EntityTypes
-        {
-            get { return this.entityTypes; }
-        }
-
-        private Type commandType;
-        private readonly List<Type> eventTypes;
         private readonly List<KeyValuePair<Type, Type>> entityTypes;
+        private readonly List<Type> eventTypes;
 
         public RailRegistry(Component eComponent)
         {
             Component = eComponent;
-            this.commandType = null;
-            this.eventTypes = new List<Type>();
-            this.entityTypes = new List<KeyValuePair<Type, Type>>();
+            CommandType = null;
+            eventTypes = new List<Type>();
+            entityTypes = new List<KeyValuePair<Type, Type>>();
         }
 
+        public Component Component { get; }
+        public Type CommandType { get; private set; }
+
+        public IEnumerable<Type> EventTypes => eventTypes;
+
+        public IEnumerable<KeyValuePair<Type, Type>> EntityTypes => entityTypes;
+
         public void SetCommandType<TCommand>()
-          where TCommand : RailCommand
+            where TCommand : RailCommand
         {
-            this.commandType = typeof(TCommand);
+            CommandType = typeof(TCommand);
         }
 
         public void AddEventType<TEvent>()
-          where TEvent : RailEvent
+            where TEvent : RailEvent
         {
-            this.eventTypes.Add(typeof(TEvent));
+            eventTypes.Add(typeof(TEvent));
         }
 
         public void AddEntityType<TEntity, TState>()
-          where TEntity : RailEntity
-          where TState : RailState
+            where TEntity : RailEntity
+            where TState : RailState
         {
-            this.entityTypes.Add(
-              new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
+            entityTypes.Add(
+                new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
         }
     }
 }

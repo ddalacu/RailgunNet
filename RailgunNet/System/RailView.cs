@@ -25,129 +25,129 @@ namespace Railgun
     public readonly struct RailViewEntry
     {
         public static readonly RailViewEntry INVALID =
-          new RailViewEntry(Tick.INVALID, Tick.INVALID, true);
+            new RailViewEntry(Tick.INVALID, Tick.INVALID, true);
 
-        public bool IsValid { get { return this.lastReceivedTick.IsValid; } }
-        public Tick LastReceivedTick { get { return this.lastReceivedTick; } }
-        public Tick LocalUpdateTick { get { return this.localUpdateTick; } }
-        public bool IsFrozen { get { return this.isFrozen; } }
+        public bool IsValid => lastReceivedTick.IsValid;
+        public Tick LastReceivedTick => lastReceivedTick;
+        public Tick LocalUpdateTick { get; }
+
+        public bool IsFrozen { get; }
 
         private readonly Tick lastReceivedTick;
-        private readonly Tick localUpdateTick;
-        private readonly bool isFrozen;
 
         public RailViewEntry(
-          Tick lastReceivedTick,
-          Tick localUpdateTick,
-          bool isFrozen)
+            Tick lastReceivedTick,
+            Tick localUpdateTick,
+            bool isFrozen)
         {
             this.lastReceivedTick = lastReceivedTick;
-            this.localUpdateTick = localUpdateTick;
-            this.isFrozen = isFrozen;
+            this.LocalUpdateTick = localUpdateTick;
+            this.IsFrozen = isFrozen;
         }
     }
 
     public class RailView
     {
-        private class ViewComparer :
-          Comparer<KeyValuePair<EntityId, RailViewEntry>>
-        {
-            private readonly Comparer<Tick> comparer;
-
-            public ViewComparer()
-            {
-                this.comparer = Tick.CreateComparer();
-            }
-
-            public override int Compare(
-              KeyValuePair<EntityId, RailViewEntry> x,
-              KeyValuePair<EntityId, RailViewEntry> y)
-            {
-                return this.comparer.Compare(
-                  x.Value.LastReceivedTick,
-                  y.Value.LastReceivedTick);
-            }
-        }
-
-        private readonly ViewComparer viewComparer;
         private readonly Dictionary<EntityId, RailViewEntry> latestUpdates;
         private readonly List<KeyValuePair<EntityId, RailViewEntry>> sortList;
 
+        private readonly ViewComparer viewComparer;
+
         public RailView()
         {
-            this.viewComparer = new ViewComparer();
-            this.latestUpdates = new Dictionary<EntityId, RailViewEntry>();
-            this.sortList = new List<KeyValuePair<EntityId, RailViewEntry>>();
+            viewComparer = new ViewComparer();
+            latestUpdates = new Dictionary<EntityId, RailViewEntry>();
+            sortList = new List<KeyValuePair<EntityId, RailViewEntry>>();
         }
 
         /// <summary>
-        /// Returns the latest tick the peer has acked for this entity ID.
+        ///     Returns the latest tick the peer has acked for this entity ID.
         /// </summary>
         public RailViewEntry GetLatest(EntityId id)
         {
-            if (this.latestUpdates.TryGetValue(id, out RailViewEntry result))
+            if (latestUpdates.TryGetValue(id, out RailViewEntry result))
                 return result;
             return RailViewEntry.INVALID;
         }
 
         public void Clear()
         {
-            this.latestUpdates.Clear();
+            latestUpdates.Clear();
         }
 
         /// <summary>
-        /// Records an acked status from the peer for a given entity ID.
+        ///     Records an acked status from the peer for a given entity ID.
         /// </summary>
         public void RecordUpdate(
-      EntityId entityId,
-      Tick receivedTick,
-      Tick localTick,
-      bool isFrozen)
+            EntityId entityId,
+            Tick receivedTick,
+            Tick localTick,
+            bool isFrozen)
         {
-            this.RecordUpdate(
-              entityId,
-              new RailViewEntry(receivedTick, localTick, isFrozen));
+            RecordUpdate(
+                entityId,
+                new RailViewEntry(receivedTick, localTick, isFrozen));
         }
 
         /// <summary>
-        /// Records an acked status from the peer for a given entity ID.
+        ///     Records an acked status from the peer for a given entity ID.
         /// </summary>
         public void RecordUpdate(
-          EntityId entityId,
-          RailViewEntry entry)
+            EntityId entityId,
+            RailViewEntry entry)
         {
             RailViewEntry currentEntry;
-            if (this.latestUpdates.TryGetValue(entityId, out currentEntry))
+            if (latestUpdates.TryGetValue(entityId, out currentEntry))
                 if (currentEntry.LastReceivedTick > entry.LastReceivedTick)
                     return;
 
-            this.latestUpdates[entityId] = entry;
+            latestUpdates[entityId] = entry;
         }
 
         public void Integrate(RailView other)
         {
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in other.latestUpdates)
-                this.RecordUpdate(pair.Key, pair.Value);
+                RecordUpdate(pair.Key, pair.Value);
         }
 
         /// <summary>
-        /// Views sort in descending tick order. When sending a view to the server
-        /// we send the most recent updated entities since they're the most likely
-        /// to actually matter to the server/client scope.
+        ///     Views sort in descending tick order. When sending a view to the server
+        ///     we send the most recent updated entities since they're the most likely
+        ///     to actually matter to the server/client scope.
         /// </summary>
         public IEnumerable<KeyValuePair<EntityId, RailViewEntry>> GetOrdered(
-          Tick localTick)
+            Tick localTick)
         {
-            this.sortList.Clear();
-            foreach (var pair in this.latestUpdates)
+            sortList.Clear();
+            foreach (KeyValuePair<EntityId, RailViewEntry> pair in latestUpdates)
                 // If we haven't received an update on an entity for too long, don't
                 // bother sending a view for it (the server will update us eventually)
                 if (localTick - pair.Value.LocalUpdateTick < RailConfig.VIEW_TICKS)
-                    this.sortList.Add(pair);
+                    sortList.Add(pair);
 
-            this.sortList.Sort(this.viewComparer);
-            this.sortList.Reverse();
-            return this.sortList;
+            sortList.Sort(viewComparer);
+            sortList.Reverse();
+            return sortList;
+        }
+
+        private class ViewComparer :
+            Comparer<KeyValuePair<EntityId, RailViewEntry>>
+        {
+            private readonly Comparer<Tick> comparer;
+
+            public ViewComparer()
+            {
+                comparer = Tick.CreateComparer();
+            }
+
+            public override int Compare(
+                KeyValuePair<EntityId, RailViewEntry> x,
+                KeyValuePair<EntityId, RailViewEntry> y)
+            {
+                return comparer.Compare(
+                    x.Value.LastReceivedTick,
+                    y.Value.LastReceivedTick);
+            }
         }
     }
 }

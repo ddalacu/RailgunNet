@@ -34,7 +34,7 @@ namespace Railgun
             where T : IRailPoolable<T>
         {
             if (destination != null)
-                RailPool.Free(destination);
+                Free(destination);
             destination = obj;
         }
 
@@ -42,9 +42,10 @@ namespace Railgun
             where T : IRailPoolable<T>
         {
             while (queue.Count > 0)
-                RailPool.Free(queue.Dequeue());
+                Free(queue.Dequeue());
         }
     }
+
     public interface IRailMemoryPool<T>
     {
         T Allocate();
@@ -52,20 +53,20 @@ namespace Railgun
     }
 
     public class RailMemoryPool<T> : IRailMemoryPool<T>
-      where T : IRailPoolable<T>
+        where T : IRailPoolable<T>
     {
-        private readonly Stack<T> freeList;
         protected readonly IRailFactory<T> factory;
+        private readonly Stack<T> freeList;
 
         public RailMemoryPool(IRailFactory<T> factory)
         {
             this.factory = factory;
-            this.freeList = new Stack<T>();
+            freeList = new Stack<T>();
         }
 
         public T Allocate()
         {
-            T obj = this.freeList.Count > 0 ? this.freeList.Pop() : factory.Create();
+            T obj = freeList.Count > 0 ? freeList.Pop() : factory.Create();
             obj.Pool = this;
             obj.Reset();
             return obj;
@@ -77,7 +78,7 @@ namespace Railgun
 
             obj.Reset();
             obj.Pool = null; // Prevent multiple frees
-            this.freeList.Push(obj);
+            freeList.Push(obj);
         }
     }
 }

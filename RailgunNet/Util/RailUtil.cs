@@ -24,8 +24,15 @@ namespace Railgun
 {
     public static class RailUtil
     {
+        // http://stackoverflow.com/questions/15967240/fastest-implementation-of-log2int-and-log2float
+        private static readonly int[] DeBruijnLookup = new int[32]
+        {
+            0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+            8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+        };
+
         public static bool ValuesEqual<T>(T[] a, T[] b)
-          where T : struct
+            where T : struct
         {
             if (a.Length != b.Length)
                 throw new ArgumentException();
@@ -34,13 +41,6 @@ namespace Railgun
                     return false;
             return true;
         }
-
-        // http://stackoverflow.com/questions/15967240/fastest-implementation-of-log2int-and-log2float
-        private static readonly int[] DeBruijnLookup = new int[32]
-        {
-        0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-        8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-        };
 
         public static int Log2(uint v)
         {
@@ -62,14 +62,14 @@ namespace Railgun
 
         public static bool GetFlag(byte field, byte flag)
         {
-            return ((field & flag) > 0);
+            return (field & flag) > 0;
         }
 
         public static byte SetFlag(byte field, byte flag, bool value)
         {
             if (value)
-                return (byte)(field | flag);
-            return (byte)(field & ~flag);
+                return (byte) (field | flag);
+            return (byte) (field & ~flag);
         }
 
         public static int Abs(int a)
@@ -82,13 +82,8 @@ namespace Railgun
         public static float Clamp(float value, float min, float max)
         {
             if (value < min)
-            {
                 value = min;
-            }
-            else if (value > max)
-            {
-                value = max;
-            }
+            else if (value > max) value = max;
             return value;
         }
     }

@@ -24,7 +24,7 @@ using System.Collections.Generic;
 namespace Railgun
 {
     public interface IRailListNode<T>
-      where T : class, IRailListNode<T>
+        where T : class, IRailListNode<T>
     {
         T Next { get; set; }
         T Prev { get; set; }
@@ -32,21 +32,21 @@ namespace Railgun
     }
 
     public struct RailListIterator<T>
-      where T : class, IRailListNode<T>
+        where T : class, IRailListNode<T>
     {
-        T iter;
+        private T iter;
 
         public RailListIterator(T first)
         {
-            this.iter = first;
+            iter = first;
         }
 
         public bool Next(out T value)
         {
-            if (this.iter != null)
+            if (iter != null)
             {
-                value = this.iter;
-                this.iter = this.iter.Next;
+                value = iter;
+                iter = iter.Next;
                 return true;
             }
 
@@ -56,22 +56,22 @@ namespace Railgun
     }
 
     public class RailList<T>
-      where T : class, IRailListNode<T>
+        where T : class, IRailListNode<T>
     {
+        public RailList()
+        {
+            First = null;
+            Last = null;
+            Count = 0;
+        }
+
         public int Count { get; private set; }
         public T First { get; private set; }
         public T Last { get; private set; }
 
-        public RailList()
-        {
-            this.First = null;
-            this.Last = null;
-            this.Count = 0;
-        }
-
         public RailListIterator<T> GetIterator()
         {
-            return new RailListIterator<T>(this.First);
+            return new RailListIterator<T>(First);
         }
 
         public RailListIterator<T> GetIterator(T startAfter)
@@ -86,7 +86,7 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Adds a node to the end of the list. O(1)
+        ///     Adds a node to the end of the list. O(1)
         /// </summary>
         public void Add(T value)
         {
@@ -95,24 +95,24 @@ namespace Railgun
                 throw new InvalidOperationException("Value is already in a list");
 #endif
 
-            if (this.First == null)
-                this.First = value;
-            value.Prev = this.Last;
+            if (First == null)
+                First = value;
+            value.Prev = Last;
 
-            if (this.Last != null)
-                this.Last.Next = value;
+            if (Last != null)
+                Last.Next = value;
             value.Next = null;
 
-            this.Last = value;
+            Last = value;
 
 #if DEBUG
             value.List = this;
 #endif
-            this.Count++;
+            Count++;
         }
 
         /// <summary>
-        /// Adds a node to the beginning of the list. O(1)
+        ///     Adds a node to the beginning of the list. O(1)
         /// </summary>
         public void InsertFirst(T value)
         {
@@ -122,20 +122,20 @@ namespace Railgun
 #endif
 
             value.Prev = null;
-            value.Next = this.First;
+            value.Next = First;
 
-            if (this.First != null)
-                this.First.Prev = value;
-            this.First = value;
+            if (First != null)
+                First.Prev = value;
+            First = value;
 
 #if DEBUG
             value.List = this;
 #endif
-            this.Count++;
+            Count++;
         }
 
         /// <summary>
-        /// Adds a node before the given one. O(1)
+        ///     Adds a node before the given one. O(1)
         /// </summary>
         public void InsertBefore(T node, T value)
         {
@@ -146,8 +146,8 @@ namespace Railgun
                 throw new InvalidOperationException("Value is already in a list");
 #endif
 
-            if (this.First == node)
-                this.First = value;
+            if (First == node)
+                First = value;
             if (node.Prev != null)
                 node.Prev.Next = value;
 
@@ -158,11 +158,11 @@ namespace Railgun
 #if DEBUG
             value.List = this;
 #endif
-            this.Count++;
+            Count++;
         }
 
         /// <summary>
-        /// Adds a node after the given one. O(1)
+        ///     Adds a node after the given one. O(1)
         /// </summary>
         public void InsertAfter(T node, T value)
         {
@@ -173,8 +173,8 @@ namespace Railgun
                 throw new InvalidOperationException("Value is already in a list");
 #endif
 
-            if (this.Last == node)
-                this.Last = value;
+            if (Last == node)
+                Last = value;
             if (node.Next != null)
                 node.Next.Prev = value;
 
@@ -185,11 +185,11 @@ namespace Railgun
 #if DEBUG
             value.List = this;
 #endif
-            this.Count++;
+            Count++;
         }
 
         /// <summary>
-        /// Removes and returns a node from the list. O(1)
+        ///     Removes and returns a node from the list. O(1)
         /// </summary>
         public T Remove(T node)
         {
@@ -198,10 +198,10 @@ namespace Railgun
                 throw new AccessViolationException("Node is not in this list");
 #endif
 
-            if (this.First == node)
-                this.First = node.Next;
-            if (this.Last == node)
-                this.Last = node.Prev;
+            if (First == node)
+                First = node.Next;
+            if (Last == node)
+                Last = node.Prev;
 
             if (node.Prev != null)
                 node.Prev.Next = node.Next;
@@ -214,24 +214,24 @@ namespace Railgun
 #if DEBUG
             node.List = null;
 #endif
-            this.Count--;
+            Count--;
             return node;
         }
 
         /// <summary>
-        /// Removes and returns the first element. O(1)
+        ///     Removes and returns the first element. O(1)
         /// </summary>
         public T RemoveFirst()
         {
-            if (this.First == null)
+            if (First == null)
                 throw new AccessViolationException();
 
-            T result = this.First;
+            T result = First;
             if (result.Next != null)
                 result.Next.Prev = null;
-            this.First = result.Next;
-            if (this.Last == result)
-                this.Last = null;
+            First = result.Next;
+            if (Last == result)
+                Last = null;
 
             result.Next = null;
             result.Prev = null;
@@ -239,24 +239,24 @@ namespace Railgun
 #if DEBUG
             result.List = null;
 #endif
-            this.Count--;
+            Count--;
             return result;
         }
 
         /// <summary>
-        /// Removes and returns the last element. O(1)
+        ///     Removes and returns the last element. O(1)
         /// </summary>
         public T RemoveLast()
         {
-            if (this.Last == null)
+            if (Last == null)
                 throw new AccessViolationException();
 
-            T result = this.Last;
+            T result = Last;
             if (result.Prev != null)
                 result.Prev.Next = null;
-            this.Last = result.Prev;
-            if (this.First == result)
-                this.First = null;
+            Last = result.Prev;
+            if (First == result)
+                First = null;
 
             result.Next = null;
             result.Prev = null;
@@ -264,12 +264,12 @@ namespace Railgun
 #if DEBUG
             result.List = null;
 #endif
-            this.Count--;
+            Count--;
             return result;
         }
 
         /// <summary>
-        /// Gets the node after a given one. O(1)
+        ///     Gets the node after a given one. O(1)
         /// </summary>
         public T GetNext(T node)
         {
@@ -281,11 +281,11 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Returns all of the values in the list. Slower due to foreach. O(n)
+        ///     Returns all of the values in the list. Slower due to foreach. O(n)
         /// </summary>
         public IEnumerable<T> GetValues()
         {
-            T iter = this.First;
+            T iter = First;
             while (iter != null)
             {
                 yield return iter;
@@ -294,11 +294,11 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Applies an action to every member of the list. O(n)
+        ///     Applies an action to every member of the list. O(n)
         /// </summary>
         public void ForEach(Action<T> action)
         {
-            T iter = this.First;
+            T iter = First;
             while (iter != null)
             {
                 action.Invoke(iter);
@@ -307,13 +307,13 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Clears the list. Does not free or modify values. O(1)
+        ///     Clears the list. Does not free or modify values. O(1)
         /// </summary>
         public void Clear()
         {
-            this.First = null;
-            this.Last = null;
-            this.Count = 0;
+            First = null;
+            Last = null;
+            Count = 0;
         }
     }
 }

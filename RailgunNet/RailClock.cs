@@ -21,96 +21,97 @@
 namespace Railgun
 {
     /// <summary>
-    /// Used for keeping track of the remote peer's clock.
+    ///     Used for keeping track of the remote peer's clock.
     /// </summary>
     public class RailClock
     {
-        public bool ShouldTick { get; private set; }
-        public Tick EstimatedRemote { get; private set; }
-        public Tick LatestRemote { get; private set; }
-
         private const int DELAY_MIN = 3;
         private const int DELAY_MAX = 9;
+        private readonly int delayDesired;
+        private readonly int delayMax;
+        private readonly int delayMin;
 
         private readonly int remoteRate;
-        private readonly int delayDesired;
-        private readonly int delayMin;
-        private readonly int delayMax;
 
         private bool shouldUpdateEstimate;
 
         public RailClock(
-          int remoteSendRate,
-          int delayMin = RailClock.DELAY_MIN,
-          int delayMax = RailClock.DELAY_MAX)
+            int remoteSendRate,
+            int delayMin = DELAY_MIN,
+            int delayMax = DELAY_MAX)
         {
-            this.remoteRate = remoteSendRate;
-            this.EstimatedRemote = Tick.INVALID;
-            this.LatestRemote = Tick.INVALID;
+            remoteRate = remoteSendRate;
+            EstimatedRemote = Tick.INVALID;
+            LatestRemote = Tick.INVALID;
 
             this.delayMin = delayMin;
             this.delayMax = delayMax;
-            this.delayDesired = ((delayMax - delayMin) / 2) + delayMin;
+            delayDesired = (delayMax - delayMin) / 2 + delayMin;
 
-            this.shouldUpdateEstimate = false;
-            this.ShouldTick = false;
+            shouldUpdateEstimate = false;
+            ShouldTick = false;
         }
+
+        public bool ShouldTick { get; private set; }
+        public Tick EstimatedRemote { get; private set; }
+        public Tick LatestRemote { get; private set; }
 
         public void UpdateLatest(Tick latestTick)
         {
-            if (this.LatestRemote.IsValid == false)
-                this.LatestRemote = latestTick;
-            if (this.EstimatedRemote.IsValid == false)
-                this.EstimatedRemote = Tick.Subtract(this.LatestRemote, this.delayDesired);
+            if (LatestRemote.IsValid == false)
+                LatestRemote = latestTick;
+            if (EstimatedRemote.IsValid == false)
+                EstimatedRemote = Tick.Subtract(LatestRemote, delayDesired);
 
-            if (latestTick > this.LatestRemote)
+            if (latestTick > LatestRemote)
             {
-                this.LatestRemote = latestTick;
-                this.shouldUpdateEstimate = true;
-                this.ShouldTick = true;
+                LatestRemote = latestTick;
+                shouldUpdateEstimate = true;
+                ShouldTick = true;
             }
         }
 
         // See http://www.gamedev.net/topic/652186-de-jitter-buffer-on-both-the-client-and-server/
         public void Update()
         {
-            if (this.ShouldTick == false)
+            if (ShouldTick == false)
                 return; // 0;
 
-            this.EstimatedRemote = this.EstimatedRemote + 1;
-            if (this.shouldUpdateEstimate == false)
+            EstimatedRemote = EstimatedRemote + 1;
+            if (shouldUpdateEstimate == false)
                 return; // 1;
 
-            int delta = this.LatestRemote - this.EstimatedRemote;
+            int delta = LatestRemote - EstimatedRemote;
 
-            if (this.ShouldSnapTick(delta))
+            if (ShouldSnapTick(delta))
             {
                 // Reset
-                this.EstimatedRemote = this.LatestRemote - this.delayDesired;
-                return; // 0;
-            }
-            else if (delta > this.delayMax)
-            {
-                // Jump 1
-                this.EstimatedRemote = this.EstimatedRemote + 1;
-                return; // 2;
-            }
-            else if (delta < this.delayMin)
-            {
-                // Stall 1
-                this.EstimatedRemote = this.EstimatedRemote - 1;
+                EstimatedRemote = LatestRemote - delayDesired;
                 return; // 0;
             }
 
-            this.shouldUpdateEstimate = false;
-            return; // 1;
+            if (delta > delayMax)
+            {
+                // Jump 1
+                EstimatedRemote = EstimatedRemote + 1;
+                return; // 2;
+            }
+
+            if (delta < delayMin)
+            {
+                // Stall 1
+                EstimatedRemote = EstimatedRemote - 1;
+                return; // 0;
+            }
+
+            shouldUpdateEstimate = false;
         }
 
         private bool ShouldSnapTick(float delta)
         {
-            if (delta < (this.delayMin - this.remoteRate))
+            if (delta < delayMin - remoteRate)
                 return true;
-            if (delta > (this.delayMax + this.remoteRate))
+            if (delta > delayMax + remoteRate)
                 return true;
             return false;
         }

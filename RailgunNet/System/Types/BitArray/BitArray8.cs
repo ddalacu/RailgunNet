@@ -43,9 +43,10 @@ namespace Railgun
     public struct BitArray8
     {
         #region Encoding/Decoding
+
         public void Write(RailBitBuffer buffer)
         {
-            buffer.WriteByte(this.bitField);
+            buffer.WriteByte(bitField);
         }
 
         public static BitArray8 Read(RailBitBuffer buffer)
@@ -57,6 +58,7 @@ namespace Railgun
         {
             return new BitArray8(buffer.PeekByte());
         }
+
         #endregion
 
         private const int LENGTH = 8;
@@ -66,12 +68,12 @@ namespace Railgun
 
         public static BitArray8 operator <<(BitArray8 a, int b)
         {
-            return new BitArray8((byte)(a.bitField << b));
+            return new BitArray8((byte) (a.bitField << b));
         }
 
         public static BitArray8 operator >>(BitArray8 a, int b)
         {
-            return new BitArray8((byte)(a.bitField >> b));
+            return new BitArray8((byte) (a.bitField >> b));
         }
 
         public static bool operator ==(BitArray8 a, BitArray8 b)
@@ -92,40 +94,40 @@ namespace Railgun
         public BitArray8 Store(int value)
         {
             RailDebug.Assert(value < LENGTH);
-            return new BitArray8((byte)(this.bitField | (1U << value)));
+            return new BitArray8((byte) (bitField | (1U << value)));
         }
 
         public BitArray8 Remove(int value)
         {
             RailDebug.Assert(value < LENGTH);
-            return new BitArray8((byte)(this.bitField & ~(1U << value)));
+            return new BitArray8((byte) (bitField & ~(1U << value)));
         }
 
         public IEnumerable<int> GetValues()
         {
-            return BitArrayHelpers.GetValues(this.bitField);
+            return BitArrayHelpers.GetValues(bitField);
         }
 
         public bool Contains(int value)
         {
-            return BitArrayHelpers.Contains(value, this.bitField, LENGTH);
+            return BitArrayHelpers.Contains(value, bitField, LENGTH);
         }
 
         public bool IsEmpty()
         {
-            return this.bitField == 0;
+            return bitField == 0;
         }
 
         public override bool Equals(object obj)
         {
             if (obj is BitArray8)
-                return ((BitArray8)obj).bitField == this.bitField;
+                return ((BitArray8) obj).bitField == bitField;
             return false;
         }
 
         public override int GetHashCode()
         {
-            return this.bitField;
+            return bitField;
         }
     }
 }

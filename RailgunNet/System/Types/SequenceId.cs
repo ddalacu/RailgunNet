@@ -25,8 +25,8 @@ namespace Railgun
     public static class SequenceIdExtensions
     {
         public static void WriteSequenceId(
-          this RailBitBuffer buffer,
-          SequenceId sequenceId)
+            this RailBitBuffer buffer,
+            SequenceId sequenceId)
         {
             sequenceId.Write(buffer);
         }
@@ -43,28 +43,29 @@ namespace Railgun
     }
 
     /// <summary>
-    /// A rolling sequence counter for ordering values. Repeats indefinitely
-    /// with 1023 possible unique values (0 is treated as invalid internally).
-    /// 
-    /// Consumes 10 bits when encoded for transmission.
+    ///     A rolling sequence counter for ordering values. Repeats indefinitely
+    ///     with 1023 possible unique values (0 is treated as invalid internally).
+    ///     Consumes 10 bits when encoded for transmission.
     /// </summary>
     public readonly struct SequenceId
     {
         #region Encoding/Decoding
+
         public void Write(RailBitBuffer buffer)
         {
-            buffer.Write(SequenceId.BITS_USED, this.rawValue);
+            buffer.Write(BITS_USED, rawValue);
         }
 
         public static SequenceId Read(RailBitBuffer buffer)
         {
-            return new SequenceId(buffer.Read(SequenceId.BITS_USED));
+            return new SequenceId(buffer.Read(BITS_USED));
         }
 
         public static SequenceId Peek(RailBitBuffer buffer)
         {
-            return new SequenceId(buffer.Peek(SequenceId.BITS_USED));
+            return new SequenceId(buffer.Peek(BITS_USED));
         }
+
         #endregion
 
         private class SequenceIdComparer : IEqualityComparer<SequenceId>
@@ -86,50 +87,51 @@ namespace Railgun
         }
 
         private const int BITS_USED = 10; // Max: 1023 unique (0 is invalid)
-        private const int MAX_VALUE = (1 << SequenceId.BITS_USED) - 1;
-        private const int HALF_WAY_POINT = SequenceId.MAX_VALUE / 2;
-        private const int BIT_SHIFT = 32 - SequenceId.BITS_USED;
+        private const int MAX_VALUE = (1 << BITS_USED) - 1;
+        private const int HALF_WAY_POINT = MAX_VALUE / 2;
+        private const int BIT_SHIFT = 32 - BITS_USED;
 
         public static readonly SequenceId INVALID = new SequenceId(0);
         public static readonly SequenceId START = new SequenceId(1);
 
         #region Operators
+
         private static int GetDifference(SequenceId a, SequenceId b)
         {
             RailDebug.Assert(a.IsValid);
             RailDebug.Assert(b.IsValid);
 
             int difference =
-              (int)((a.rawValue << SequenceId.BIT_SHIFT) -
-                    (b.rawValue << SequenceId.BIT_SHIFT));
+                (int) ((a.rawValue << BIT_SHIFT) -
+                       (b.rawValue << BIT_SHIFT));
             return difference;
         }
 
         private static int WrapValue(int rawValue)
         {
             // We need to skip 0 since it's not a valid number
-            if (rawValue > SequenceId.MAX_VALUE)
-                return rawValue % SequenceId.MAX_VALUE;
-            else if (rawValue < 1)
-                return (rawValue % SequenceId.MAX_VALUE) + SequenceId.MAX_VALUE;
+            if (rawValue > MAX_VALUE)
+                return rawValue % MAX_VALUE;
+            if (rawValue < 1)
+                return rawValue % MAX_VALUE + MAX_VALUE;
             return rawValue;
         }
 
         public static SequenceId operator +(SequenceId a, int b)
         {
             RailDebug.Assert(a.IsValid);
-            return new SequenceId((uint)SequenceId.WrapValue((int)a.rawValue + b));
+            return new SequenceId((uint) WrapValue((int) a.rawValue + b));
         }
 
         public static SequenceId operator -(SequenceId a, int b)
         {
             RailDebug.Assert(a.IsValid);
-            return new SequenceId((uint)SequenceId.WrapValue((int)a.rawValue - b));
+            return new SequenceId((uint) WrapValue((int) a.rawValue - b));
         }
 
         public static int operator -(SequenceId a, SequenceId b)
         {
-            int difference = SequenceId.GetDifference(a, b) >> SequenceId.BIT_SHIFT;
+            int difference = GetDifference(a, b) >> BIT_SHIFT;
 
             // We need to skip 0 since it's not a valid number
             if (a.rawValue < b.rawValue)
@@ -155,25 +157,25 @@ namespace Railgun
 
         public static bool operator >(SequenceId a, SequenceId b)
         {
-            int difference = SequenceId.GetDifference(a, b);
+            int difference = GetDifference(a, b);
             return difference > 0;
         }
 
         public static bool operator <(SequenceId a, SequenceId b)
         {
-            int difference = SequenceId.GetDifference(a, b);
+            int difference = GetDifference(a, b);
             return difference < 0;
         }
 
         public static bool operator >=(SequenceId a, SequenceId b)
         {
-            int difference = SequenceId.GetDifference(a, b);
+            int difference = GetDifference(a, b);
             return difference >= 0;
         }
 
         public static bool operator <=(SequenceId a, SequenceId b)
         {
-            int difference = SequenceId.GetDifference(a, b);
+            int difference = GetDifference(a, b);
             return difference <= 0;
         }
 
@@ -192,25 +194,23 @@ namespace Railgun
 
             return a.rawValue != b.rawValue;
         }
+
         #endregion
 
         public SequenceId Next
         {
             get
             {
-                RailDebug.Assert(this.IsValid);
+                RailDebug.Assert(IsValid);
 
-                uint nextValue = this.rawValue + 1;
-                if (nextValue > SequenceId.MAX_VALUE)
+                uint nextValue = rawValue + 1;
+                if (nextValue > MAX_VALUE)
                     nextValue = 1;
                 return new SequenceId(nextValue);
             }
         }
 
-        public bool IsValid
-        {
-            get { return (this.rawValue > 0); }
-        }
+        public bool IsValid => rawValue > 0;
 
         private readonly uint rawValue;
 
@@ -221,20 +221,20 @@ namespace Railgun
 
         public override int GetHashCode()
         {
-            return (int)this.rawValue;
+            return (int) rawValue;
         }
 
         public override bool Equals(object obj)
         {
             if (obj is SequenceId)
-                return (((SequenceId)obj).rawValue == this.rawValue);
+                return ((SequenceId) obj).rawValue == rawValue;
             return false;
         }
 
         public override string ToString()
         {
-            if (this.IsValid)
-                return "SequenceId:" + (this.rawValue - 1);
+            if (IsValid)
+                return "SequenceId:" + (rawValue - 1);
             return "SequenceId:INVALID";
         }
     }

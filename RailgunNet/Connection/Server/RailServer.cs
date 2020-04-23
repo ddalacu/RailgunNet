@@ -24,75 +24,75 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// Server is the core executing class on the server. It is responsible for
-    /// managing connection contexts and payload I/O.
+    ///     Server is the core executing class on the server. It is responsible for
+    ///     managing connection contexts and payload I/O.
     /// </summary>
     public class RailServer : RailConnection
     {
-        /// <summary>
-        /// Collection of all participating clients.
-        /// </summary>
-        private Dictionary<IRailNetPeer, RailServerPeer> clients;
-
-        /// <summary>
-        /// Entities that have been removed or are about to be.
-        /// </summary>
-        private Dictionary<EntityId, IRailEntity> removedEntities;
-
-        /// <summary>
-        /// The server's room instance. TODO: Multiple rooms?
-        /// </summary>
-        private new RailServerRoom Room { get; set; }
-
         private readonly List<IRailEntity> toRemove; // Pre-allocated list for reuse
+
+        /// <summary>
+        ///     Collection of all participating clients.
+        /// </summary>
+        private readonly Dictionary<IRailNetPeer, RailServerPeer> clients;
+
+        /// <summary>
+        ///     Entities that have been removed or are about to be.
+        /// </summary>
+        private readonly Dictionary<EntityId, IRailEntity> removedEntities;
 
         public RailServer(RailRegistry registry) : base(registry)
         {
-            this.clients = new Dictionary<IRailNetPeer, RailServerPeer>();
-            this.removedEntities = new Dictionary<EntityId, IRailEntity>();
-            this.toRemove = new List<IRailEntity>();
+            clients = new Dictionary<IRailNetPeer, RailServerPeer>();
+            removedEntities = new Dictionary<EntityId, IRailEntity>();
+            toRemove = new List<IRailEntity>();
         }
 
         /// <summary>
-        /// Starts the server's room.
+        ///     The server's room instance. TODO: Multiple rooms?
+        /// </summary>
+        private new RailServerRoom Room { get; set; }
+
+        /// <summary>
+        ///     Starts the server's room.
         /// </summary>
         public void StartRoom()
         {
-            this.Room = new RailServerRoom(this.resource, this);
-            base.SetRoom(this.Room, Tick.START);
+            Room = new RailServerRoom(resource, this);
+            SetRoom(Room, Tick.START);
         }
 
         /// <summary>
-        /// Wraps an incoming connection in a peer and stores it.
+        ///     Wraps an incoming connection in a peer and stores it.
         /// </summary>
         public void AddClient(IRailNetPeer netPeer, string identifier)
         {
-            if (this.clients.ContainsKey(netPeer) == false)
+            if (clients.ContainsKey(netPeer) == false)
             {
                 RailServerPeer client =
-                  new RailServerPeer(
-                    this.resource,
-                    netPeer,
-                    this.Interpreter);
+                    new RailServerPeer(
+                        resource,
+                        netPeer,
+                        Interpreter);
 
                 client.Identifier = identifier;
-                client.EventReceived += base.OnEventReceived;
-                client.PacketReceived += this.OnPacketReceived;
-                this.clients.Add(netPeer, client);
-                this.Room.AddClient(client);
+                client.EventReceived += OnEventReceived;
+                client.PacketReceived += OnPacketReceived;
+                clients.Add(netPeer, client);
+                Room.AddClient(client);
             }
         }
 
         /// <summary>
-        /// Wraps an incoming connection in a peer and stores it.
+        ///     Wraps an incoming connection in a peer and stores it.
         /// </summary>
         public void RemoveClient(IRailNetPeer netClient)
         {
-            if (this.clients.ContainsKey(netClient))
+            if (clients.ContainsKey(netClient))
             {
-                RailServerPeer client = this.clients[netClient];
-                this.clients.Remove(netClient);
-                this.Room.RemoveClient(client);
+                RailServerPeer client = clients[netClient];
+                clients.Remove(netClient);
+                Room.RemoveClient(client);
 
                 // Revoke control of all the entities controlled by that client
                 client.Shutdown();
@@ -100,54 +100,54 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Updates all entites and dispatches a snapshot if applicable. Should
-        /// be called once per game simulation tick (e.g. during Unity's 
-        /// FixedUpdate pass).
+        ///     Updates all entites and dispatches a snapshot if applicable. Should
+        ///     be called once per game simulation tick (e.g. during Unity's
+        ///     FixedUpdate pass).
         /// </summary>
         public override void Update()
         {
-            this.DoStart();
+            DoStart();
 
-            foreach (RailServerPeer client in this.clients.Values)
-                client.Update(this.Room.Tick);
+            foreach (RailServerPeer client in clients.Values)
+                client.Update(Room.Tick);
 
-            this.Room.ServerUpdate();
-            if (this.Room.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE))
+            Room.ServerUpdate();
+            if (Room.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE))
             {
-                this.Room.StoreStates();
-                this.BroadcastPackets();
+                Room.StoreStates();
+                BroadcastPackets();
             }
 
-            this.CleanRemovedEntities();
+            CleanRemovedEntities();
         }
 
         public void LogRemovedEntity(IRailEntity entity)
         {
-            this.removedEntities.Add(entity.Id, entity);
+            removedEntities.Add(entity.Id, entity);
         }
 
         /// <summary>
-        /// Cleans out any removed entities from the removed list
-        /// if they have been acked by all clients.
+        ///     Cleans out any removed entities from the removed list
+        ///     if they have been acked by all clients.
         /// </summary>
         private void CleanRemovedEntities()
         {
             // TODO: Retire the Id in all of the views as well?
 
-            foreach (var kvp in this.removedEntities)
+            foreach (KeyValuePair<EntityId, IRailEntity> kvp in removedEntities)
             {
                 bool canRemove = true;
                 EntityId id = kvp.Key;
                 IRailEntity entity = kvp.Value;
 
-                foreach (RailServerPeer peer in this.clients.Values)
+                foreach (RailServerPeer peer in clients.Values)
                 {
                     Tick lastSent = peer.Scope.GetLastSent(id);
                     if (lastSent.IsValid == false)
                         continue; // Was never sent in the first place
 
                     Tick lastAcked = peer.Scope.GetLastAckedByClient(id);
-                    if (lastAcked.IsValid && (lastAcked >= entity.AsBase.RemovedTick))
+                    if (lastAcked.IsValid && lastAcked >= entity.AsBase.RemovedTick)
                         continue; // Remove tick was acked by the client
 
                     // Otherwise, not safe to remove
@@ -156,43 +156,44 @@ namespace Railgun
                 }
 
                 if (canRemove)
-                    this.toRemove.Add(entity);
+                    toRemove.Add(entity);
             }
 
-            for (int i = 0; i < this.toRemove.Count; i++)
-                this.removedEntities.Remove(this.toRemove[i].Id);
-            this.toRemove.Clear();
+            for (int i = 0; i < toRemove.Count; i++)
+                removedEntities.Remove(toRemove[i].Id);
+            toRemove.Clear();
         }
 
         /// <summary>
-        /// Packs and sends a server-to-client packet to each peer.
+        ///     Packs and sends a server-to-client packet to each peer.
         /// </summary>
         private void BroadcastPackets()
         {
-            foreach (RailServerPeer clientPeer in this.clients.Values)
+            foreach (RailServerPeer clientPeer in clients.Values)
                 clientPeer.SendPacket(
-                  this.Room.Tick,
-                  this.Room.Entities,
-                  this.removedEntities.Values);
+                    Room.Tick,
+                    Room.Entities,
+                    removedEntities.Values);
         }
 
         #region Packet Receive
+
         private void OnPacketReceived(
-          RailServerPeer peer,
-          IRailClientPacket packet)
+            RailServerPeer peer,
+            IRailClientPacket packet)
         {
             foreach (RailCommandUpdate update in packet.CommandUpdates)
-                this.ProcessCommandUpdate(peer, update);
+                ProcessCommandUpdate(peer, update);
         }
 
         private void ProcessCommandUpdate(
-          RailServerPeer peer,
-          RailCommandUpdate update)
+            RailServerPeer peer,
+            RailCommandUpdate update)
         {
-            if (this.Room.TryGet(update.EntityId, out IRailEntity entity))
+            if (Room.TryGet(update.EntityId, out IRailEntity entity))
             {
                 bool canReceive =
-                  (entity.Controller == peer) && (entity.IsRemoving == false);
+                    entity.Controller == peer && entity.IsRemoving == false;
 
                 if (canReceive)
                     foreach (RailCommand command in update.Commands)
@@ -202,6 +203,7 @@ namespace Railgun
                         RailPool.Free(command);
             }
         }
+
         #endregion
     }
 }

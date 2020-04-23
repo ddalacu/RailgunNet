@@ -25,57 +25,57 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// A peer created by the server representing a connected client.
+    ///     A peer created by the server representing a connected client.
     /// </summary>
     public class RailServerPeer
-      : RailPeer<RailClientPacket, RailServerPacket>
+        : RailPeer<RailClientPacket, RailServerPacket>
     {
-        public event Action<RailServerPeer, IRailClientPacket> PacketReceived;
-
-        /// <summary>
-        /// A connection identifier string. (TODO: Temporary)
-        /// </summary>
-        public string Identifier { get; set; }
-
         public RailServerPeer(
-          RailResource resource,
-          IRailNetPeer netPeer,
-          RailInterpreter interpreter)
-          : base(
-              resource,
-              netPeer,
-              RailConfig.CLIENT_SEND_RATE,
-              interpreter)
+            RailResource resource,
+            IRailNetPeer netPeer,
+            RailInterpreter interpreter)
+            : base(
+                resource,
+                netPeer,
+                RailConfig.CLIENT_SEND_RATE,
+                interpreter)
         {
         }
 
+        /// <summary>
+        ///     A connection identifier string. (TODO: Temporary)
+        /// </summary>
+        public string Identifier { get; set; }
+
+        public event Action<RailServerPeer, IRailClientPacket> PacketReceived;
+
         public void SendPacket(
-          Tick localTick,
-          IEnumerable<IRailEntity> active,
-          IEnumerable<IRailEntity> removed)
+            Tick localTick,
+            IEnumerable<IRailEntity> active,
+            IEnumerable<IRailEntity> removed)
         {
-            RailServerPacket packet = base.PrepareSend<RailServerPacket>(localTick);
-            this.Scope.PopulateDeltas(
-              localTick,
-              packet,
-              active,
-              removed);
+            RailServerPacket packet = PrepareSend<RailServerPacket>(localTick);
+            Scope.PopulateDeltas(
+                localTick,
+                packet,
+                active,
+                removed);
             base.SendPacket(packet);
 
             foreach (RailStateDelta delta in packet.Sent)
-                this.Scope.RegisterSent(
-                  delta.EntityId,
-                  localTick,
-                  delta.IsFrozen);
+                Scope.RegisterSent(
+                    delta.EntityId,
+                    localTick,
+                    delta.IsFrozen);
         }
 
         protected override void ProcessPacket(RailPacket packet, Tick localTick)
         {
             base.ProcessPacket(packet, localTick);
 
-            RailClientPacket clientPacket = (RailClientPacket)packet;
-            this.Scope.IntegrateAcked(clientPacket.View);
-            this.PacketReceived?.Invoke(this, clientPacket);
+            RailClientPacket clientPacket = (RailClientPacket) packet;
+            Scope.IntegrateAcked(clientPacket.View);
+            PacketReceived?.Invoke(this, clientPacket);
         }
     }
 }

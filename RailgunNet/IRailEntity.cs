@@ -23,7 +23,7 @@ namespace Railgun
     public interface IRailEntity
     {
         /// <summary>
-        /// Used internally within Railgun to downcast.
+        ///     Used internally within Railgun to downcast.
         /// </summary>
         RailEntity AsBase { get; }
 
@@ -61,10 +61,10 @@ namespace Railgun
     }
 
     /// <summary>
-    /// Handy shortcut class for auto-casting the state.
+    ///     Handy shortcut class for auto-casting the state.
     /// </summary>
     public interface IRailEntity<TState> : IRailEntity
-      where TState : RailState, new()
+        where TState : RailState, new()
     {
         TState State { get; }
 

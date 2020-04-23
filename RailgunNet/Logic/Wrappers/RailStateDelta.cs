@@ -21,75 +21,83 @@
 namespace Railgun
 {
     public class RailStateDelta
-      : IRailPoolable<RailStateDelta>
-      , IRailTimedValue
+        : IRailPoolable<RailStateDelta>
+            , IRailTimedValue
     {
-        #region Pooling
-        IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
-        void IRailPoolable<RailStateDelta>.Reset() { this.Reset(); }
-        #endregion
+        private RailState state;
+
+        public RailStateDelta()
+        {
+            Reset();
+        }
+
+        public Tick Tick { get; private set; }
+
+        public EntityId EntityId { get; private set; }
+
+        public RailState State => state;
+        public bool IsFrozen { get; set; }
+
+        public bool HasControllerData => state.HasControllerData;
+        public bool HasImmutableData => state.HasImmutableData;
+        public bool IsRemoving => RemovedTick.IsValid;
+        public Tick RemovedTick { get; private set; }
+        public Tick CommandAck { get; private set; } // Controller only
 
         #region Interface
-        Tick IRailTimedValue.Tick { get { return this.tick; } }
+
+        Tick IRailTimedValue.Tick => Tick;
+
         #endregion
 
         public static RailStateDelta CreateFrozen(
-      RailResource resource,
-      Tick tick,
-      EntityId entityId)
+            RailResource resource,
+            Tick tick,
+            EntityId entityId)
         {
             RailStateDelta delta = resource.CreateDelta();
             delta.Initialize(tick, entityId, null, Tick.INVALID, Tick.INVALID, true);
             return delta;
         }
 
-        public Tick Tick { get { return this.tick; } }
-        public EntityId EntityId { get { return this.entityId; } }
-        public RailState State { get { return this.state; } }
-        public bool IsFrozen { get; set; }
-
-        public bool HasControllerData { get { return this.state.HasControllerData; } }
-        public bool HasImmutableData { get { return this.state.HasImmutableData; } }
-        public bool IsRemoving { get { return this.RemovedTick.IsValid; } }
-        public Tick RemovedTick { get; private set; }
-        public Tick CommandAck { get; private set; } // Controller only
-
-        private Tick tick;
-        private EntityId entityId;
-        private RailState state;
-
         public RailEntity ProduceEntity(RailResource resource)
         {
-            return this.state.ProduceEntity(resource);
+            return state.ProduceEntity(resource);
         }
 
         public void Initialize(
-          Tick tick,
-          EntityId entityId,
-          RailState state,
-          Tick removedTick,
-          Tick commandAck,
-          bool isFrozen)
+            Tick tick,
+            EntityId entityId,
+            RailState state,
+            Tick removedTick,
+            Tick commandAck,
+            bool isFrozen)
         {
-            this.tick = tick;
-            this.entityId = entityId;
+            this.Tick = tick;
+            this.EntityId = entityId;
             this.state = state;
-            this.RemovedTick = removedTick;
-            this.CommandAck = commandAck;
-            this.IsFrozen = isFrozen;
-        }
-
-        public RailStateDelta()
-        {
-            this.Reset();
+            RemovedTick = removedTick;
+            CommandAck = commandAck;
+            IsFrozen = isFrozen;
         }
 
         private void Reset()
         {
-            this.tick = Tick.INVALID;
-            this.entityId = EntityId.INVALID;
-            RailPool.SafeReplace(ref this.state, null);
-            this.IsFrozen = false;
+            Tick = Tick.INVALID;
+            EntityId = EntityId.INVALID;
+            RailPool.SafeReplace(ref state, null);
+            IsFrozen = false;
         }
+
+        #region Pooling
+
+        IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
+
+        void IRailPoolable<RailStateDelta>.Reset()
+        {
+            Reset();
+        }
+
+        #endregion
     }
 }

@@ -28,30 +28,30 @@ namespace Railgun
         public static void LogNotify(object message)
         {
             Console.WriteLine(
-              "NOTIFY: {0} [Railgun]",
-              message);
+                "NOTIFY: {0} [Railgun]",
+                message);
         }
 
         public static void LogWarning(object message)
         {
             Console.WriteLine(
-              "WARNING: {0} [Railgun]",
-              message);
+                "WARNING: {0} [Railgun]",
+                message);
         }
 
         public static void LogError(object message)
         {
             Console.Error.WriteLine(
-              "ERROR: {0} [Railgun]\n {1}",
-              message,
-              Environment.StackTrace);
+                "ERROR: {0} [Railgun]\n {1}",
+                message,
+                Environment.StackTrace);
         }
 
         [Conditional("DEBUG")]
         public static void Assert(bool condition, string message = null)
         {
             if (condition == false)
-                RailDebug.LogError("Assert Failed: " + message);
+                LogError("Assert Failed: " + message);
         }
     }
 }

@@ -23,53 +23,54 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// A rolling queue that maintains entries in order. Designed to access
-    /// the entry at a given tick, or the most recent entry before it.
+    ///     A rolling queue that maintains entries in order. Designed to access
+    ///     the entry at a given tick, or the most recent entry before it.
     /// </summary>
-    class RailQueueBuffer<T>
-      where T : class, IRailTimedValue, IRailPoolable<T>
+    internal class RailQueueBuffer<T>
+        where T : class, IRailTimedValue, IRailPoolable<T>
     {
+        private readonly int capacity;
+
+        private readonly Queue<T> data;
+
+        public RailQueueBuffer(int capacity)
+        {
+            Latest = null;
+            this.capacity = capacity;
+            data = new Queue<T>();
+        }
+
+        public T Latest { get; private set; }
+
         private static IEnumerable<T> Remainder(
-          T latest,
-          Queue<T>.Enumerator enumerator)
+            T latest,
+            Queue<T>.Enumerator enumerator)
         {
             yield return latest;
             while (enumerator.MoveNext())
                 yield return enumerator.Current;
         }
 
-        public T Latest { get; private set; }
-
-        private readonly Queue<T> data;
-        private readonly int capacity;
-
-        public RailQueueBuffer(int capacity)
-        {
-            this.Latest = null;
-            this.capacity = capacity;
-            this.data = new Queue<T>();
-        }
-
         public void Store(T val)
         {
-            if (this.data.Count >= this.capacity)
-                RailPool.Free(this.data.Dequeue());
-            this.data.Enqueue(val);
-            this.Latest = val;
+            if (data.Count >= capacity)
+                RailPool.Free(data.Dequeue());
+            data.Enqueue(val);
+            Latest = val;
         }
 
         /// <summary>
-        /// Returns the first value with a tick less than or equal to the given
-        /// tick, followed by all subsequent values stored. If no value has a tick
-        /// less than or equal to the given one, this function returns null.
+        ///     Returns the first value with a tick less than or equal to the given
+        ///     tick, followed by all subsequent values stored. If no value has a tick
+        ///     less than or equal to the given one, this function returns null.
         /// </summary>
         public IEnumerable<T> LatestFrom(Tick tick)
         {
             if (tick.IsValid == false)
                 return null;
 
-            var head = this.data.GetEnumerator();
-            var tail = this.data.GetEnumerator();
+            Queue<T>.Enumerator head = data.GetEnumerator();
+            Queue<T>.Enumerator tail = data.GetEnumerator();
 
             // Find the value at the given tick. TODO: Binary search?
             T latest = null;
@@ -85,18 +86,18 @@ namespace Railgun
 
             if (latest == null)
                 return null;
-            return RailQueueBuffer<T>.Remainder(latest, tail);
+            return Remainder(latest, tail);
         }
 
         /// <summary>
-        /// Clears the buffer, freeing all contents.
+        ///     Clears the buffer, freeing all contents.
         /// </summary>
         public void Clear()
         {
-            foreach (T val in this.data)
+            foreach (T val in data)
                 RailPool.Free(val);
-            this.data.Clear();
-            this.Latest = null;
+            data.Clear();
+            Latest = null;
         }
     }
 }

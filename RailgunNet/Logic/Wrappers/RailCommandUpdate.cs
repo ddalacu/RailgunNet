@@ -23,22 +23,29 @@ using System.Collections.Generic;
 namespace Railgun
 {
     public class RailCommandUpdate
-      : IRailPoolable<RailCommandUpdate>
+        : IRailPoolable<RailCommandUpdate>
     {
         private const int BUFFER_CAPACITY =
-          RailConfig.COMMAND_SEND_COUNT;
+            RailConfig.COMMAND_SEND_COUNT;
+
         private static readonly int BUFFER_COUNT_BITS =
-          RailUtil.Log2(RailCommandUpdate.BUFFER_CAPACITY) + 1;
+            RailUtil.Log2(BUFFER_CAPACITY) + 1;
 
         #region Pooling
+
         IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
-        void IRailPoolable<RailCommandUpdate>.Reset() { this.Reset(); }
+
+        void IRailPoolable<RailCommandUpdate>.Reset()
+        {
+            Reset();
+        }
+
         #endregion
 
         public static RailCommandUpdate Create(
-          RailResource resource,
-          EntityId entityId,
-          IEnumerable<RailCommand> commands)
+            RailResource resource,
+            EntityId entityId,
+            IEnumerable<RailCommand> commands)
         {
             RailCommandUpdate update = resource.CreateCommandUpdate();
             update.Initialize(entityId, commands);
@@ -49,33 +56,33 @@ namespace Railgun
         public IRailEntity Entity { get; set; }
 #endif
 
-        public EntityId EntityId { get { return this.entityId; } }
-        public IEnumerable<RailCommand> Commands { get { return this.commands.GetValues(); } }
+        public EntityId EntityId { get; private set; }
 
-        private EntityId entityId;
+        public IEnumerable<RailCommand> Commands => commands.GetValues();
+
         private readonly RailRollingBuffer<RailCommand> commands;
 
         public RailCommandUpdate()
         {
-            this.entityId = EntityId.INVALID;
-            this.commands =
-              new RailRollingBuffer<RailCommand>(
-                RailCommandUpdate.BUFFER_CAPACITY);
+            EntityId = EntityId.INVALID;
+            commands =
+                new RailRollingBuffer<RailCommand>(
+                    BUFFER_CAPACITY);
         }
 
         private void Initialize(
-          EntityId entityId,
-          IEnumerable<RailCommand> outgoingCommands)
+            EntityId entityId,
+            IEnumerable<RailCommand> outgoingCommands)
         {
-            this.entityId = entityId;
+            this.EntityId = entityId;
             foreach (RailCommand command in outgoingCommands)
-                this.commands.Store(command);
+                commands.Store(command);
         }
 
         private void Reset()
         {
-            this.entityId = EntityId.INVALID;
-            this.commands.Clear();
+            EntityId = EntityId.INVALID;
+            commands.Clear();
         }
 
 #if CLIENT
@@ -95,16 +102,16 @@ namespace Railgun
 
 #if SERVER
         public static RailCommandUpdate Decode(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
             RailCommandUpdate update = resource.CreateCommandUpdate();
 
             // Read: [EntityId]
-            update.entityId = buffer.ReadEntityId();
+            update.EntityId = buffer.ReadEntityId();
 
             // Read: [Count]
-            int count = (int)buffer.Read(BUFFER_COUNT_BITS);
+            int count = (int) buffer.Read(BUFFER_COUNT_BITS);
 
             // Read: [Commands]
             for (int i = 0; i < count; i++)

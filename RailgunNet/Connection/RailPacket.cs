@@ -28,195 +28,206 @@ namespace Railgun
     }
 
     public abstract class RailPacket
-      : IRailPoolable<RailPacket>
-      , IRailPacket
+        : IRailPoolable<RailPacket>
+            , IRailPacket
     {
-        #region Pooling
-        IRailMemoryPool<RailPacket> IRailPoolable<RailPacket>.Pool { get; set; }
-        void IRailPoolable<RailPacket>.Reset() { this.Reset(); }
-        #endregion
-
-        /// <summary>
-        /// The latest tick from the sender.
-        /// </summary>
-        public Tick SenderTick { get { return this.senderTick; } }
-
-        /// <summary>
-        /// The last tick the sender received.
-        /// </summary>
-        public Tick AckTick { get { return this.ackTick; } }
-
-        /// <summary>
-        /// The last event id the sender received.
-        /// </summary>
-        public SequenceId AckEventId { get { return this.ackEventId; } }
-
-        /// <summary>
-        /// All received events from the sender, in order.
-        /// </summary>
-        public IEnumerable<RailEvent> Events { get { return this.events; } }
-
-        private Tick senderTick;
-        private Tick ackTick;
-        private SequenceId ackEventId;
+        private readonly List<RailEvent> events;
 
         private readonly List<RailEvent> pendingEvents;
-        private readonly List<RailEvent> events;
 
         private int eventsWritten;
 
+        private Tick senderTick;
+
         protected RailPacket()
         {
-            this.senderTick = Tick.INVALID;
-            this.ackTick = Tick.INVALID;
-            this.ackEventId = SequenceId.INVALID;
+            senderTick = Tick.INVALID;
+            AckTick = Tick.INVALID;
+            AckEventId = SequenceId.INVALID;
 
-            this.pendingEvents = new List<RailEvent>();
-            this.events = new List<RailEvent>();
-            this.eventsWritten = 0;
+            pendingEvents = new List<RailEvent>();
+            events = new List<RailEvent>();
+            eventsWritten = 0;
         }
 
+        /// <summary>
+        ///     The latest tick from the sender.
+        /// </summary>
+        public Tick SenderTick => senderTick;
+
+        /// <summary>
+        ///     The last tick the sender received.
+        /// </summary>
+        public Tick AckTick { get; private set; }
+
+        /// <summary>
+        ///     The last event id the sender received.
+        /// </summary>
+        public SequenceId AckEventId { get; private set; }
+
+        /// <summary>
+        ///     All received events from the sender, in order.
+        /// </summary>
+        public IEnumerable<RailEvent> Events => events;
+
         public void Initialize(
-          Tick senderTick,
-          Tick ackTick,
-          SequenceId ackEventId,
-          IEnumerable<RailEvent> events)
+            Tick senderTick,
+            Tick ackTick,
+            SequenceId ackEventId,
+            IEnumerable<RailEvent> events)
         {
             this.senderTick = senderTick;
-            this.ackTick = ackTick;
-            this.ackEventId = ackEventId;
+            AckTick = ackTick;
+            AckEventId = ackEventId;
 
-            this.pendingEvents.AddRange(events);
-            this.eventsWritten = 0;
+            pendingEvents.AddRange(events);
+            eventsWritten = 0;
         }
 
         public virtual void Reset()
         {
-            this.senderTick = Tick.INVALID;
-            this.ackTick = Tick.INVALID;
-            this.ackEventId = SequenceId.INVALID;
+            senderTick = Tick.INVALID;
+            AckTick = Tick.INVALID;
+            AckEventId = SequenceId.INVALID;
 
-            this.pendingEvents.Clear();
-            this.events.Clear();
-            this.eventsWritten = 0;
+            pendingEvents.Clear();
+            events.Clear();
+            eventsWritten = 0;
         }
 
+        #region Pooling
+
+        IRailMemoryPool<RailPacket> IRailPoolable<RailPacket>.Pool { get; set; }
+
+        void IRailPoolable<RailPacket>.Reset()
+        {
+            Reset();
+        }
+
+        #endregion
+
         #region Encoding/Decoding
+
         protected abstract void EncodePayload(
-          RailResource resource,
-          RailBitBuffer buffer,
-          Tick localTick,
-          int reservedBytes);
+            RailResource resource,
+            RailBitBuffer buffer,
+            Tick localTick,
+            int reservedBytes);
+
         protected abstract void DecodePayload(
-          RailResource resource,
-          RailBitBuffer buffer);
+            RailResource resource,
+            RailBitBuffer buffer);
 
         /// <summary>
-        /// After writing the header we write the packet data in three passes.
-        /// The first pass is a fill of events up to a percentage of the packet.
-        /// The second pass is the payload value, which will try to fill the
-        /// remaining packet space. If more space is available, we will try
-        /// to fill it with any remaining events, up to the maximum packet size.
+        ///     After writing the header we write the packet data in three passes.
+        ///     The first pass is a fill of events up to a percentage of the packet.
+        ///     The second pass is the payload value, which will try to fill the
+        ///     remaining packet space. If more space is available, we will try
+        ///     to fill it with any remaining events, up to the maximum packet size.
         /// </summary>
         public void Encode(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
             // Write: [Header]
-            this.EncodeHeader(buffer);
+            EncodeHeader(buffer);
 
             // Write: [Events] (Early Pack)
-            this.EncodeEvents(resource, buffer, RailConfig.PACKCAP_EARLY_EVENTS);
+            EncodeEvents(resource, buffer, RailConfig.PACKCAP_EARLY_EVENTS);
 
             // Write: [Payload] (+1 byte for the event count)
-            this.EncodePayload(resource, buffer, this.senderTick, 1);
+            EncodePayload(resource, buffer, senderTick, 1);
 
             // Write: [Events] (Fill Pack)
-            this.EncodeEvents(resource, buffer, RailConfig.PACKCAP_MESSAGE_TOTAL);
+            EncodeEvents(resource, buffer, RailConfig.PACKCAP_MESSAGE_TOTAL);
         }
 
         public void Decode(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
             // Read: [Header]
-            this.DecodeHeader(buffer);
+            DecodeHeader(buffer);
 
             // Read: [Events] (Early Pack)
-            this.DecodeEvents(resource, buffer);
+            DecodeEvents(resource, buffer);
 
             // Read: [Payload]
-            this.DecodePayload(resource, buffer);
+            DecodePayload(resource, buffer);
 
             // Read: [Events] (Fill Pack)
-            this.DecodeEvents(resource, buffer);
+            DecodeEvents(resource, buffer);
         }
 
         #region Header
+
         private void EncodeHeader(RailBitBuffer buffer)
         {
-            RailDebug.Assert(this.senderTick.IsValid);
+            RailDebug.Assert(senderTick.IsValid);
 
             // Write: [LocalTick]
-            buffer.WriteTick(this.senderTick);
+            buffer.WriteTick(senderTick);
 
             // Write: [AckTick]
-            buffer.WriteTick(this.ackTick);
+            buffer.WriteTick(AckTick);
 
             // Write: [AckReliableEventId]
-            buffer.WriteSequenceId(this.ackEventId);
+            buffer.WriteSequenceId(AckEventId);
         }
 
         private void DecodeHeader(RailBitBuffer buffer)
         {
             // Read: [LocalTick]
-            this.senderTick = buffer.ReadTick();
+            senderTick = buffer.ReadTick();
 
             // Read: [AckTick]
-            this.ackTick = buffer.ReadTick();
+            AckTick = buffer.ReadTick();
 
             // Read: [AckReliableEventId]
-            this.ackEventId = buffer.ReadSequenceId();
+            AckEventId = buffer.ReadSequenceId();
         }
 
         #endregion
 
         #region Events
+
         /// <summary>
-        /// Writes as many events as possible up to maxSize and returns the number
-        /// of events written in the batch. Also increments the total counter.
+        ///     Writes as many events as possible up to maxSize and returns the number
+        ///     of events written in the batch. Also increments the total counter.
         /// </summary>
         private void EncodeEvents(
-          RailResource resource,
-          RailBitBuffer buffer,
-          int maxSize)
+            RailResource resource,
+            RailBitBuffer buffer,
+            int maxSize)
         {
-            this.eventsWritten +=
-              buffer.PackToSize(
-                maxSize,
-                RailConfig.MAXSIZE_EVENT,
-                this.GetNextEvents(),
-                (evnt) => evnt.Encode(resource, buffer, this.senderTick),
-                (evnt) => evnt.RegisterSent());
+            eventsWritten +=
+                buffer.PackToSize(
+                    maxSize,
+                    RailConfig.MAXSIZE_EVENT,
+                    GetNextEvents(),
+                    evnt => evnt.Encode(resource, buffer, senderTick),
+                    evnt => evnt.RegisterSent());
         }
 
         private void DecodeEvents(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
             IEnumerable<RailEvent> decoded =
-              buffer.UnpackAll(
-                () => RailEvent.Decode(resource, buffer, this.SenderTick));
+                buffer.UnpackAll(
+                    () => RailEvent.Decode(resource, buffer, SenderTick));
             foreach (RailEvent evnt in decoded)
-                this.events.Add(evnt);
+                events.Add(evnt);
         }
 
         private IEnumerable<RailEvent> GetNextEvents()
         {
-            for (int i = this.eventsWritten; i < this.pendingEvents.Count; i++)
-                yield return this.pendingEvents[i];
+            for (int i = eventsWritten; i < pendingEvents.Count; i++)
+                yield return pendingEvents[i];
         }
+
         #endregion
+
         #endregion
     }
 }

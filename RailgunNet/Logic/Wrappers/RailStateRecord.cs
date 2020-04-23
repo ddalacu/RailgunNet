@@ -21,39 +21,37 @@
 namespace Railgun
 {
     /// <summary>
-    /// Used to differentiate/typesafe state records. Not strictly necessary.
+    ///     Used to differentiate/typesafe state records. Not strictly necessary.
     /// </summary>
     [OnlyIn(Component.Server)]
     public class RailStateRecord
-    : IRailTimedValue
-    , IRailPoolable<RailStateRecord>
+        : IRailTimedValue
+            , IRailPoolable<RailStateRecord>
     {
-        #region Pooling
-        IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
-        void IRailPoolable<RailStateRecord>.Reset() { this.Reset(); }
-        #endregion
-
-        #region Interface
-        Tick IRailTimedValue.Tick { get { return this.tick; } }
-        #endregion
-
-        public bool IsValid { get { return this.tick.IsValid; } }
-        public RailState State { get { return this.state; } }
-        Tick Tick { get { return this.tick; } }
+        private RailState state;
 
         private Tick tick;
-        private RailState state;
 
         public RailStateRecord()
         {
-            this.state = null;
-            this.tick = Tick.INVALID;
+            state = null;
+            tick = Tick.INVALID;
         }
 
+        public bool IsValid => tick.IsValid;
+        public RailState State => state;
+        private Tick Tick => tick;
+
+        #region Interface
+
+        Tick IRailTimedValue.Tick => tick;
+
+        #endregion
+
         public void Overwrite(
-          RailResource resource,
-          Tick tick,
-          RailState state)
+            RailResource resource,
+            Tick tick,
+            RailState state)
         {
             RailDebug.Assert(tick.IsValid);
 
@@ -66,13 +64,24 @@ namespace Railgun
 
         public void Invalidate()
         {
-            this.tick = Tick.INVALID;
+            tick = Tick.INVALID;
         }
 
         private void Reset()
         {
-            this.tick = Tick.INVALID;
-            RailPool.SafeReplace(ref this.state, null);
+            tick = Tick.INVALID;
+            RailPool.SafeReplace(ref state, null);
         }
+
+        #region Pooling
+
+        IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
+
+        void IRailPoolable<RailStateRecord>.Reset()
+        {
+            Reset();
+        }
+
+        #endregion
     }
 }

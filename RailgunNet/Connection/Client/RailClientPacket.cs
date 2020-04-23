@@ -30,43 +30,43 @@ namespace Railgun
 #endif
 
     /// <summary>
-    /// Packet sent from client to server.
+    ///     Packet sent from client to server.
     /// </summary>
     public class RailClientPacket
-      : RailPacket
+        : RailPacket
 #if SERVER
-    , IRailClientPacket
+            , IRailClientPacket
 #endif
     {
         #region Interface
+
 #if SERVER
-        IEnumerable<RailCommandUpdate> IRailClientPacket.CommandUpdates { get { return this.commandUpdates.Received; } }
+        IEnumerable<RailCommandUpdate> IRailClientPacket.CommandUpdates => commandUpdates.Received;
 #endif
+
         #endregion
 
 #if SERVER
-        public RailView View { get { return this.view; } }
+        public RailView View { get; }
 #endif
 #if CLIENT
         public IEnumerable<RailCommandUpdate> Sent { get { return this.commandUpdates.Sent; } }
 #endif
 
-        private readonly RailView view;
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
 
         public RailClientPacket()
-          : base()
         {
-            this.view = new RailView();
-            this.commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
+            View = new RailView();
+            commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
         }
 
         public override void Reset()
         {
             base.Reset();
 
-            this.view.Clear();
-            this.commandUpdates.Clear();
+            View.Clear();
+            commandUpdates.Clear();
         }
 
 #if CLIENT
@@ -82,11 +82,12 @@ namespace Railgun
 #endif
 
         #region Encode/Decode
+
         protected override void EncodePayload(
-          RailResource resource,
-          RailBitBuffer buffer,
-          Tick localTick,
-          int reservedBytes)
+            RailResource resource,
+            RailBitBuffer buffer,
+            Tick localTick,
+            int reservedBytes)
         {
 #if CLIENT
             // Write: [Commands]
@@ -125,44 +126,45 @@ namespace Railgun
         }
 
         protected override void DecodePayload(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
 #if SERVER
             // Read: [Commands]
-            this.DecodeCommands(resource, buffer);
+            DecodeCommands(resource, buffer);
 
             // Read: [View]
-            this.DecodeView(buffer);
+            DecodeView(buffer);
         }
 
         protected void DecodeCommands(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
-            this.commandUpdates.Decode(
-              buffer,
-              () => RailCommandUpdate.Decode(resource, buffer));
+            commandUpdates.Decode(
+                buffer,
+                () => RailCommandUpdate.Decode(resource, buffer));
         }
 
         public void DecodeView(RailBitBuffer buffer)
         {
             IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
-              buffer.UnpackAll(
-                () =>
-                {
-                    return new KeyValuePair<EntityId, RailViewEntry>(
-                buffer.ReadEntityId(),  // Read: [EntityId] 
-                new RailViewEntry(
-                  buffer.ReadTick(),    // Read: [LastReceivedTick]
-                  Tick.INVALID,         // (Local tick not transmitted)
-                  buffer.ReadBool()));  // Read: [IsFrozen]
-          });
+                buffer.UnpackAll(
+                    () =>
+                    {
+                        return new KeyValuePair<EntityId, RailViewEntry>(
+                            buffer.ReadEntityId(), // Read: [EntityId] 
+                            new RailViewEntry(
+                                buffer.ReadTick(), // Read: [LastReceivedTick]
+                                Tick.INVALID, // (Local tick not transmitted)
+                                buffer.ReadBool())); // Read: [IsFrozen]
+                    });
 
-            foreach (var pair in decoded)
-                this.view.RecordUpdate(pair.Key, pair.Value);
+            foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
+                View.RecordUpdate(pair.Key, pair.Value);
 #endif
         }
+
         #endregion
     }
 }

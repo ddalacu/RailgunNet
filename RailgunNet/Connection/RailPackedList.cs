@@ -23,16 +23,16 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-    class RailPackedListS2C<T>
-      where T : IRailPoolable<T>
+    internal class RailPackedListS2C<T>
+        where T : IRailPoolable<T>
     {
 #if CLIENT
         public IEnumerable<T> Received { get { return this.received; } }
         private readonly List<T> received;
 #endif
 #if SERVER
-        public IEnumerable<T> Pending { get { return this.pending; } }
-        public IEnumerable<T> Sent { get { return this.sent; } }
+        public IEnumerable<T> Pending => pending;
+        public IEnumerable<T> Sent => sent;
         private readonly List<T> pending;
         private readonly List<T> sent;
 #endif
@@ -43,8 +43,8 @@ namespace Railgun
             this.received = new List<T>();
 #endif
 #if SERVER
-            this.pending = new List<T>();
-            this.sent = new List<T>();
+            pending = new List<T>();
+            sent = new List<T>();
 #endif
         }
 
@@ -56,10 +56,10 @@ namespace Railgun
 #endif
 #if SERVER
             // Everything in sent is also in pending, so only free pending
-            foreach (T value in this.pending)
+            foreach (T value in pending)
                 RailPool.Free(value);
-            this.pending.Clear();
-            this.sent.Clear();
+            pending.Clear();
+            sent.Clear();
 #endif
         }
 
@@ -76,35 +76,35 @@ namespace Railgun
 #if SERVER
         public void AddPending(T value)
         {
-            this.pending.Add(value);
+            pending.Add(value);
         }
 
         public void AddPending(IEnumerable<T> values)
         {
-            this.pending.AddRange(values);
+            pending.AddRange(values);
         }
 
         public void Encode(
-          RailBitBuffer buffer,
-          int maxTotalSize,
-          int maxIndividualSize,
-          Action<T> encode)
+            RailBitBuffer buffer,
+            int maxTotalSize,
+            int maxIndividualSize,
+            Action<T> encode)
         {
             buffer.PackToSize(
-              maxTotalSize,
-              maxIndividualSize,
-              this.pending,
-              encode,
-              (val) => this.sent.Add(val));
+                maxTotalSize,
+                maxIndividualSize,
+                pending,
+                encode,
+                val => sent.Add(val));
         }
 #endif
     }
 
-    class RailPackedListC2S<T>
-      where T : IRailPoolable<T>
+    internal class RailPackedListC2S<T>
+        where T : IRailPoolable<T>
     {
 #if SERVER
-        public IEnumerable<T> Received { get { return this.received; } }
+        public IEnumerable<T> Received => received;
         private readonly List<T> received;
 #endif
 #if CLIENT
@@ -117,7 +117,7 @@ namespace Railgun
         public RailPackedListC2S()
         {
 #if SERVER
-            this.received = new List<T>();
+            received = new List<T>();
 #endif
 #if CLIENT
             this.pending = new List<T>();
@@ -129,7 +129,7 @@ namespace Railgun
         {
 #if SERVER
             // We don't free the received values as they will be passed elsewhere
-            this.received.Clear();
+            received.Clear();
 #endif
 #if CLIENT
             // Everything in sent is also in pending, so only free pending
@@ -142,12 +142,12 @@ namespace Railgun
 
 #if SERVER
         public void Decode(
-          RailBitBuffer buffer,
-          Func<T> decode)
+            RailBitBuffer buffer,
+            Func<T> decode)
         {
             IEnumerable<T> decoded = buffer.UnpackAll(decode);
             foreach (T delta in decoded)
-                this.received.Add(delta);
+                received.Add(delta);
         }
 #endif
 #if CLIENT

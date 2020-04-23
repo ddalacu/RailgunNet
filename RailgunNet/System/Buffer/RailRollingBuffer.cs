@@ -24,18 +24,16 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// A rolling buffer that contains a sliding window of the most recent
-    /// stored values.
+    ///     A rolling buffer that contains a sliding window of the most recent
+    ///     stored values.
     /// </summary>
-    class RailRollingBuffer<T>
+    internal class RailRollingBuffer<T>
     {
-        public int Count { get { return this.count; } }
-
-        private int count;
-        private int start;
+        private readonly int capacity;
 
         private readonly T[] data;
-        private readonly int capacity;
+
+        private int start;
 
         public RailRollingBuffer(int capacity)
         {
@@ -44,46 +42,48 @@ namespace Railgun
 
             this.capacity = capacity;
 
-            this.data = new T[capacity];
-            this.count = 0;
-            this.start = 0;
+            data = new T[capacity];
+            Count = 0;
+            start = 0;
         }
+
+        public int Count { get; private set; }
 
         public void Clear()
         {
-            this.count = 0;
-            this.start = 0;
+            Count = 0;
+            start = 0;
         }
 
         /// <summary>
-        /// Stores a value as latest.
+        ///     Stores a value as latest.
         /// </summary>
         public void Store(T value)
         {
-            if (this.count < this.capacity)
+            if (Count < capacity)
             {
-                this.data[this.count++] = value;
-                this.IncrementStart();
+                data[Count++] = value;
+                IncrementStart();
             }
             else
             {
-                this.data[this.start] = value;
-                this.IncrementStart();
+                data[start] = value;
+                IncrementStart();
             }
         }
 
         /// <summary>
-        /// Returns all values, but not in order.
+        ///     Returns all values, but not in order.
         /// </summary>
         public IEnumerable<T> GetValues()
         {
-            for (int i = 0; i < this.count; i++)
-                yield return this.data[i];
+            for (int i = 0; i < Count; i++)
+                yield return data[i];
         }
 
         private void IncrementStart()
         {
-            this.start = (this.start + 1) % this.capacity;
+            start = (start + 1) % capacity;
         }
     }
 }

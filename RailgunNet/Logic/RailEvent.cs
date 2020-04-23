@@ -32,44 +32,26 @@ namespace Railgun
     }
 
     /// <summary>
-    /// Events are sent attached to entities and represent temporary changes
-    /// in status. They can be sent to specific controllers or broadcast to all
-    /// controllers for whom the entity is in scope.
+    ///     Events are sent attached to entities and represent temporary changes
+    ///     in status. They can be sent to specific controllers or broadcast to all
+    ///     controllers for whom the entity is in scope.
     /// </summary>
     public abstract class RailEvent
-      : IRailPoolable<RailEvent>
+        : IRailPoolable<RailEvent>
     {
-        #region Pooling
-        IRailMemoryPool<RailEvent> IRailPoolable<RailEvent>.Pool { get; set; }
-        void IRailPoolable<RailEvent>.Reset() { this.Reset(); }
-        #endregion
-
-        public static TEvent Create<TEvent>(RailResource resource)
-          where TEvent : RailEvent
-        {
-            int factoryType = resource.GetEventFactoryType<TEvent>();
-            TEvent evnt = (TEvent)RailEvent.Create(resource, factoryType);
-            return evnt;
-        }
-
-        private static RailEvent Create(RailResource resource, int factoryType)
-        {
-            RailEvent evnt = resource.CreateEvent(factoryType);
-            evnt.factoryType = factoryType;
-            return evnt;
-        }
+        private int factoryType;
 
         /// <summary>
-        /// Whether or not this event can be sent to a frozen entity.
-        /// TODO: NOT FULLY IMPLEMENTED
+        ///     Whether or not this event can be sent to a frozen entity.
+        ///     TODO: NOT FULLY IMPLEMENTED
         /// </summary>
-        protected virtual bool CanSendToFrozen { get { return false; } }
+        protected virtual bool CanSendToFrozen => false;
 
         /// <summary>
-        /// Whether or not this event can be sent by someone other than the
-        /// controller of the entity. Ignored on clients.
+        ///     Whether or not this event can be sent by someone other than the
+        ///     controller of the entity. Ignored on clients.
         /// </summary>
-        protected virtual bool CanProxySend { get { return false; } }
+        protected virtual bool CanProxySend => false;
 
         // Synchronized
         public SequenceId EventId { get; set; }
@@ -80,28 +62,43 @@ namespace Railgun
         public RailRoom Room { get; private set; }
         public RailController Sender { get; private set; }
 
-        public TEntity Find<TEntity>(
-          EntityId id,
-          RailPolicy policy = RailPolicy.All)
-          where TEntity : class, IRailEntity
+        public static TEvent Create<TEvent>(RailResource resource)
+            where TEvent : RailEvent
         {
-            if (this.Room == null)
+            int factoryType = resource.GetEventFactoryType<TEvent>();
+            TEvent evnt = (TEvent) Create(resource, factoryType);
+            return evnt;
+        }
+
+        private static RailEvent Create(RailResource resource, int factoryType)
+        {
+            RailEvent evnt = resource.CreateEvent(factoryType);
+            evnt.factoryType = factoryType;
+            return evnt;
+        }
+
+        public TEntity Find<TEntity>(
+            EntityId id,
+            RailPolicy policy = RailPolicy.All)
+            where TEntity : class, IRailEntity
+        {
+            if (Room == null)
                 return null;
             if (id.IsValid == false)
                 return null;
 #if SERVER
-            if ((policy == RailPolicy.NoProxy) && (this.Sender == null))
+            if (policy == RailPolicy.NoProxy && Sender == null)
                 return null;
 #endif
 
-            if (this.Room.TryGet(id, out IRailEntity entity) == false)
+            if (Room.TryGet(id, out IRailEntity entity) == false)
                 return null;
 #if CLIENT
             if ((policy == RailPolicy.NoFrozen) && (entity.IsFrozen))
                 return null;
 #endif
 #if SERVER
-            if ((policy == RailPolicy.NoProxy) && (entity.Controller != this.Sender))
+            if (policy == RailPolicy.NoProxy && entity.Controller != Sender)
                 return null;
 #endif
             if (entity is TEntity cast)
@@ -115,16 +112,17 @@ namespace Railgun
         protected abstract void DecodeData(RailBitBuffer buffer, Tick packetTick);
         protected abstract void ResetData();
 
-        protected virtual bool Validate() { return true; }
+        protected virtual bool Validate()
+        {
+            return true;
+        }
 
         protected virtual void Execute(
-          RailRoom room,
-          RailController sender)
+            RailRoom room,
+            RailController sender)
         {
             // Override this to process events
         }
-
-        private int factoryType;
 
         public void Free()
         {
@@ -133,80 +131,92 @@ namespace Railgun
 
         public RailEvent Clone(RailResource resource)
         {
-            RailEvent clone = RailEvent.Create(resource, this.factoryType);
-            clone.EventId = this.EventId;
-            clone.Attempts = this.Attempts;
-            clone.Room = this.Room;
-            clone.Sender = this.Sender;
+            RailEvent clone = Create(resource, factoryType);
+            clone.EventId = EventId;
+            clone.Attempts = Attempts;
+            clone.Room = Room;
+            clone.Sender = Sender;
             clone.SetDataFrom(this);
             return clone;
         }
 
         protected virtual void Reset()
         {
-            this.EventId = SequenceId.INVALID;
-            this.Attempts = 0;
-            this.Room = null;
-            this.Sender = null;
-            this.ResetData();
+            EventId = SequenceId.INVALID;
+            Attempts = 0;
+            Room = null;
+            Sender = null;
+            ResetData();
         }
 
         public void Invoke(
-          RailRoom room,
-          RailController sender)
+            RailRoom room,
+            RailController sender)
         {
-            this.Room = room;
-            this.Sender = sender;
-            if (this.Validate())
-                this.Execute(room, sender);
+            Room = room;
+            Sender = sender;
+            if (Validate())
+                Execute(room, sender);
         }
 
         public void RegisterSent()
         {
-            if (this.Attempts > 0)
-                this.Attempts--;
+            if (Attempts > 0)
+                Attempts--;
         }
 
         public void RegisterSkip()
         {
-            this.RegisterSent();
+            RegisterSent();
         }
+
+        #region Pooling
+
+        IRailMemoryPool<RailEvent> IRailPoolable<RailEvent>.Pool { get; set; }
+
+        void IRailPoolable<RailEvent>.Reset()
+        {
+            Reset();
+        }
+
+        #endregion
 
         #region Encode/Decode/etc.
+
         /// <summary>
-        /// Note that the packetTick may not be the tick this event was created on
-        /// if we're re-trying to send this event in subsequent packets. This tick
-        /// is intended for use in tick diffs for compression.
+        ///     Note that the packetTick may not be the tick this event was created on
+        ///     if we're re-trying to send this event in subsequent packets. This tick
+        ///     is intended for use in tick diffs for compression.
         /// </summary>
         public void Encode(
-          RailResource resource,
-          RailBitBuffer buffer,
-          Tick packetTick)
+            RailResource resource,
+            RailBitBuffer buffer,
+            Tick packetTick)
         {
             // Write: [EventType]
-            buffer.WriteInt(resource.EventTypeCompressor, this.factoryType);
+            buffer.WriteInt(resource.EventTypeCompressor, factoryType);
 
             // Write: [EventId]
-            buffer.WriteSequenceId(this.EventId);
+            buffer.WriteSequenceId(EventId);
 
             // Write: [EventData]
-            this.EncodeData(buffer, packetTick);
+            EncodeData(buffer, packetTick);
         }
 
         /// <summary>
-        /// Note that the packetTick may not be the tick this event was created on
-        /// if we're re-trying to send this event in subsequent packets. This tick
-        /// is intended for use in tick diffs for compression.
+        ///     Note that the packetTick may not be the tick this event was created on
+        ///     if we're re-trying to send this event in subsequent packets. This tick
+        ///     is intended for use in tick diffs for compression.
         /// </summary>
         public static RailEvent Decode(
-          RailResource resource,
-          RailBitBuffer buffer,
-          Tick packetTick)
+            RailResource resource,
+            RailBitBuffer buffer,
+            Tick packetTick)
         {
             // Read: [EventType]
             int factoryType = buffer.ReadInt(resource.EventTypeCompressor);
 
-            RailEvent evnt = RailEvent.Create(resource, factoryType);
+            RailEvent evnt = Create(resource, factoryType);
 
             // Read: [EventId]
             evnt.EventId = buffer.ReadSequenceId();
@@ -216,20 +226,23 @@ namespace Railgun
 
             return evnt;
         }
+
         #endregion
     }
 
     /// <summary>
-    /// This is the class to override to attach user-defined data to an entity.
+    ///     This is the class to override to attach user-defined data to an entity.
     /// </summary>
     public abstract class RailEvent<TDerived> : RailEvent
-      where TDerived : RailEvent<TDerived>, new()
+        where TDerived : RailEvent<TDerived>, new()
     {
         #region Casting Overrides
+
         protected override void SetDataFrom(RailEvent other)
         {
-            this.SetDataFrom((TDerived)other);
+            SetDataFrom((TDerived) other);
         }
+
         #endregion
 
         protected abstract void SetDataFrom(TDerived other);

@@ -19,65 +19,64 @@
  */
 
 #if SERVER
-using System;
 using System.Collections.Generic;
 
 namespace Railgun
 {
-    class RailServerRoom : RailRoom
+    internal class RailServerRoom : RailRoom
     {
         /// <summary>
-        /// Used for creating new entities and assigning them unique ids.
-        /// </summary>
-        private EntityId nextEntityId = EntityId.START;
-
-        /// <summary>
-        /// All client controllers involved in this room. 
-        /// Does not include the server's controller.
+        ///     All client controllers involved in this room.
+        ///     Does not include the server's controller.
         /// </summary>
         private readonly HashSet<RailController> clients;
 
         /// <summary>
-        /// The local Railgun server.
+        ///     The local Railgun server.
         /// </summary>
         private readonly RailServer server;
 
+        /// <summary>
+        ///     Used for creating new entities and assigning them unique ids.
+        /// </summary>
+        private EntityId nextEntityId = EntityId.START;
+
         public RailServerRoom(RailResource resource, RailServer server)
-          : base(resource, server)
+            : base(resource, server)
         {
-            this.clients = new HashSet<RailController>();
+            clients = new HashSet<RailController>();
             this.server = server;
         }
 
         /// <summary>
-        /// Adds an entity to the room. Cannot be done during the update pass.
+        ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
         public override T AddNewEntity<T>()
         {
-            T entity = this.CreateEntity<T>();
-            this.RegisterEntity(entity);
+            T entity = CreateEntity<T>();
+            RegisterEntity(entity);
             return entity;
         }
 
         /// <summary>
-        /// Marks an entity for removal from the room and presumably destruction.
-        /// This is deferred until the next frame.
+        ///     Marks an entity for removal from the room and presumably destruction.
+        ///     This is deferred until the next frame.
         /// </summary>
         public override void MarkForRemoval(IRailEntity entity)
         {
             if (entity.IsRemoving == false)
             {
                 entity.AsBase.MarkForRemoval();
-                this.server.LogRemovedEntity(entity);
+                server.LogRemovedEntity(entity);
             }
         }
 
         public override void BroadcastEvent(
-          RailEvent evnt,
-          ushort attempts = 3,
-          bool freeWhenDone = true)
+            RailEvent evnt,
+            ushort attempts = 3,
+            bool freeWhenDone = true)
         {
-            foreach (RailController client in this.clients)
+            foreach (RailController client in clients)
                 client.SendEvent(evnt, attempts);
             if (freeWhenDone)
                 evnt.Free();
@@ -85,62 +84,62 @@ namespace Railgun
 
         public void AddClient(RailController client)
         {
-            this.clients.Add(client);
-            this.OnClientJoined(client);
+            clients.Add(client);
+            OnClientJoined(client);
         }
 
         public void RemoveClient(RailController client)
         {
-            this.clients.Remove(client);
-            this.OnClientLeft(client);
+            clients.Remove(client);
+            OnClientLeft(client);
         }
 
         public void ServerUpdate()
         {
-            this.Tick = this.Tick.GetNext();
-            this.OnPreRoomUpdate(this.Tick);
+            Tick = Tick.GetNext();
+            OnPreRoomUpdate(Tick);
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntity entity in this.GetAllEntities())
+            foreach (RailEntity entity in GetAllEntities())
                 if (entity.ShouldRemove)
-                    this.toRemove.Add(entity);
+                    toRemove.Add(entity);
                 else
-                    this.toUpdate.Add(entity);
+                    toUpdate.Add(entity);
 
             // Wave 0: Remove all sunsetted entities
-            for (int i = 0; i < this.toRemove.Count; i++)
-                this.RemoveEntity(toRemove[i]);
+            for (int i = 0; i < toRemove.Count; i++)
+                RemoveEntity(toRemove[i]);
 
             // Wave 1: Start/initialize all entities
-            for (int i = 0; i < this.toUpdate.Count; i++)
-                this.toUpdate[i].Startup();
+            for (int i = 0; i < toUpdate.Count; i++)
+                toUpdate[i].Startup();
 
             // Wave 2: Update all entities
-            for (int i = 0; i < this.toUpdate.Count; i++)
-                this.toUpdate[i].ServerUpdate();
+            for (int i = 0; i < toUpdate.Count; i++)
+                toUpdate[i].ServerUpdate();
 
             // Wave 3: Post-update all entities
-            for (int i = 0; i < this.toUpdate.Count; i++)
-                this.toUpdate[i].PostUpdate();
+            for (int i = 0; i < toUpdate.Count; i++)
+                toUpdate[i].PostUpdate();
 
-            this.toRemove.Clear();
-            this.toUpdate.Clear();
-            this.OnPostRoomUpdate(this.Tick);
+            toRemove.Clear();
+            toUpdate.Clear();
+            OnPostRoomUpdate(Tick);
         }
 
         public void StoreStates()
         {
-            foreach (RailEntity entity in this.Entities)
+            foreach (RailEntity entity in Entities)
                 entity.StoreRecord();
         }
 
         private T CreateEntity<T>() where T : RailEntity
         {
-            T entity = RailEntity.Create<T>(this.resource);
-            entity.AssignId(this.nextEntityId);
-            this.nextEntityId = this.nextEntityId.GetNext();
-            return (T)entity;
+            T entity = RailEntity.Create<T>(resource);
+            entity.AssignId(nextEntityId);
+            nextEntityId = nextEntityId.GetNext();
+            return entity;
         }
     }
 }

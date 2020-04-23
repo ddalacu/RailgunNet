@@ -18,37 +18,42 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using System;
-using System.Collections.Generic;
-
 namespace Railgun
 {
     /// <summary>
-    /// Entities represent any object existent in the world. These can be 
-    /// "physical" objects that move around and do things like pawns and
-    /// vehicles, or conceptual objects like scoreboards and teams that 
-    /// mainly serve as blackboards for transmitting state data.
-    /// 
-    /// In order to register an Entity class with Railgun, tag it with the
-    /// [RegisterEntity] attribute. See RailRegistry.cs for more information.
+    ///     Entities represent any object existent in the world. These can be
+    ///     "physical" objects that move around and do things like pawns and
+    ///     vehicles, or conceptual objects like scoreboards and teams that
+    ///     mainly serve as blackboards for transmitting state data.
+    ///     In order to register an Entity class with Railgun, tag it with the
+    ///     [RegisterEntity] attribute. See RailRegistry.cs for more information.
     /// </summary>
     public abstract class RailEntity
-      : IRailPoolable<RailEntity>
-      , IRailEntity
+        : IRailPoolable<RailEntity>
+            , IRailEntity
     {
         #region Pooling
+
         IRailMemoryPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
-        void IRailPoolable<RailEntity>.Reset() { this.Reset(); }
+
+        void IRailPoolable<RailEntity>.Reset()
+        {
+            Reset();
+        }
+
         #endregion
 
         #region Interface
-        RailEntity IRailEntity.AsBase { get { return this; } }
+
+        RailEntity IRailEntity.AsBase => this;
+
         #endregion
 
         #region Creation
+
         public static RailEntity Create(
-          RailResource resource,
-          int factoryType)
+            RailResource resource,
+            int factoryType)
         {
             RailEntity entity = resource.CreateEntity(factoryType);
             entity.resource = resource;
@@ -63,52 +68,88 @@ namespace Railgun
 
 #if SERVER
         public static T Create<T>(
-          RailResource resource)
-          where T : RailEntity
+            RailResource resource)
+            where T : RailEntity
         {
             int factoryType = resource.GetEntityFactoryType<T>();
-            return (T)RailEntity.Create(resource, factoryType);
+            return (T) Create(resource, factoryType);
         }
 #endif
+
         #endregion
 
         #region Override Functions
-        protected virtual void Revert() { }                                    // Called on controller
-        protected virtual void UpdateControlGeneric(RailCommand toPopulate) { } // Called on controller
-        protected virtual void ApplyControlGeneric(RailCommand toApply) { }     // Called on controller and server
-        protected virtual void CommandMissing() { }                            // Called on server
-        protected virtual void UpdateFrozen() { }                              // Called on non-controller client
-        protected virtual void UpdateProxy() { }                               // Called on non-controller client
-        protected virtual void UpdateAuth() { }                                // Called on server
 
-        protected virtual void OnControllerChanged() { }                       // Called on all
-        protected virtual void OnStart() { }                                   // Called on all
-        protected virtual void OnPostUpdate() { }                              // Called on all except frozen
-        protected virtual void OnSunset() { }                                  // Called on server
-        protected virtual void OnShutdown() { }                                // Called on all
+        protected virtual void Revert()
+        {
+        } // Called on controller
+
+        protected virtual void UpdateControlGeneric(RailCommand toPopulate)
+        {
+        } // Called on controller
+
+        protected virtual void ApplyControlGeneric(RailCommand toApply)
+        {
+        } // Called on controller and server
+
+        protected virtual void CommandMissing()
+        {
+        } // Called on server
+
+        protected virtual void UpdateFrozen()
+        {
+        } // Called on non-controller client
+
+        protected virtual void UpdateProxy()
+        {
+        } // Called on non-controller client
+
+        protected virtual void UpdateAuth()
+        {
+        } // Called on server
+
+        protected virtual void OnControllerChanged()
+        {
+        } // Called on all
+
+        protected virtual void OnStart()
+        {
+        } // Called on all
+
+        protected virtual void OnPostUpdate()
+        {
+        } // Called on all except frozen
+
+        protected virtual void OnSunset()
+        {
+        } // Called on server
+
+        protected virtual void OnShutdown()
+        {
+        } // Called on all
 
         protected abstract void OnReset();
 
         // Client-only
-        protected virtual void OnFrozen() { }
-        protected virtual void OnUnfrozen() { }
+        protected virtual void OnFrozen()
+        {
+        }
+
+        protected virtual void OnUnfrozen()
+        {
+        }
+
         #endregion
 
         // Configuration
-        public virtual RailConfig.RailUpdateOrder UpdateOrder
-        {
-            get { return RailConfig.RailUpdateOrder.Normal; }
-        }
+        public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
-        public virtual bool CanFreeze
-        {
-            get { return true; }
-        }
+        public virtual bool CanFreeze => true;
 
         // Simulation info
         public RailRoom Room { get; set; }
         public bool HasStarted { get; private set; }
-        public bool IsRemoving { get { return this.RemovedTick.IsValid; } }
+        public bool IsRemoving => RemovedTick.IsValid;
         public bool IsFrozen { get; private set; }
         public RailController Controller { get; private set; }
 
@@ -119,17 +160,11 @@ namespace Railgun
         public Tick RemovedTick { get; private set; }
 
         /// <summary>
-        /// Whether or not this entity should be removed from a room this tick.
+        ///     Whether or not this entity should be removed from a room this tick.
         /// </summary>
-        public bool ShouldRemove
-        {
-            get
-            {
-                return
-                  this.RemovedTick.IsValid &&
-                  (this.RemovedTick <= this.Room.Tick);
-            }
-        }
+        public bool ShouldRemove =>
+            RemovedTick.IsValid &&
+            RemovedTick <= Room.Tick;
 
         private RailResource resource;
         private int factoryType;
@@ -183,12 +218,12 @@ namespace Railgun
 #if SERVER
             // We use no divisor for storing commands because commands are sent in
             // batches that we can use to fill in the holes between send ticks
-            this.incomingCommands =
-              new RailDejitterBuffer<RailCommand>(
-                RailConfig.DEJITTER_BUFFER_LENGTH);
-            this.outgoingStates =
-              new RailQueueBuffer<RailStateRecord>(
-                RailConfig.DEJITTER_BUFFER_LENGTH);
+            incomingCommands =
+                new RailDejitterBuffer<RailCommand>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
+            outgoingStates =
+                new RailQueueBuffer<RailStateRecord>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
 #endif
 
 #if CLIENT
@@ -200,27 +235,27 @@ namespace Railgun
               new Queue<RailCommand>();
 #endif
 
-            this.Reset();
+            Reset();
         }
 
         private void Reset()
         {
             // TODO: Is this complete/usable?
 
-            this.Room = null;
-            this.HasStarted = false;
-            this.IsFrozen = false;
-            this.resource = null;
+            Room = null;
+            HasStarted = false;
+            IsFrozen = false;
+            resource = null;
 
-            this.Id = EntityId.INVALID;
-            this.Controller = null;
+            Id = EntityId.INVALID;
+            Controller = null;
 
             // We always notify a controller change at start
-            this.deferNotifyControllerChanged = true;
+            deferNotifyControllerChanged = true;
 
 #if SERVER
-            this.outgoingStates.Clear();
-            this.incomingCommands.Clear();
+            outgoingStates.Clear();
+            incomingCommands.Clear();
 #endif
 
 #if CLIENT
@@ -235,15 +270,14 @@ namespace Railgun
             this.nextTick = Tick.INVALID;
 #endif
 
-            this.ResetStates();
-            this.OnReset();
+            ResetStates();
+            OnReset();
         }
 
         private void ResetStates()
         {
-
-            if (this.StateBase != null)
-                RailPool.Free(this.StateBase);
+            if (StateBase != null)
+                RailPool.Free(StateBase);
 #if CLIENT
             if (this.AuthStateBase != null)
                 RailPool.Free(this.AuthStateBase);
@@ -251,7 +285,7 @@ namespace Railgun
                 RailPool.Free(this.NextStateBase);
 #endif
 
-            this.StateBase = null;
+            StateBase = null;
 #if CLIENT
             this.AuthStateBase = null;
             this.NextStateBase = null;
@@ -260,20 +294,21 @@ namespace Railgun
 
         public void AssignId(EntityId id)
         {
-            this.Id = id;
+            Id = id;
         }
 
         public void AssignController(RailController controller)
         {
-            if (this.Controller != controller)
+            if (Controller != controller)
             {
-                this.Controller = controller;
-                this.ClearCommands();
-                this.deferNotifyControllerChanged = true;
+                Controller = controller;
+                ClearCommands();
+                deferNotifyControllerChanged = true;
             }
         }
 
         #region Lifecycle and Loop
+
         public void Startup()
         {
 #if CLIENT
@@ -281,32 +316,32 @@ namespace Railgun
             this.StateBase.OverwriteFrom(this.AuthStateBase);
 #endif
 
-            if (this.HasStarted == false)
-                this.OnStart();
-            this.HasStarted = true;
-            this.NotifyControllerChanged();
+            if (HasStarted == false)
+                OnStart();
+            HasStarted = true;
+            NotifyControllerChanged();
         }
 
 #if SERVER
         public void ServerUpdate()
         {
-            this.UpdateAuth();
+            UpdateAuth();
 
-            RailCommand latest = this.GetLatestCommand();
+            RailCommand latest = GetLatestCommand();
             if (latest != null)
             {
-                this.ApplyControlGeneric(latest);
+                ApplyControlGeneric(latest);
                 latest.IsNewCommand = false;
 
                 // Use the remote tick rather than the last applied tick
                 // because we might be skipping some commands to keep up
-                this.UpdateCommandAck(this.Controller.EstimatedRemoteTick);
+                UpdateCommandAck(Controller.EstimatedRemoteTick);
             }
-            else if (this.Controller != null)
+            else if (Controller != null)
             {
                 // We have no command to work from but might still want to
                 // do an update in the command sequence (if we have a controller)
-                this.CommandMissing();
+                CommandMissing();
             }
         }
 #endif
@@ -341,7 +376,7 @@ namespace Railgun
             if (this.IsFrozen == false)
 #endif
             {
-                this.OnPostUpdate();
+                OnPostUpdate();
             }
         }
 
@@ -350,25 +385,25 @@ namespace Railgun
         {
             // We'll remove on the next tick since we're probably 
             // already mid-way through evaluating this tick
-            this.RemovedTick = this.Room.Tick + 1;
+            RemovedTick = Room.Tick + 1;
 
             // Notify our inheritors that we are being removed next tick
-            this.OnSunset();
+            OnSunset();
         }
 #endif
 
         public void Shutdown()
         {
-            RailDebug.Assert(this.HasStarted == true);
+            RailDebug.Assert(HasStarted);
 
 #if SERVER
             // Automatically revoke control but keep a history for 
             // sending the final controller data to the client.
-            if (this.Controller != null)
+            if (Controller != null)
             {
-                this.priorController = this.Controller;
-                this.Controller.RevokeControlInternal(this);
-                this.NotifyControllerChanged();
+                priorController = Controller;
+                Controller.RevokeControlInternal(this);
+                NotifyControllerChanged();
             }
 #endif
 
@@ -378,15 +413,16 @@ namespace Railgun
             this.StateBase.OverwriteFrom(this.AuthStateBase);
 #endif
 
-            this.OnShutdown();
+            OnShutdown();
         }
+
         #endregion
 
         private void ClearCommands()
         {
 #if SERVER
-            this.incomingCommands.Clear();
-            this.commandAck = Tick.INVALID;
+            incomingCommands.Clear();
+            commandAck = Tick.INVALID;
 #endif
 
 #if CLIENT
@@ -399,41 +435,41 @@ namespace Railgun
         public void StoreRecord()
         {
             RailStateRecord record =
-              RailState.CreateRecord(
-                this.resource,
-                this.Room.Tick,
-                this.StateBase,
-                this.outgoingStates.Latest);
+                RailState.CreateRecord(
+                    resource,
+                    Room.Tick,
+                    StateBase,
+                    outgoingStates.Latest);
             if (record != null)
-                this.outgoingStates.Store(record);
+                outgoingStates.Store(record);
         }
 
         public RailStateDelta ProduceDelta(
-          Tick basisTick,
-          RailController destination,
-          bool forceAllMutable)
+            Tick basisTick,
+            RailController destination,
+            bool forceAllMutable)
         {
             // Flags for special data modes
             bool includeControllerData =
-              (destination == this.Controller) ||
-              (destination == this.priorController);
-            bool includeImmutableData = (basisTick.IsValid == false);
+                destination == Controller ||
+                destination == priorController;
+            bool includeImmutableData = basisTick.IsValid == false;
 
             return RailState.CreateDelta(
-              this.resource,
-              this.Id,
-              this.StateBase,
-              this.outgoingStates.LatestFrom(basisTick),
-              includeControllerData,
-              includeImmutableData,
-              this.commandAck,
-              this.RemovedTick,
-              forceAllMutable);
+                resource,
+                Id,
+                StateBase,
+                outgoingStates.LatestFrom(basisTick),
+                includeControllerData,
+                includeImmutableData,
+                commandAck,
+                RemovedTick,
+                forceAllMutable);
         }
 
         public void ReceiveCommand(RailCommand command)
         {
-            if (this.incomingCommands.Store(command))
+            if (incomingCommands.Store(command))
                 command.IsNewCommand = true;
             else
                 RailPool.Free(command);
@@ -441,20 +477,20 @@ namespace Railgun
 
         private RailCommand GetLatestCommand()
         {
-            if (this.Controller != null)
+            if (Controller != null)
                 return
-                  this.incomingCommands.GetLatestAt(
-                    this.Controller.EstimatedRemoteTick);
+                    incomingCommands.GetLatestAt(
+                        Controller.EstimatedRemoteTick);
             return null;
         }
 
         private void UpdateCommandAck(Tick latestCommandTick)
         {
             bool shouldAck =
-              (this.commandAck.IsValid == false) ||
-              (latestCommandTick > this.commandAck);
+                commandAck.IsValid == false ||
+                latestCommandTick > commandAck;
             if (shouldAck)
-                this.commandAck = latestCommandTick;
+                commandAck = latestCommandTick;
         }
 #endif
 
@@ -626,24 +662,24 @@ namespace Railgun
 
         private void NotifyControllerChanged()
         {
-            if (this.deferNotifyControllerChanged)
-                this.OnControllerChanged();
-            this.deferNotifyControllerChanged = false;
+            if (deferNotifyControllerChanged)
+                OnControllerChanged();
+            deferNotifyControllerChanged = false;
         }
     }
 
     /// <summary>
-    /// Handy shortcut class for auto-casting the state.
+    ///     Handy shortcut class for auto-casting the state.
     /// </summary>
     public abstract class RailEntity<TState>
-      : RailEntity
-      , IRailEntity<TState>
-      where TState : RailState, new()
+        : RailEntity
+            , IRailEntity<TState>
+        where TState : RailState, new()
     {
         protected override RailState StateBase
         {
-            get { return this.State; }
-            set { this.State = (TState)value; }
+            get => State;
+            set => State = (TState) value;
         }
 
 #if CLIENT
@@ -702,25 +738,30 @@ namespace Railgun
     }
 
     /// <summary>
-    /// Handy shortcut class for auto-casting the state and command.
+    ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
     public abstract class RailEntity<TState, TCommand>
-      : RailEntity<TState>
-      , IRailEntity<TState>
-      where TState : RailState, new()
-      where TCommand : RailCommand
+        : RailEntity<TState>
+            , IRailEntity<TState>
+        where TState : RailState, new()
+        where TCommand : RailCommand
     {
         protected override void UpdateControlGeneric(RailCommand toPopulate)
         {
-            this.UpdateControl((TCommand)toPopulate);
+            UpdateControl((TCommand) toPopulate);
         }
 
         protected override void ApplyControlGeneric(RailCommand toApply)
         {
-            this.ApplyControl((TCommand)toApply);
+            ApplyControl((TCommand) toApply);
         }
 
-        protected virtual void UpdateControl(TCommand toPopulate) { }
-        protected virtual void ApplyControl(TCommand toApply) { }
+        protected virtual void UpdateControl(TCommand toPopulate)
+        {
+        }
+
+        protected virtual void ApplyControl(TCommand toApply)
+        {
+        }
     }
 }

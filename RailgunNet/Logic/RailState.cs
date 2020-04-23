@@ -23,40 +23,42 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// States are the fundamental data management class of Railgun. They 
-    /// contain all of the synchronized information that an Entity needs to
-    /// function. States have multiple sub-fields that are sent at different
-    /// cadences, as follows:
-    /// 
-    ///    Mutable Data:
-    ///       Sent whenever the state differs from the client's view.
-    ///       Delta-encoded against the client's view.
-    ///    
-    ///    Controller Data:
-    ///       Sent to the controller of the entity every update.
-    ///       Not delta-encoded -- always sent full-encode.
-    ///       
-    ///    Immutable Data:
-    ///       Sent only once at creation. Can not be changed after.
-    ///       
-    ///    Removal Data (Not currently implemented):
-    ///       Sent when the state is removed. Arrives at the time of removal.
-    ///       
-    /// In order to register a State class with Railgun, tag it with the
-    /// [RegisterState] attribute. See RailRegistry.cs for more information.
+    ///     States are the fundamental data management class of Railgun. They
+    ///     contain all of the synchronized information that an Entity needs to
+    ///     function. States have multiple sub-fields that are sent at different
+    ///     cadences, as follows:
+    ///     Mutable Data:
+    ///     Sent whenever the state differs from the client's view.
+    ///     Delta-encoded against the client's view.
+    ///     Controller Data:
+    ///     Sent to the controller of the entity every update.
+    ///     Not delta-encoded -- always sent full-encode.
+    ///     Immutable Data:
+    ///     Sent only once at creation. Can not be changed after.
+    ///     Removal Data (Not currently implemented):
+    ///     Sent when the state is removed. Arrives at the time of removal.
+    ///     In order to register a State class with Railgun, tag it with the
+    ///     [RegisterState] attribute. See RailRegistry.cs for more information.
     /// </summary>
     public abstract class RailState
-      : IRailPoolable<RailState>
+        : IRailPoolable<RailState>
     {
         #region Pooling
+
         IRailMemoryPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
-        void IRailPoolable<RailState>.Reset() { this.Reset(); }
+
+        void IRailPoolable<RailState>.Reset()
+        {
+            Reset();
+        }
+
         #endregion
 
-        const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
-        const uint FLAGS_NONE = 0x00000000; // No values different
+        private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
+        private const uint FLAGS_NONE = 0x00000000; // No values different
 
         #region Creation
+
         public static RailState Create(RailResource resource, int factoryType)
         {
             RailState state = resource.CreateState(factoryType);
@@ -67,26 +69,26 @@ namespace Railgun
 
 #if SERVER
         /// <summary>
-        /// Creates a delta between a state and a record. If forceUpdate is set 
-        /// to false, this function will return null if there is no change between
-        /// the current and basis.
+        ///     Creates a delta between a state and a record. If forceUpdate is set
+        ///     to false, this function will return null if there is no change between
+        ///     the current and basis.
         /// </summary>
         public static RailStateDelta CreateDelta(
-          RailResource resource,
-          EntityId entityId,
-          RailState current,
-          IEnumerable<RailStateRecord> basisStates,
-          bool includeControllerData,
-          bool includeImmutableData,
-          Tick commandAck,
-          Tick removedTick,
-          bool forceAllMutable)
+            RailResource resource,
+            EntityId entityId,
+            RailState current,
+            IEnumerable<RailStateRecord> basisStates,
+            bool includeControllerData,
+            bool includeImmutableData,
+            Tick commandAck,
+            Tick removedTick,
+            bool forceAllMutable)
         {
             bool shouldReturn =
-              forceAllMutable ||
-              includeControllerData ||
-              includeImmutableData ||
-              removedTick.IsValid;
+                forceAllMutable ||
+                includeControllerData ||
+                includeImmutableData ||
+                removedTick.IsValid;
 
             // We don't know what the client has and hasn't received from us since
             // the acked state. As a result, we'll build diff flags across all 
@@ -94,15 +96,15 @@ namespace Railgun
             // situations where a value changes and then quickly changes back,
             // while appearing as no change on just the current-latest diff.
             uint flags = 0;
-            if ((forceAllMutable == false) && (basisStates != null))
+            if (forceAllMutable == false && basisStates != null)
                 foreach (RailStateRecord record in basisStates)
                     flags |= current.CompareMutableData(record.State);
             else
-                flags = RailState.FLAGS_ALL;
-            if ((flags == 0) && (shouldReturn == false))
+                flags = FLAGS_ALL;
+            if (flags == 0 && shouldReturn == false)
                 return null;
 
-            RailState deltaState = RailState.Create(resource, current.factoryType);
+            RailState deltaState = Create(resource, current.factoryType);
             deltaState.Flags = flags;
             deltaState.ApplyMutableFrom(current, deltaState.Flags);
 
@@ -117,32 +119,32 @@ namespace Railgun
             // We don't need to include a tick when sending -- it's in the packet
             RailStateDelta delta = resource.CreateDelta();
             delta.Initialize(
-              Tick.INVALID,
-              entityId,
-              deltaState,
-              removedTick,
-              commandAck,
-              false);
+                Tick.INVALID,
+                entityId,
+                deltaState,
+                removedTick,
+                commandAck,
+                false);
             return delta;
         }
 
         /// <summary>
-        /// Creates a record of the current state, taking the latest record (if
-        /// any) into account. If a latest state is given, this function will
-        /// return null if there is no change between the current and latest.
+        ///     Creates a record of the current state, taking the latest record (if
+        ///     any) into account. If a latest state is given, this function will
+        ///     return null if there is no change between the current and latest.
         /// </summary>
         public static RailStateRecord CreateRecord(
-          RailResource resource,
-          Tick tick,
-          RailState current,
-          RailStateRecord latestRecord = null)
+            RailResource resource,
+            Tick tick,
+            RailState current,
+            RailStateRecord latestRecord = null)
         {
             if (latestRecord != null)
             {
                 RailState latest = latestRecord.State;
                 bool shouldReturn =
-                  (current.CompareMutableData(latest) > 0) ||
-                  (current.IsControllerDataEqual(latest) == false);
+                    current.CompareMutableData(latest) > 0 ||
+                    current.IsControllerDataEqual(latest) == false;
                 if (shouldReturn == false)
                     return null;
             }
@@ -152,27 +154,35 @@ namespace Railgun
             return record;
         }
 #endif
+
         #endregion
 
         protected abstract int FlagBits { get; }
 
-        private uint Flags { get; set; }              // Synchronized
+        private uint Flags { get; set; } // Synchronized
         public bool HasControllerData { get; set; } // Synchronized
-        public bool HasImmutableData { get; set; }  // Synchronized
+        public bool HasImmutableData { get; set; } // Synchronized
 
         #region Client
+
         protected abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
         protected abstract void DecodeControllerData(RailBitBuffer buffer);
         protected abstract void DecodeImmutableData(RailBitBuffer buffer);
+
         #endregion
 
         #region Server
+
         protected abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
         protected abstract void EncodeControllerData(RailBitBuffer buffer);
         protected abstract void EncodeImmutableData(RailBitBuffer buffer);
+
         #endregion
 
-        protected virtual void InitializeData() { }
+        protected virtual void InitializeData()
+        {
+        }
+
         protected abstract void ResetAllData();
         protected abstract void ResetControllerData();
 
@@ -187,7 +197,7 @@ namespace Railgun
 
         protected bool GetFlag(uint flags, uint flag)
         {
-            return ((flags & flag) == flag);
+            return (flags & flag) == flag;
         }
 
         protected uint SetFlag(bool isEqual, uint flag)
@@ -199,32 +209,32 @@ namespace Railgun
 
         public RailEntity ProduceEntity(RailResource resource)
         {
-            return RailEntity.Create(resource, this.factoryType);
+            return RailEntity.Create(resource, factoryType);
         }
 
         public RailState Clone(RailResource resource)
         {
-            RailState clone = RailState.Create(resource, this.factoryType);
+            RailState clone = Create(resource, factoryType);
             clone.OverwriteFrom(this);
             return clone;
         }
 
         public void OverwriteFrom(RailState source)
         {
-            this.Flags = source.Flags;
-            this.ApplyMutableFrom(source, RailState.FLAGS_ALL);
-            this.ApplyControllerFrom(source);
-            this.ApplyImmutableFrom(source);
-            this.HasControllerData = source.HasControllerData;
-            this.HasImmutableData = source.HasImmutableData;
+            Flags = source.Flags;
+            ApplyMutableFrom(source, FLAGS_ALL);
+            ApplyControllerFrom(source);
+            ApplyImmutableFrom(source);
+            HasControllerData = source.HasControllerData;
+            HasImmutableData = source.HasImmutableData;
         }
 
         private void Reset()
         {
-            this.Flags = 0;
-            this.HasControllerData = false;
-            this.HasImmutableData = false;
-            this.ResetAllData();
+            Flags = 0;
+            HasControllerData = false;
+            HasImmutableData = false;
+            ResetAllData();
         }
 
 #if CLIENT
@@ -247,9 +257,9 @@ namespace Railgun
 
 #if SERVER
         public static void EncodeDelta(
-          RailResource resource,
-          RailBitBuffer buffer,
-          RailStateDelta delta)
+            RailResource resource,
+            RailBitBuffer buffer,
+            RailStateDelta delta)
         {
             // Write: [EntityId]
             buffer.WriteEntityId(delta.EntityId);
@@ -267,10 +277,8 @@ namespace Railgun
                 buffer.WriteBool(delta.RemovedTick.IsValid);
 
                 if (delta.RemovedTick.IsValid)
-                {
                     // Write: [RemovedTick]
                     buffer.WriteTick(delta.RemovedTick);
-                }
 
                 // Write: [HasControllerData]
                 buffer.WriteBool(state.HasControllerData);
@@ -294,10 +302,8 @@ namespace Railgun
                 }
 
                 if (state.HasImmutableData)
-                {
                     // Write: [Immutable Data]
                     state.EncodeImmutableData(buffer);
-                }
             }
         }
 #endif
@@ -375,40 +381,42 @@ namespace Railgun
     }
 
     public abstract class RailState<T> : RailState
-      where T : RailState<T>, new()
+        where T : RailState<T>, new()
     {
-        #region Casting Overrides
-        protected override void ApplyMutableFrom(RailState source, uint flags)
-        {
-            this.ApplyMutableFrom((T)source, flags);
-        }
-
-        protected override void ApplyControllerFrom(RailState source)
-        {
-            this.ApplyControllerFrom((T)source);
-        }
-
-        protected override void ApplyImmutableFrom(RailState source)
-        {
-            this.ApplyImmutableFrom((T)source);
-        }
-
-        protected override uint CompareMutableData(RailState basis)
-        {
-            return CompareMutableData((T)basis);
-        }
-
-        protected override bool IsControllerDataEqual(RailState basis)
-        {
-            return IsControllerDataEqual((T)basis);
-        }
-        #endregion
-
         protected abstract void ApplyMutableFrom(T source, uint flags);
         protected abstract void ApplyControllerFrom(T source);
         protected abstract void ApplyImmutableFrom(T source);
 
         protected abstract uint CompareMutableData(T basis);
         protected abstract bool IsControllerDataEqual(T basis);
+
+        #region Casting Overrides
+
+        protected override void ApplyMutableFrom(RailState source, uint flags)
+        {
+            ApplyMutableFrom((T) source, flags);
+        }
+
+        protected override void ApplyControllerFrom(RailState source)
+        {
+            ApplyControllerFrom((T) source);
+        }
+
+        protected override void ApplyImmutableFrom(RailState source)
+        {
+            ApplyImmutableFrom((T) source);
+        }
+
+        protected override uint CompareMutableData(RailState basis)
+        {
+            return CompareMutableData((T) basis);
+        }
+
+        protected override bool IsControllerDataEqual(RailState basis)
+        {
+            return IsControllerDataEqual((T) basis);
+        }
+
+        #endregion
     }
 }

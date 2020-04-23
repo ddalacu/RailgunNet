@@ -22,11 +22,41 @@ namespace Railgun
 {
     public static class RailIntCompressorExtensions
     {
+        public static void WriteInt(
+            this RailBitBuffer buffer,
+            RailIntCompressor compressor,
+            int value)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                buffer.WriteUInt(compressor.Pack(value));
+            else
+                buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+        }
+
+        public static int ReadInt(
+            this RailBitBuffer buffer,
+            RailIntCompressor compressor)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                return compressor.Unpack(buffer.ReadUInt());
+            return compressor.Unpack(buffer.Read(compressor.RequiredBits));
+        }
+
+        public static int PeekInt(
+            this RailBitBuffer buffer,
+            RailIntCompressor compressor)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                return compressor.Unpack(buffer.PeekUInt());
+            return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
+        }
+
         #region Array
+
         public static void WriteInts(
-          this RailBitBuffer buffer,
-          RailIntCompressor compressor,
-          int[] values)
+            this RailBitBuffer buffer,
+            RailIntCompressor compressor,
+            int[] values)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
                 for (int i = 0; i < values.Length; i++)
@@ -37,9 +67,9 @@ namespace Railgun
         }
 
         public static void ReadInts(
-          this RailBitBuffer buffer,
-          RailIntCompressor compressor,
-          int[] toStore)
+            this RailBitBuffer buffer,
+            RailIntCompressor compressor,
+            int[] toStore)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
                 for (int i = 0; i < toStore.Length; i++)
@@ -48,86 +78,54 @@ namespace Railgun
                 for (int i = 0; i < toStore.Length; i++)
                     toStore[i] = compressor.Unpack(buffer.Read(compressor.RequiredBits));
         }
+
         #endregion
-
-        public static void WriteInt(
-          this RailBitBuffer buffer,
-          RailIntCompressor compressor,
-          int value)
-        {
-            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-                buffer.WriteUInt(compressor.Pack(value));
-            else
-                buffer.Write(compressor.RequiredBits, compressor.Pack(value));
-        }
-
-        public static int ReadInt(
-          this RailBitBuffer buffer,
-          RailIntCompressor compressor)
-        {
-            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-                return compressor.Unpack(buffer.ReadUInt());
-            else
-                return compressor.Unpack(buffer.Read(compressor.RequiredBits));
-        }
-
-        public static int PeekInt(
-          this RailBitBuffer buffer,
-          RailIntCompressor compressor)
-        {
-            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-                return compressor.Unpack(buffer.PeekUInt());
-            else
-                return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
-        }
     }
 
     public class RailIntCompressor
     {
-        private readonly int minValue;
-        private readonly int maxValue;
-
-        private readonly int requiredBits;
         private readonly uint mask;
-
-        public int RequiredBits { get { return this.requiredBits; } }
+        private readonly int maxValue;
+        private readonly int minValue;
 
         public RailIntCompressor(int minValue, int maxValue)
         {
             this.minValue = minValue;
             this.maxValue = maxValue;
 
-            this.requiredBits = this.ComputeRequiredBits();
-            this.mask = (uint)((1L << requiredBits) - 1);
+            RequiredBits = ComputeRequiredBits();
+            mask = (uint) ((1L << RequiredBits) - 1);
         }
+
+        public int RequiredBits { get; }
 
         public uint Pack(int value)
         {
-            if ((value < this.minValue) || (value > this.maxValue))
+            if (value < minValue || value > maxValue)
                 RailDebug.LogWarning(
-                  "Clamping value for send! " +
-                  value +
-                  " vs. [" +
-                  this.minValue +
-                  "," +
-                  this.maxValue +
-                  "]");
-            return (uint)(value - this.minValue) & this.mask;
+                    "Clamping value for send! " +
+                    value +
+                    " vs. [" +
+                    minValue +
+                    "," +
+                    maxValue +
+                    "]");
+            return (uint) (value - minValue) & mask;
         }
 
         public int Unpack(uint data)
         {
-            return (int)(data + this.minValue);
+            return (int) (data + minValue);
         }
 
         private int ComputeRequiredBits()
         {
-            if (this.minValue >= this.maxValue)
+            if (minValue >= maxValue)
                 return 0;
 
-            long minLong = (long)this.minValue;
-            long maxLong = (long)this.maxValue;
-            uint range = (uint)(maxLong - minLong);
+            long minLong = minValue;
+            long maxLong = maxValue;
+            uint range = (uint) (maxLong - minLong);
             return RailUtil.Log2(range) + 1;
         }
     }

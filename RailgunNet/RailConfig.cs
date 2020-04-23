@@ -22,26 +22,6 @@ namespace Railgun
 {
     public class RailConfig
     {
-        /// <summary>
-        /// Use this to control which entities update relative to one another.
-        /// </summary>
-        public enum RailUpdateOrder
-        {
-            Early,
-            Normal,
-            Late,
-            VeryLate,
-        }
-
-        // Pre-cache the array for iterating over.
-        public static readonly RailUpdateOrder[] Orders = new[]
-        {
-      RailUpdateOrder.Early,
-      RailUpdateOrder.Normal,
-      RailUpdateOrder.Late,
-      RailUpdateOrder.VeryLate,
-    };
-
         public enum RailApplication
         {
             Client,
@@ -49,91 +29,112 @@ namespace Railgun
         }
 
         /// <summary>
-        /// Network send rate in ticks/packet.
+        ///     Use this to control which entities update relative to one another.
+        /// </summary>
+        public enum RailUpdateOrder
+        {
+            Early,
+            Normal,
+            Late,
+            VeryLate
+        }
+
+        /// <summary>
+        ///     Network send rate in ticks/packet.
         /// </summary>
         public const int SERVER_SEND_RATE = 2;
 
         /// <summary>
-        /// Network send rate in ticks/packet.
+        ///     Network send rate in ticks/packet.
         /// </summary>
         public const int CLIENT_SEND_RATE = 2;
 
         /// <summary>
-        /// Number of outgoing commands to send per packet.
+        ///     Number of outgoing commands to send per packet.
         /// </summary>
         public const int COMMAND_SEND_COUNT = 40;
 
         /// <summary>
-        /// Number of commands to buffer for prediction.
+        ///     Number of commands to buffer for prediction.
         /// </summary>
         public const int COMMAND_BUFFER_COUNT = 40;
 
         /// <summary>
-        /// Number of entries to store in a dejitter buffer.
+        ///     Number of entries to store in a dejitter buffer.
         /// </summary>
         public const int DEJITTER_BUFFER_LENGTH = 50;
 
         /// <summary>
-        /// Number of ticks we'll resend a view entry for without receiving
-        /// an update on that entity.
+        ///     Number of ticks we'll resend a view entry for without receiving
+        ///     an update on that entity.
         /// </summary>
         public const int VIEW_TICKS = 100;
 
         /// <summary>
-        /// How many chunks to keep in the history bit array. The resulting
-        /// max history length will be EVENT_HISTORY_CHUNKS * 32.
+        ///     How many chunks to keep in the history bit array. The resulting
+        ///     max history length will be EVENT_HISTORY_CHUNKS * 32.
         /// </summary>
         public const int HISTORY_CHUNKS = 6;
 
+        // Pre-cache the array for iterating over.
+        public static readonly RailUpdateOrder[] Orders =
+        {
+            RailUpdateOrder.Early,
+            RailUpdateOrder.Normal,
+            RailUpdateOrder.Late,
+            RailUpdateOrder.VeryLate
+        };
+
         #region Message Sizes
+
         /// <summary>
-        /// Data buffer size used for packet I/O. 
-        /// Don't change this without a good reason.
+        ///     Data buffer size used for packet I/O.
+        ///     Don't change this without a good reason.
         /// </summary>
         public const int DATA_BUFFER_SIZE = 2048;
 
         /// <summary>
-        /// The maximum message size that a packet can contain, based on known
-        /// MTUs for internet traffic. Don't change this without a good reason.
-        /// 
-        /// If using MiniUDP, this should be equal to NetConfig.DATA_MAXIMUM
+        ///     The maximum message size that a packet can contain, based on known
+        ///     MTUs for internet traffic. Don't change this without a good reason.
+        ///     If using MiniUDP, this should be equal to NetConfig.DATA_MAXIMUM
         /// </summary>
         public const int PACKCAP_MESSAGE_TOTAL = 1200;
 
         /// <summary>
-        /// The max byte size when doing a first pass on packing events.
+        ///     The max byte size when doing a first pass on packing events.
         /// </summary>
         public const int PACKCAP_EARLY_EVENTS = 370;
 
         /// <summary>
-        /// The max byte size when packing commands. (Client-only.)
+        ///     The max byte size when packing commands. (Client-only.)
         /// </summary>
         public const int PACKCAP_COMMANDS = 670;
 
         /// <summary>
-        /// Maximum bytes for a single entity. Used when packing entity deltas.
+        ///     Maximum bytes for a single entity. Used when packing entity deltas.
         /// </summary>
         public const int MAXSIZE_ENTITY = 100;
 
         /// <summary>
-        /// Maximum bytes for a single event. 
+        ///     Maximum bytes for a single event.
         /// </summary>
         public const int MAXSIZE_EVENT = 100;
 
         /// <summary>
-        /// Maximum bytes for a single command update.
+        ///     Maximum bytes for a single command update.
         /// </summary>
         public const int MAXSIZE_COMMANDUPDATE = 335;
 
         /// <summary>
-        /// Number of bits before doing VarInt fallback in compression.
+        ///     Number of bits before doing VarInt fallback in compression.
         /// </summary>
         public const int VARINT_FALLBACK_SIZE = 10;
 
         /// <summary>
-        /// Maximum size for an encoded string.
+        ///     Maximum size for an encoded string.
         /// </summary>
         public const int STRING_LENGTH_MAX = 63;
+
         #endregion
     }
 }

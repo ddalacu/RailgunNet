@@ -21,35 +21,35 @@
 namespace Railgun
 {
     /// <summary>
-    /// Responsible for encoding and decoding packet information.
+    ///     Responsible for encoding and decoding packet information.
     /// </summary>
     public class RailInterpreter
     {
-        private readonly byte[] bytes;
         private readonly RailBitBuffer bitBuffer;
+        private readonly byte[] bytes;
 
         public RailInterpreter()
         {
-            this.bytes = new byte[RailConfig.DATA_BUFFER_SIZE];
-            this.bitBuffer = new RailBitBuffer();
+            bytes = new byte[RailConfig.DATA_BUFFER_SIZE];
+            bitBuffer = new RailBitBuffer();
         }
 
         public void SendPacket(
-          RailResource resource,
-          IRailNetPeer peer,
-          IRailPacket packet)
+            RailResource resource,
+            IRailNetPeer peer,
+            IRailPacket packet)
         {
-            this.bitBuffer.Clear();
-            packet.Encode(resource, this.bitBuffer);
-            int length = this.bitBuffer.Store(this.bytes);
+            bitBuffer.Clear();
+            packet.Encode(resource, bitBuffer);
+            int length = bitBuffer.Store(bytes);
             RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
-            peer.SendPayload(this.bytes, length);
+            peer.SendPayload(bytes, length);
         }
 
         public RailBitBuffer LoadData(byte[] buffer, int length)
         {
-            this.bitBuffer.Load(buffer, length);
-            return this.bitBuffer;
+            bitBuffer.Load(buffer, length);
+            return bitBuffer;
         }
     }
 }

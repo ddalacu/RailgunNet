@@ -25,112 +25,76 @@ namespace Railgun
 {
     public class RailScope
     {
-        private class EntityPriorityComparer :
-          Comparer<KeyValuePair<float, IRailEntity>>
+        private readonly RailView ackedByClient;
+        private readonly List<RailStateDelta> activeList;
+
+        // Pre-allocated reusable fill lists
+        private readonly List<KeyValuePair<float, IRailEntity>> entryList;
+        private readonly List<RailStateDelta> frozenList;
+        private readonly RailView lastSent;
+
+        private readonly RailController owner;
+        private readonly EntityPriorityComparer priorityComparer;
+        private readonly List<RailStateDelta> removedList;
+        private readonly RailResource resource;
+
+        public RailScope(RailController owner, RailResource resource)
         {
-            private readonly Comparer<float> floatComparer;
+            Evaluator = new RailScopeEvaluator();
+            this.owner = owner;
+            this.resource = resource;
+            lastSent = new RailView();
+            ackedByClient = new RailView();
+            priorityComparer = new EntityPriorityComparer();
 
-            public EntityPriorityComparer()
-            {
-                this.floatComparer = Comparer<float>.Default;
-            }
-
-            public override int Compare(
-              KeyValuePair<float, IRailEntity> x,
-              KeyValuePair<float, IRailEntity> y)
-            {
-                return this.floatComparer.Compare(x.Key, y.Key);
-            }
+            entryList = new List<KeyValuePair<float, IRailEntity>>();
+            activeList = new List<RailStateDelta>();
+            frozenList = new List<RailStateDelta>();
+            removedList = new List<RailStateDelta>();
         }
 
         public RailScopeEvaluator Evaluator { private get; set; }
 
-        private readonly RailController owner;
-        private readonly RailResource resource;
-        private readonly RailView lastSent;
-        private readonly RailView ackedByClient;
-        private readonly EntityPriorityComparer priorityComparer;
-
-        // Pre-allocated reusable fill lists
-        private readonly List<KeyValuePair<float, IRailEntity>> entryList;
-        private readonly List<RailStateDelta> activeList;
-        private readonly List<RailStateDelta> frozenList;
-        private readonly List<RailStateDelta> removedList;
-
-        public RailScope(RailController owner, RailResource resource)
-        {
-            this.Evaluator = new RailScopeEvaluator();
-            this.owner = owner;
-            this.resource = resource;
-            this.lastSent = new RailView();
-            this.ackedByClient = new RailView();
-            this.priorityComparer = new EntityPriorityComparer();
-
-            this.entryList = new List<KeyValuePair<float, IRailEntity>>();
-            this.activeList = new List<RailStateDelta>();
-            this.frozenList = new List<RailStateDelta>();
-            this.removedList = new List<RailStateDelta>();
-        }
-
-#if SERVER
-        public Tick GetLastSent(EntityId entityId)
-        {
-            return this.lastSent.GetLatest(entityId).LastReceivedTick;
-        }
-
-        public Tick GetLastAckedByClient(EntityId entityId)
-        {
-            if (entityId == EntityId.INVALID)
-                return Tick.INVALID;
-            return this.ackedByClient.GetLatest(entityId).LastReceivedTick;
-        }
-
-        public bool IsPresentOnClient(EntityId entityId)
-        {
-            return this.GetLastAckedByClient(entityId).IsValid;
-        }
-#endif
-
         public bool EvaluateEvent(
-          RailEvent evnt)
+            RailEvent evnt)
         {
-            return this.Evaluator.Evaluate(evnt);
+            return Evaluator.Evaluate(evnt);
         }
 
         public void PopulateDeltas(
-          Tick serverTick,
-          RailServerPacket packet,
-          IEnumerable<IRailEntity> activeEntities,
-          IEnumerable<IRailEntity> removedEntities)
+            Tick serverTick,
+            RailServerPacket packet,
+            IEnumerable<IRailEntity> activeEntities,
+            IEnumerable<IRailEntity> removedEntities)
         {
-            this.ProduceScoped(serverTick, activeEntities);
-            this.ProduceRemoved(this.owner, removedEntities);
+            ProduceScoped(serverTick, activeEntities);
+            ProduceRemoved(owner, removedEntities);
 
-            packet.Populate(this.activeList, this.frozenList, this.removedList);
+            packet.Populate(activeList, frozenList, removedList);
 
-            this.removedList.Clear();
-            this.frozenList.Clear();
-            this.activeList.Clear();
+            removedList.Clear();
+            frozenList.Clear();
+            activeList.Clear();
         }
 
         public void IntegrateAcked(RailView packetView)
         {
-            this.ackedByClient.Integrate(packetView);
+            ackedByClient.Integrate(packetView);
         }
 
         public void RegisterSent(EntityId entityId, Tick tick, bool isFrozen)
         {
             // We don't care about the local tick on the server side
-            this.lastSent.RecordUpdate(entityId, tick, Tick.INVALID, isFrozen);
+            lastSent.RecordUpdate(entityId, tick, Tick.INVALID, isFrozen);
         }
 
         private bool GetPriority(
-          RailEntity entity,
-          Tick current,
-          out float priority)
+            RailEntity entity,
+            Tick current,
+            out float priority)
         {
             RailViewEntry lastSent = this.lastSent.GetLatest(entity.Id);
-            RailViewEntry lastAcked = this.ackedByClient.GetLatest(entity.Id);
+            RailViewEntry lastAcked = ackedByClient.GetLatest(entity.Id);
 
             int ticksSinceSend = int.MaxValue;
             int ticksSinceAck = int.MaxValue;
@@ -140,60 +104,57 @@ namespace Railgun
             if (lastAcked.IsValid)
                 ticksSinceAck = current - lastAcked.LastReceivedTick;
 
-            return this.EvaluateEntity(
-              entity,
-              ticksSinceSend,
-              ticksSinceAck,
-              out priority);
+            return EvaluateEntity(
+                entity,
+                ticksSinceSend,
+                ticksSinceAck,
+                out priority);
         }
 
         /// <summary>
-        /// Divides the active entities into those that are in scope and those
-        /// out of scope. If an entity is out of scope and hasn't been acked as
-        /// such by the client, we will add it to the outgoing frozen delta list.
-        /// Otherwise, if an entity is in scope we will add it to the sorted
-        /// active delta list.
+        ///     Divides the active entities into those that are in scope and those
+        ///     out of scope. If an entity is out of scope and hasn't been acked as
+        ///     such by the client, we will add it to the outgoing frozen delta list.
+        ///     Otherwise, if an entity is in scope we will add it to the sorted
+        ///     active delta list.
         /// </summary>
         private void ProduceScoped(
-          Tick serverTick,
-          IEnumerable<IRailEntity> activeEntities)
+            Tick serverTick,
+            IEnumerable<IRailEntity> activeEntities)
         {
-            this.entryList.Clear();
+            entryList.Clear();
 
             foreach (RailEntity entity in activeEntities)
-            {
                 if (entity.IsRemoving)
                 {
-                    continue;
                 }
                 // Controlled entities are always in scope to their controller
-                else if (entity.Controller == this.owner)
+                else if (entity.Controller == owner)
                 {
-                    this.entryList.Add(
-                      new KeyValuePair<float, IRailEntity>(float.MinValue, entity));
+                    entryList.Add(
+                        new KeyValuePair<float, IRailEntity>(float.MinValue, entity));
                 }
-                else if (this.GetPriority(entity, serverTick, out float priority))
+                else if (GetPriority(entity, serverTick, out float priority))
                 {
-                    this.entryList.Add(
-                      new KeyValuePair<float, IRailEntity>(priority, entity));
+                    entryList.Add(
+                        new KeyValuePair<float, IRailEntity>(priority, entity));
                 }
                 else if (entity.CanFreeze)
                 {
                     // We only want to send a freeze state if we aren't already frozen
-                    RailViewEntry latest = this.ackedByClient.GetLatest(entity.Id);
+                    RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
                     if (latest.IsFrozen == false)
-                        this.frozenList.Add(
-                          RailStateDelta.CreateFrozen(
-                            this.resource,
-                            serverTick,
-                            entity.Id));
+                        frozenList.Add(
+                            RailStateDelta.CreateFrozen(
+                                resource,
+                                serverTick,
+                                entity.Id));
                 }
-            }
 
-            this.entryList.Sort(this.priorityComparer);
-            foreach (KeyValuePair<float, IRailEntity> entry in this.entryList)
+            entryList.Sort(priorityComparer);
+            foreach (KeyValuePair<float, IRailEntity> entry in entryList)
             {
-                RailViewEntry latest = this.ackedByClient.GetLatest(entry.Value.Id);
+                RailViewEntry latest = ackedByClient.GetLatest(entry.Value.Id);
 
                 // Force a complete update if the entity is frozen so it unfreezes
                 // TODO: Currently if we're unfreezing we force the server to send a
@@ -203,50 +164,87 @@ namespace Railgun
                 //       However, this would cause some tedious tick comparison.
                 //       Should investigate a smarter way to handle this later.
                 RailStateDelta delta =
-                  entry.Value.AsBase.ProduceDelta(
-                    latest.LastReceivedTick,
-                    this.owner,
-                    latest.IsFrozen);
+                    entry.Value.AsBase.ProduceDelta(
+                        latest.LastReceivedTick,
+                        owner,
+                        latest.IsFrozen);
 
                 if (delta != null)
-                    this.activeList.Add(delta);
+                    activeList.Add(delta);
             }
         }
 
         /// <summary>
-        /// Produces deltas for all non-acked removed entities.
+        ///     Produces deltas for all non-acked removed entities.
         /// </summary>
         private void ProduceRemoved(
-          RailController target,
-          IEnumerable<IRailEntity> removedEntities)
+            RailController target,
+            IEnumerable<IRailEntity> removedEntities)
         {
             foreach (IRailEntity entity in removedEntities)
             {
-                RailViewEntry latest = this.ackedByClient.GetLatest(entity.Id);
+                RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
 
                 // Note: Because the removed tick is valid, this should force-create
-                if (latest.IsValid && (latest.LastReceivedTick < entity.AsBase.RemovedTick))
-                    this.removedList.Add(
-                      entity.AsBase.ProduceDelta(
-                        latest.LastReceivedTick,
-                        target,
-                        false));
+                if (latest.IsValid && latest.LastReceivedTick < entity.AsBase.RemovedTick)
+                    removedList.Add(
+                        entity.AsBase.ProduceDelta(
+                            latest.LastReceivedTick,
+                            target,
+                            false));
             }
         }
 
         private bool EvaluateEntity(
-          IRailEntity entity,
-          int ticksSinceSend,
-          int ticksSinceAck,
-          out float priority)
+            IRailEntity entity,
+            int ticksSinceSend,
+            int ticksSinceAck,
+            out float priority)
         {
             return
-              this.Evaluator.Evaluate(
-                entity,
-                ticksSinceSend,
-                ticksSinceAck,
-                out priority);
+                Evaluator.Evaluate(
+                    entity,
+                    ticksSinceSend,
+                    ticksSinceAck,
+                    out priority);
         }
+
+        private class EntityPriorityComparer :
+            Comparer<KeyValuePair<float, IRailEntity>>
+        {
+            private readonly Comparer<float> floatComparer;
+
+            public EntityPriorityComparer()
+            {
+                floatComparer = Comparer<float>.Default;
+            }
+
+            public override int Compare(
+                KeyValuePair<float, IRailEntity> x,
+                KeyValuePair<float, IRailEntity> y)
+            {
+                return floatComparer.Compare(x.Key, y.Key);
+            }
+        }
+
+#if SERVER
+        public Tick GetLastSent(EntityId entityId)
+        {
+            return lastSent.GetLatest(entityId).LastReceivedTick;
+        }
+
+        public Tick GetLastAckedByClient(EntityId entityId)
+        {
+            if (entityId == EntityId.INVALID)
+                return Tick.INVALID;
+            return ackedByClient.GetLatest(entityId).LastReceivedTick;
+        }
+
+        public bool IsPresentOnClient(EntityId entityId)
+        {
+            return GetLastAckedByClient(entityId).IsValid;
+        }
+#endif
     }
 }
 #endif

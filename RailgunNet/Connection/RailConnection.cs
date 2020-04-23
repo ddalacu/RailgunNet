@@ -23,48 +23,47 @@ using System;
 namespace Railgun
 {
     /// <summary>
-    /// Server is the core executing class for communication. It is responsible
-    /// for managing connection contexts and payload I/O.
+    ///     Server is the core executing class for communication. It is responsible
+    ///     for managing connection contexts and payload I/O.
     /// </summary>
     public abstract class RailConnection
     {
-        public event Action Started;
-
-        public RailRoom Room { get { return this.room; } }
-        protected RailInterpreter Interpreter { get { return this.interpreter; } }
-
         protected readonly RailResource resource;
-        private readonly RailInterpreter interpreter;
-        private RailRoom room;
         private bool hasStarted;
-
-        public abstract void Update();
 
         protected RailConnection(RailRegistry registry)
         {
-            this.resource = new RailResource(registry);
-            this.interpreter = new RailInterpreter();
-            this.room = null;
-            this.hasStarted = false;
+            resource = new RailResource(registry);
+            Interpreter = new RailInterpreter();
+            Room = null;
+            hasStarted = false;
         }
+
+        public RailRoom Room { get; private set; }
+
+        protected RailInterpreter Interpreter { get; }
+
+        public event Action Started;
+
+        public abstract void Update();
 
         protected void SetRoom(RailRoom room, Tick startTick)
         {
-            this.room = room;
-            this.room.Initialize(startTick);
+            this.Room = room;
+            this.Room.Initialize(startTick);
         }
 
         protected void OnEventReceived(RailEvent evnt, RailPeer sender)
         {
-            evnt.Invoke(this.Room, sender);
+            evnt.Invoke(Room, sender);
         }
 
         protected void DoStart()
         {
-            if (this.hasStarted == false)
-                if (this.Started != null)
-                    this.Started.Invoke();
-            this.hasStarted = true;
+            if (hasStarted == false)
+                if (Started != null)
+                    Started.Invoke();
+            hasStarted = true;
         }
     }
 }

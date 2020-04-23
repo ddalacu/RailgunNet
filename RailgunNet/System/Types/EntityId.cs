@@ -45,24 +45,26 @@ namespace Railgun
         #region Encoding/Decoding
 
         #region Byte Writing
+
         public int PutBytes(
-          byte[] buffer,
-          int start)
+            byte[] buffer,
+            int start)
         {
-            return RailBitBuffer.PutBytes(this.idValue, buffer, start);
+            return RailBitBuffer.PutBytes(idValue, buffer, start);
         }
 
         public static EntityId ReadBytes(
-          byte[] buffer,
-          ref int position)
+            byte[] buffer,
+            ref int position)
         {
             return new EntityId(RailBitBuffer.ReadBytes(buffer, ref position));
         }
+
         #endregion
 
         public void Write(RailBitBuffer buffer)
         {
-            buffer.WriteUInt(this.idValue);
+            buffer.WriteUInt(idValue);
         }
 
         public static EntityId Read(RailBitBuffer buffer)
@@ -74,31 +76,33 @@ namespace Railgun
         {
             return new EntityId(buffer.PeekUInt());
         }
+
         #endregion
 
         public class EntityIdComparer : IEqualityComparer<EntityId>
         {
             public bool Equals(EntityId x, EntityId y)
             {
-                return (x.idValue == y.idValue);
+                return x.idValue == y.idValue;
             }
 
             public int GetHashCode(EntityId x)
             {
-                return (int)x.idValue;
+                return (int) x.idValue;
             }
         }
 
         /// <summary>
-        /// An invalid entity ID. Should never be used explicitly.
+        ///     An invalid entity ID. Should never be used explicitly.
         /// </summary>
         public static readonly EntityId INVALID = new EntityId(0);
 
         /// <summary>
-        /// Never used internally in Railgun, and will never be assigned to
-        /// an entity. Provided for use as a "special" entityId in applications.
+        ///     Never used internally in Railgun, and will never be assigned to
+        ///     an entity. Provided for use as a "special" entityId in applications.
         /// </summary>
         public static readonly EntityId RESERVED1 = new EntityId(1);
+
         public static readonly EntityId RESERVED2 = new EntityId(2);
         public static readonly EntityId RESERVED3 = new EntityId(3);
         public static readonly EntityId RESERVED4 = new EntityId(4);
@@ -112,18 +116,15 @@ namespace Railgun
 
         public static bool operator ==(EntityId a, EntityId b)
         {
-            return (a.idValue == b.idValue);
+            return a.idValue == b.idValue;
         }
 
         public static bool operator !=(EntityId a, EntityId b)
         {
-            return (a.idValue != b.idValue);
+            return a.idValue != b.idValue;
         }
 
-        public bool IsValid
-        {
-            get { return this.idValue > 0; }
-        }
+        public bool IsValid => idValue > 0;
 
         private readonly uint idValue;
 
@@ -134,24 +135,24 @@ namespace Railgun
 
         public EntityId GetNext()
         {
-            return new EntityId(this.idValue + 1);
+            return new EntityId(idValue + 1);
         }
 
         public override int GetHashCode()
         {
-            return (int)this.idValue;
+            return (int) idValue;
         }
 
         public override bool Equals(object obj)
         {
             if (obj is EntityId)
-                return (((EntityId)obj).idValue == this.idValue);
+                return ((EntityId) obj).idValue == idValue;
             return false;
         }
 
         public override string ToString()
         {
-            return "EntityId:" + this.idValue;
+            return "EntityId:" + idValue;
         }
     }
 }
