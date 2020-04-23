@@ -19,12 +19,25 @@
  */
 
 #if SERVER
+using System;
 using System.Collections.Generic;
 
 namespace Railgun
 {
     internal class RailServerRoom : RailRoom
     {
+        /// <summary>
+        ///     Fired when a controller has been added (i.e. player join).
+        ///     The controller has control of no entities at this point.
+        /// </summary>
+        public event Action<RailController> ClientJoined;
+
+        /// <summary>
+        ///     Fired when a controller has been removed (i.e. player leave).
+        ///     This event fires before the controller has control of its entities
+        ///     revoked (this is done immediately afterwards).
+        /// </summary>
+        public event Action<RailController> ClientLeft;
         /// <summary>
         ///     All client controllers involved in this room.
         ///     Does not include the server's controller.
@@ -51,7 +64,7 @@ namespace Railgun
         /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
-        public override T AddNewEntity<T>()
+        public T AddNewEntity<T>() where T : RailEntity
         {
             T entity = CreateEntity<T>();
             RegisterEntity(entity);
@@ -62,7 +75,7 @@ namespace Railgun
         ///     Marks an entity for removal from the room and presumably destruction.
         ///     This is deferred until the next frame.
         /// </summary>
-        public override void MarkForRemoval(IRailEntity entity)
+        public void MarkForRemoval(IRailEntity entity)
         {
             if (entity.IsRemoving == false)
             {
@@ -70,8 +83,10 @@ namespace Railgun
                 server.LogRemovedEntity(entity);
             }
         }
-
-        public override void BroadcastEvent(
+        /// <summary>
+        ///     Queues an event to broadcast to all present clients.
+        /// </summary>
+        public void BroadcastEvent(
             RailEvent evnt,
             ushort attempts = 3,
             bool freeWhenDone = true)
@@ -136,6 +151,15 @@ namespace Railgun
             entity.AssignId(nextEntityId);
             nextEntityId = nextEntityId.GetNext();
             return entity;
+        }
+        protected void OnClientJoined(RailController client)
+        {
+            ClientJoined?.Invoke(client);
+        }
+
+        protected void OnClientLeft(RailController client)
+        {
+            ClientLeft?.Invoke(client);
         }
     }
 }

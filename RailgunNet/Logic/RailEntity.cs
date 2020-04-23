@@ -582,7 +582,7 @@ namespace Railgun
                 this.outgoingCommands.Enqueue(command);
             }
         }
-
+        [OnlyIn(Component.Client)]
         private void UpdateAuthState()
         {
             // Apply all un-applied deltas to the auth state
@@ -605,7 +605,7 @@ namespace Railgun
             if (lastDelta != null)
             {
                 // Update the control status based on the most recent delta
-                this.Room.RequestControlUpdate(this, lastDelta);
+                (this.Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
             }
 
             // If there was a next state, update the next state

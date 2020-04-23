@@ -77,7 +77,7 @@ namespace Railgun
         /// Queues an event to broadcast to the server with a number of retries.
         /// Caller should call Free() on the event when done sending.
         /// </summary>
-        public override void RaiseEvent(
+        public void RaiseEvent(
           RailEvent evnt,
           ushort attempts = 3,
           bool freeWhenDone = true)
@@ -158,26 +158,25 @@ namespace Railgun
         {
             foreach (RailEntity entity in this.pendingEntities.Values)
             {
-                if (entity.HasReadyState(serverTick))
-                {
-                    // Note: We're using toRemove here to remove from the *pending* list
-                    this.toRemove.Add(entity);
+                if (!entity.HasReadyState(serverTick)) continue;
 
-                    // If the entity was removed while pending, forget about it
-                    Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
-                    if (removeTick.IsValid && (removeTick <= serverTick))
-                        this.knownEntities.Remove(entity.Id);
-                    else
-                        this.RegisterEntity(entity);
-                }
+                // Note: We're using toRemove here to remove from the *pending* list
+                toRemove.Add(entity);
+
+                // If the entity was removed while pending, forget about it
+                Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
+                if (removeTick.IsValid && (removeTick <= serverTick))
+                    knownEntities.Remove(entity.Id);
+                else
+                    RegisterEntity(entity);
             }
 
-            for (int i = 0; i < this.toRemove.Count; i++)
-                this.pendingEntities.Remove(this.toRemove[i].Id);
-            this.toRemove.Clear();
+            foreach(RailEntity entity in toRemove)
+                pendingEntities.Remove(entity.Id);
+            toRemove.Clear();
         }
 
-        public override void RequestControlUpdate(
+        public void RequestControlUpdate(
           RailEntity entity,
           RailStateDelta delta)
         {

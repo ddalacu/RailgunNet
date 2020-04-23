@@ -25,21 +25,6 @@ namespace Railgun
 {
     public abstract class RailRoom
     {
-#if SERVER
-        /// <summary>
-        ///     Fired when a controller has been added (i.e. player join).
-        ///     The controller has control of no entities at this point.
-        /// </summary>
-        public event Action<RailController> ClientJoined;
-
-        /// <summary>
-        ///     Fired when a controller has been removed (i.e. player leave).
-        ///     This event fires before the controller has control of its entities
-        ///     revoked (this is done immediately afterwards).
-        /// </summary>
-        public event Action<RailController> ClientLeft;
-#endif
-
         /// <summary>
         ///     Fired before all entities have updated, for updating global logic.
         /// </summary>
@@ -89,31 +74,6 @@ namespace Railgun
         {
             return RailEvent.Create<TEvent>(resource);
         }
-
-#if CLIENT
-        /// <summary>
-        /// Raises an event to be sent to the server.
-        /// Caller should call Free() on the event when done sending.
-        /// </summary>
-        public abstract void RaiseEvent(
-          RailEvent evnt,
-          ushort attempts = 3,
-          bool freeWhenDone = true);
-#endif
-
-#if SERVER
-        /// <summary>
-        ///     Queues an event to broadcast to all present clients.
-        /// </summary>
-        public abstract void BroadcastEvent(
-            RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true);
-
-        public abstract T AddNewEntity<T>() where T : RailEntity;
-        public abstract void MarkForRemoval(IRailEntity entity);
-#endif
-
         protected RailRoom(RailResource resource, RailConnection connection)
         {
             this.resource = resource;
@@ -170,23 +130,5 @@ namespace Railgun
                 EntityRemoved?.Invoke(entity);
             }
         }
-
-#if CLIENT
-        public abstract void RequestControlUpdate(
-          RailEntity entity,
-          RailStateDelta delta);
-#endif
-
-#if SERVER
-        protected void OnClientJoined(RailController client)
-        {
-            ClientJoined?.Invoke(client);
-        }
-
-        protected void OnClientLeft(RailController client)
-        {
-            ClientLeft?.Invoke(client);
-        }
-#endif
     }
 }

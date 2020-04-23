@@ -89,13 +89,13 @@ namespace Railgun
         public void Encode(RailBitBuffer buffer)
         {
             // Write: [EntityId]
-            buffer.WriteEntityId(this.entityId);
+            buffer.WriteEntityId(EntityId);
 
             // Write: [Count]
-            buffer.Write(BUFFER_COUNT_BITS, (uint)this.commands.Count);
+            buffer.Write(BUFFER_COUNT_BITS, (uint)commands.Count);
 
             // Write: [Commands]
-            foreach (RailCommand command in this.commands.GetValues())
+            foreach (RailCommand command in commands.GetValues())
                 command.Encode(buffer);
         }
 #endif
