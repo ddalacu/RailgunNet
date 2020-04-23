@@ -22,96 +22,96 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  internal class RailCommandUpdate
-    : IRailPoolable<RailCommandUpdate>
-  {
-    private const int BUFFER_CAPACITY = 
-      RailConfig.COMMAND_SEND_COUNT;
-    private static readonly int BUFFER_COUNT_BITS =
-      RailUtil.Log2(RailCommandUpdate.BUFFER_CAPACITY) + 1;
-
-    #region Pooling
-    IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
-    void IRailPoolable<RailCommandUpdate>.Reset() { this.Reset(); }
-    #endregion
-
-    internal static RailCommandUpdate Create(
-      RailResource resource,
-      EntityId entityId, 
-      IEnumerable<RailCommand> commands)
+    public class RailCommandUpdate
+      : IRailPoolable<RailCommandUpdate>
     {
-      RailCommandUpdate update = resource.CreateCommandUpdate();
-      update.Initialize(entityId, commands);
-      return update;
-    }
+        private const int BUFFER_CAPACITY =
+          RailConfig.COMMAND_SEND_COUNT;
+        private static readonly int BUFFER_COUNT_BITS =
+          RailUtil.Log2(RailCommandUpdate.BUFFER_CAPACITY) + 1;
+
+        #region Pooling
+        IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
+        void IRailPoolable<RailCommandUpdate>.Reset() { this.Reset(); }
+        #endregion
+
+        public static RailCommandUpdate Create(
+          RailResource resource,
+          EntityId entityId,
+          IEnumerable<RailCommand> commands)
+        {
+            RailCommandUpdate update = resource.CreateCommandUpdate();
+            update.Initialize(entityId, commands);
+            return update;
+        }
 
 #if CLIENT
-    internal IRailEntity Entity { get; set; }
+        public IRailEntity Entity { get; set; }
 #endif
 
-    internal EntityId EntityId { get { return this.entityId; } }
-    internal IEnumerable<RailCommand> Commands { get { return this.commands.GetValues(); } }
+        public EntityId EntityId { get { return this.entityId; } }
+        public IEnumerable<RailCommand> Commands { get { return this.commands.GetValues(); } }
 
-    private EntityId entityId;
-    private readonly RailRollingBuffer<RailCommand> commands;
+        private EntityId entityId;
+        private readonly RailRollingBuffer<RailCommand> commands;
 
-    public RailCommandUpdate()
-    {
-      this.entityId = EntityId.INVALID;
-      this.commands = 
-        new RailRollingBuffer<RailCommand>(
-          RailCommandUpdate.BUFFER_CAPACITY);
-    }
+        public RailCommandUpdate()
+        {
+            this.entityId = EntityId.INVALID;
+            this.commands =
+              new RailRollingBuffer<RailCommand>(
+                RailCommandUpdate.BUFFER_CAPACITY);
+        }
 
-    private void Initialize(
-      EntityId entityId,
-      IEnumerable<RailCommand> outgoingCommands)
-    {
-      this.entityId = entityId;
-      foreach (RailCommand command in outgoingCommands)
-        this.commands.Store(command);
-    }
+        private void Initialize(
+          EntityId entityId,
+          IEnumerable<RailCommand> outgoingCommands)
+        {
+            this.entityId = entityId;
+            foreach (RailCommand command in outgoingCommands)
+                this.commands.Store(command);
+        }
 
-    private void Reset()
-    {
-      this.entityId = EntityId.INVALID;
-      this.commands.Clear();
-    }
+        private void Reset()
+        {
+            this.entityId = EntityId.INVALID;
+            this.commands.Clear();
+        }
 
 #if CLIENT
-    internal void Encode(RailBitBuffer buffer)
-    {
-      // Write: [EntityId]
-      buffer.WriteEntityId(this.entityId);
+        public void Encode(RailBitBuffer buffer)
+        {
+            // Write: [EntityId]
+            buffer.WriteEntityId(this.entityId);
 
-      // Write: [Count]
-      buffer.Write(BUFFER_COUNT_BITS, (uint)this.commands.Count);
+            // Write: [Count]
+            buffer.Write(BUFFER_COUNT_BITS, (uint)this.commands.Count);
 
-      // Write: [Commands]
-      foreach (RailCommand command in this.commands.GetValues())
-        command.Encode(buffer);
-    }
+            // Write: [Commands]
+            foreach (RailCommand command in this.commands.GetValues())
+                command.Encode(buffer);
+        }
 #endif
 
 #if SERVER
-    internal static RailCommandUpdate Decode(
-      RailResource resource,
-      RailBitBuffer buffer)
-    {
-      RailCommandUpdate update = resource.CreateCommandUpdate();
+        public static RailCommandUpdate Decode(
+          RailResource resource,
+          RailBitBuffer buffer)
+        {
+            RailCommandUpdate update = resource.CreateCommandUpdate();
 
-      // Read: [EntityId]
-      update.entityId = buffer.ReadEntityId();
+            // Read: [EntityId]
+            update.entityId = buffer.ReadEntityId();
 
-      // Read: [Count]
-      int count = (int)buffer.Read(BUFFER_COUNT_BITS);
+            // Read: [Count]
+            int count = (int)buffer.Read(BUFFER_COUNT_BITS);
 
-      // Read: [Commands]
-      for (int i = 0; i < count; i++)
-        update.commands.Store(RailCommand.Decode(resource, buffer));
+            // Read: [Commands]
+            for (int i = 0; i < count; i++)
+                update.commands.Store(RailCommand.Decode(resource, buffer));
 
-      return update;
-    }
+            return update;
+        }
 #endif
-  }
+    }
 }

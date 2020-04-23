@@ -23,184 +23,184 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  internal class RailClientRoom : RailRoom
-  {
-    /// <summary>
-    /// Returns all locally-controlled entities in the room.
-    /// </summary>
-    internal IEnumerable<IRailEntity> LocalEntities
+    class RailClientRoom : RailRoom
     {
-      get { return this.localPeer.ControlledEntities; }
-    }
-
-    /// <summary>
-    /// Entities that are waiting to be added to the world.
-    /// </summary>
-    private Dictionary<EntityId, RailEntity> pendingEntities;
-
-    /// <summary>
-    /// All known entities, either in-world or pending.
-    /// </summary>
-    private Dictionary<EntityId, RailEntity> knownEntities;
-
-    /// <summary>
-    /// The local controller for predicting control and authority.
-    /// This is a dummy peer that can't send or receive events.
-    /// </summary>
-    private readonly RailController localPeer;
-
-    /// <summary>
-    /// The local Railgun client.
-    /// </summary>
-    private readonly RailClient client;
-
-    internal RailClientRoom(RailResource resource, RailClient client) 
-      : base(resource, client)
-    {
-      IEqualityComparer<EntityId> entityIdComparer = 
-        EntityId.CreateEqualityComparer();
-
-      this.pendingEntities =
-        new Dictionary<EntityId, RailEntity>(entityIdComparer);
-      this.knownEntities =
-        new Dictionary<EntityId, RailEntity>(entityIdComparer);
-      this.localPeer = new RailController(resource);
-      this.client = client;
-    }
-
-    protected override void HandleRemovedEntity(EntityId entityId)
-    {
-      this.knownEntities.Remove(entityId);
-    }
-
-    /// <summary>
-    /// Queues an event to broadcast to the server with a number of retries.
-    /// Caller should call Free() on the event when done sending.
-    /// </summary>
-    public override void RaiseEvent(
-      RailEvent evnt, 
-      ushort attempts = 3,
-      bool freeWhenDone = true)
-    {
-      this.client.RaiseEvent(evnt, attempts, freeWhenDone);
-    }
-
-    /// <summary>
-    /// Updates the room a number of ticks. If we have entities waiting to be
-    /// added, this function will check them and add them if applicable.
-    /// </summary>
-    internal void ClientUpdate(Tick localTick, Tick estimatedServerTick)
-    {
-      this.Tick = estimatedServerTick;
-      this.UpdatePendingEntities(estimatedServerTick);
-      this.OnPreRoomUpdate(this.Tick);
-
-      // Collect the entities in the priority order and
-      // separate them out for either update or removal
-      foreach (RailEntity entity in this.GetAllEntities())
-        if (entity.ShouldRemove)
-          this.toRemove.Add(entity);
-        else
-          this.toUpdate.Add(entity);
-
-      // Wave 0: Remove all sunsetted entities
-      for (int i = 0; i < this.toRemove.Count; i++)
-        this.RemoveEntity(toRemove[i]);
-
-      // Wave 1: Start/initialize all entities
-      for (int i = 0; i < this.toUpdate.Count; i++)
-        this.toUpdate[i].Startup();
-
-      // Wave 2: Update all entities
-      for (int i = 0; i < this.toUpdate.Count; i++)
-        this.toUpdate[i].ClientUpdate(localTick);
-
-      // Wave 3: Post-update all entities
-      for (int i = 0; i < this.toUpdate.Count; i++)
-        this.toUpdate[i].PostUpdate();
-
-      this.toRemove.Clear();
-      this.toUpdate.Clear();
-      this.OnPostRoomUpdate(this.Tick);
-    }
-
-    /// <summary>
-    /// Returns true iff we stored the delta.
-    /// </summary>
-    internal bool ProcessDelta(RailStateDelta delta)
-    {
-      RailEntity entity;
-      if (this.knownEntities.TryGetValue(delta.EntityId, out entity) == false)
-      {
-        RailDebug.Assert(delta.IsFrozen == false, "Frozen unknown entity");
-        if (delta.IsFrozen || delta.IsRemoving)
-          return false;
-
-        entity = delta.ProduceEntity(this.resource);
-        entity.AssignId(delta.EntityId);
-        entity.PrimeState(delta);
-        this.pendingEntities.Add(entity.Id, entity);
-        this.knownEntities.Add(entity.Id, entity);
-      }
-
-      // If we're already removing the entity, we don't care about other deltas
-      bool stored = false;
-      if (entity.IsRemoving == false)
-        stored = entity.ReceiveDelta(delta);
-      return stored;
-    }
-
-    /// <summary>
-    /// Checks to see if any pending entities can be added to the world and
-    /// adds them if applicable.
-    /// </summary>
-    private void UpdatePendingEntities(Tick serverTick)
-    {
-      foreach (RailEntity entity in this.pendingEntities.Values)
-      {
-        if (entity.HasReadyState(serverTick))
+        /// <summary>
+        /// Returns all locally-controlled entities in the room.
+        /// </summary>
+        public IEnumerable<IRailEntity> LocalEntities
         {
-          // Note: We're using toRemove here to remove from the *pending* list
-          this.toRemove.Add(entity);
-
-          // If the entity was removed while pending, forget about it
-          Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
-          if (removeTick.IsValid && (removeTick <= serverTick))
-            this.knownEntities.Remove(entity.Id);
-          else
-            this.RegisterEntity(entity);
+            get { return this.localPeer.ControlledEntities; }
         }
-      }
 
-      for (int i = 0; i < this.toRemove.Count; i++)
-        this.pendingEntities.Remove(this.toRemove[i].Id);
-      this.toRemove.Clear();
+        /// <summary>
+        /// Entities that are waiting to be added to the world.
+        /// </summary>
+        private Dictionary<EntityId, RailEntity> pendingEntities;
+
+        /// <summary>
+        /// All known entities, either in-world or pending.
+        /// </summary>
+        private Dictionary<EntityId, RailEntity> knownEntities;
+
+        /// <summary>
+        /// The local controller for predicting control and authority.
+        /// This is a dummy peer that can't send or receive events.
+        /// </summary>
+        private readonly RailController localPeer;
+
+        /// <summary>
+        /// The local Railgun client.
+        /// </summary>
+        private readonly RailClient client;
+
+        public RailClientRoom(RailResource resource, RailClient client)
+          : base(resource, client)
+        {
+            IEqualityComparer<EntityId> entityIdComparer =
+              EntityId.CreateEqualityComparer();
+
+            this.pendingEntities =
+              new Dictionary<EntityId, RailEntity>(entityIdComparer);
+            this.knownEntities =
+              new Dictionary<EntityId, RailEntity>(entityIdComparer);
+            this.localPeer = new RailController(resource);
+            this.client = client;
+        }
+
+        protected override void HandleRemovedEntity(EntityId entityId)
+        {
+            this.knownEntities.Remove(entityId);
+        }
+
+        /// <summary>
+        /// Queues an event to broadcast to the server with a number of retries.
+        /// Caller should call Free() on the event when done sending.
+        /// </summary>
+        public override void RaiseEvent(
+          RailEvent evnt,
+          ushort attempts = 3,
+          bool freeWhenDone = true)
+        {
+            this.client.RaiseEvent(evnt, attempts, freeWhenDone);
+        }
+
+        /// <summary>
+        /// Updates the room a number of ticks. If we have entities waiting to be
+        /// added, this function will check them and add them if applicable.
+        /// </summary>
+        public void ClientUpdate(Tick localTick, Tick estimatedServerTick)
+        {
+            this.Tick = estimatedServerTick;
+            this.UpdatePendingEntities(estimatedServerTick);
+            this.OnPreRoomUpdate(this.Tick);
+
+            // Collect the entities in the priority order and
+            // separate them out for either update or removal
+            foreach (RailEntity entity in this.GetAllEntities())
+                if (entity.ShouldRemove)
+                    this.toRemove.Add(entity);
+                else
+                    this.toUpdate.Add(entity);
+
+            // Wave 0: Remove all sunsetted entities
+            for (int i = 0; i < this.toRemove.Count; i++)
+                this.RemoveEntity(toRemove[i]);
+
+            // Wave 1: Start/initialize all entities
+            for (int i = 0; i < this.toUpdate.Count; i++)
+                this.toUpdate[i].Startup();
+
+            // Wave 2: Update all entities
+            for (int i = 0; i < this.toUpdate.Count; i++)
+                this.toUpdate[i].ClientUpdate(localTick);
+
+            // Wave 3: Post-update all entities
+            for (int i = 0; i < this.toUpdate.Count; i++)
+                this.toUpdate[i].PostUpdate();
+
+            this.toRemove.Clear();
+            this.toUpdate.Clear();
+            this.OnPostRoomUpdate(this.Tick);
+        }
+
+        /// <summary>
+        /// Returns true iff we stored the delta.
+        /// </summary>
+        public bool ProcessDelta(RailStateDelta delta)
+        {
+            RailEntity entity;
+            if (this.knownEntities.TryGetValue(delta.EntityId, out entity) == false)
+            {
+                RailDebug.Assert(delta.IsFrozen == false, "Frozen unknown entity");
+                if (delta.IsFrozen || delta.IsRemoving)
+                    return false;
+
+                entity = delta.ProduceEntity(this.resource);
+                entity.AssignId(delta.EntityId);
+                entity.PrimeState(delta);
+                this.pendingEntities.Add(entity.Id, entity);
+                this.knownEntities.Add(entity.Id, entity);
+            }
+
+            // If we're already removing the entity, we don't care about other deltas
+            bool stored = false;
+            if (entity.IsRemoving == false)
+                stored = entity.ReceiveDelta(delta);
+            return stored;
+        }
+
+        /// <summary>
+        /// Checks to see if any pending entities can be added to the world and
+        /// adds them if applicable.
+        /// </summary>
+        private void UpdatePendingEntities(Tick serverTick)
+        {
+            foreach (RailEntity entity in this.pendingEntities.Values)
+            {
+                if (entity.HasReadyState(serverTick))
+                {
+                    // Note: We're using toRemove here to remove from the *pending* list
+                    this.toRemove.Add(entity);
+
+                    // If the entity was removed while pending, forget about it
+                    Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
+                    if (removeTick.IsValid && (removeTick <= serverTick))
+                        this.knownEntities.Remove(entity.Id);
+                    else
+                        this.RegisterEntity(entity);
+                }
+            }
+
+            for (int i = 0; i < this.toRemove.Count; i++)
+                this.pendingEntities.Remove(this.toRemove[i].Id);
+            this.toRemove.Clear();
+        }
+
+        public override void RequestControlUpdate(
+          RailEntity entity,
+          RailStateDelta delta)
+        {
+            // Can't infer anything if the delta is an empty frozen update
+            if (delta.IsFrozen)
+                return;
+
+            if (delta.IsRemoving)
+            {
+                if (entity.Controller != null)
+                    this.localPeer.RevokeControlInternal(entity);
+            }
+            else if (delta.HasControllerData)
+            {
+                if (entity.Controller == null)
+                    this.localPeer.GrantControlInternal(entity);
+            }
+            else
+            {
+                if (entity.Controller != null)
+                    this.localPeer.RevokeControlInternal(entity);
+            }
+        }
     }
-
-    internal override void RequestControlUpdate(
-      RailEntity entity, 
-      RailStateDelta delta)
-    {
-      // Can't infer anything if the delta is an empty frozen update
-      if (delta.IsFrozen)
-        return;
-
-      if (delta.IsRemoving)
-      {
-        if (entity.Controller != null)
-          this.localPeer.RevokeControlInternal(entity);
-      }
-      else if (delta.HasControllerData)
-      {
-        if (entity.Controller == null)
-          this.localPeer.GrantControlInternal(entity);
-      }
-      else
-      {
-        if (entity.Controller != null)
-          this.localPeer.RevokeControlInternal(entity);
-      }
-    }
-  }
 }
 #endif

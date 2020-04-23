@@ -23,44 +23,51 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  public class RailRegistry
-  {
-    internal Type CommandType { get { return this.commandType; } }
-    internal IEnumerable<Type> EventTypes { get { return this.eventTypes; } }
-    internal IEnumerable<KeyValuePair<Type, Type>> EntityTypes
+    public enum Component
     {
-      get { return this.entityTypes; }
+        Client,
+        Server
     }
-
-    private Type commandType;
-    private List<Type> eventTypes;
-    private List<KeyValuePair<Type, Type>> entityTypes;
-
-    public RailRegistry()
+    public class RailRegistry
     {
-      this.commandType = null;
-      this.eventTypes = new List<Type>();
-      this.entityTypes = new List<KeyValuePair<Type, Type>>();
-    }
+        public Component Component { get; }
+        public Type CommandType { get { return this.commandType; } }
+        public IEnumerable<Type> EventTypes { get { return this.eventTypes; } }
+        public IEnumerable<KeyValuePair<Type, Type>> EntityTypes
+        {
+            get { return this.entityTypes; }
+        }
 
-    public void SetCommandType<TCommand>()
-      where TCommand : RailCommand
-    {
-      this.commandType = typeof(TCommand);
-    }
+        private Type commandType;
+        private readonly List<Type> eventTypes;
+        private readonly List<KeyValuePair<Type, Type>> entityTypes;
 
-    public void AddEventType<TEvent>()
-      where TEvent : RailEvent
-    {
-      this.eventTypes.Add(typeof(TEvent));
-    }
+        public RailRegistry(Component eComponent)
+        {
+            Component = eComponent;
+            this.commandType = null;
+            this.eventTypes = new List<Type>();
+            this.entityTypes = new List<KeyValuePair<Type, Type>>();
+        }
 
-    public void AddEntityType<TEntity, TState>()
-      where TEntity : RailEntity
-      where TState : RailState
-    {
-      this.entityTypes.Add(
-        new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
+        public void SetCommandType<TCommand>()
+          where TCommand : RailCommand
+        {
+            this.commandType = typeof(TCommand);
+        }
+
+        public void AddEventType<TEvent>()
+          where TEvent : RailEvent
+        {
+            this.eventTypes.Add(typeof(TEvent));
+        }
+
+        public void AddEntityType<TEntity, TState>()
+          where TEntity : RailEntity
+          where TState : RailState
+        {
+            this.entityTypes.Add(
+              new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
+        }
     }
-  }
 }

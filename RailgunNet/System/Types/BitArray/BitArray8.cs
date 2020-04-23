@@ -22,110 +22,110 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  public static class BitArray8Extensions
-  {
-    public static void WriteBitArray8(this RailBitBuffer buffer, BitArray8 array)
+    public static class BitArray8Extensions
     {
-      array.Write(buffer);
+        public static void WriteBitArray8(this RailBitBuffer buffer, BitArray8 array)
+        {
+            array.Write(buffer);
+        }
+
+        public static BitArray8 ReadBitArray8(this RailBitBuffer buffer)
+        {
+            return BitArray8.Read(buffer);
+        }
+
+        public static BitArray8 PeekBitArray8(this RailBitBuffer buffer)
+        {
+            return BitArray8.Peek(buffer);
+        }
     }
 
-    public static BitArray8 ReadBitArray8(this RailBitBuffer buffer)
+    public struct BitArray8
     {
-      return BitArray8.Read(buffer);
+        #region Encoding/Decoding
+        public void Write(RailBitBuffer buffer)
+        {
+            buffer.WriteByte(this.bitField);
+        }
+
+        public static BitArray8 Read(RailBitBuffer buffer)
+        {
+            return new BitArray8(buffer.ReadByte());
+        }
+
+        public static BitArray8 Peek(RailBitBuffer buffer)
+        {
+            return new BitArray8(buffer.PeekByte());
+        }
+        #endregion
+
+        private const int LENGTH = 8;
+        public static readonly BitArray8 EMPTY = new BitArray8(0);
+
+        private readonly byte bitField;
+
+        public static BitArray8 operator <<(BitArray8 a, int b)
+        {
+            return new BitArray8((byte)(a.bitField << b));
+        }
+
+        public static BitArray8 operator >>(BitArray8 a, int b)
+        {
+            return new BitArray8((byte)(a.bitField >> b));
+        }
+
+        public static bool operator ==(BitArray8 a, BitArray8 b)
+        {
+            return a.bitField == b.bitField;
+        }
+
+        public static bool operator !=(BitArray8 a, BitArray8 b)
+        {
+            return a.bitField != b.bitField;
+        }
+
+        private BitArray8(byte bitField)
+        {
+            this.bitField = bitField;
+        }
+
+        public BitArray8 Store(int value)
+        {
+            RailDebug.Assert(value < LENGTH);
+            return new BitArray8((byte)(this.bitField | (1U << value)));
+        }
+
+        public BitArray8 Remove(int value)
+        {
+            RailDebug.Assert(value < LENGTH);
+            return new BitArray8((byte)(this.bitField & ~(1U << value)));
+        }
+
+        public IEnumerable<int> GetValues()
+        {
+            return BitArrayHelpers.GetValues(this.bitField);
+        }
+
+        public bool Contains(int value)
+        {
+            return BitArrayHelpers.Contains(value, this.bitField, LENGTH);
+        }
+
+        public bool IsEmpty()
+        {
+            return this.bitField == 0;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is BitArray8)
+                return ((BitArray8)obj).bitField == this.bitField;
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.bitField;
+        }
     }
-
-    public static BitArray8 PeekBitArray8(this RailBitBuffer buffer)
-    {
-      return BitArray8.Peek(buffer);
-    }
-  }
-
-  public struct BitArray8
-  {
-    #region Encoding/Decoding
-    internal void Write(RailBitBuffer buffer)
-    {
-      buffer.WriteByte(this.bitField);
-    }
-
-    internal static BitArray8 Read(RailBitBuffer buffer)
-    {
-      return new BitArray8(buffer.ReadByte());
-    }
-
-    internal static BitArray8 Peek(RailBitBuffer buffer)
-    {
-      return new BitArray8(buffer.PeekByte());
-    }
-    #endregion
-
-    private const int LENGTH = 8;
-    public static readonly BitArray8 EMPTY = new BitArray8(0);
-
-    private readonly byte bitField;
-
-    public static BitArray8 operator <<(BitArray8 a, int b)
-    {
-      return new BitArray8((byte)(a.bitField << b));
-    }
-
-    public static BitArray8 operator >>(BitArray8 a, int b)
-    {
-      return new BitArray8((byte)(a.bitField >> b));
-    }
-
-    public static bool operator ==(BitArray8 a, BitArray8 b)
-    {
-      return a.bitField == b.bitField;
-    }
-
-    public static bool operator !=(BitArray8 a, BitArray8 b)
-    {
-      return a.bitField != b.bitField;
-    }
-
-    private BitArray8(byte bitField)
-    {
-      this.bitField = bitField;
-    }
-
-    public BitArray8 Store(int value)
-    {
-      RailDebug.Assert(value < LENGTH);
-      return new BitArray8((byte)(this.bitField | (1U << value)));
-    }
-
-    public BitArray8 Remove(int value)
-    {
-      RailDebug.Assert(value < LENGTH);
-      return new BitArray8((byte)(this.bitField & ~(1U << value)));
-    }
-
-    public IEnumerable<int> GetValues()
-    {
-      return BitArrayHelpers.GetValues(this.bitField);
-    }
-
-    public bool Contains(int value)
-    {
-      return BitArrayHelpers.Contains(value, this.bitField, LENGTH);
-    }
-
-    public bool IsEmpty()
-    {
-      return this.bitField == 0;
-    }
-
-    public override bool Equals(object obj)
-    {
-      if (obj is BitArray8)
-        return ((BitArray8)obj).bitField == this.bitField;
-      return false;
-    }
-
-    public override int GetHashCode()
-    {
-      return this.bitField;
-    }
-  }
 }

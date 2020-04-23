@@ -20,76 +20,76 @@
 
 namespace Railgun
 {
-  internal class RailStateDelta
-    : IRailPoolable<RailStateDelta>
-    , IRailTimedValue
-  {
-    #region Pooling
-    IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
-    void IRailPoolable<RailStateDelta>.Reset() { this.Reset(); }
-    #endregion
+    public class RailStateDelta
+      : IRailPoolable<RailStateDelta>
+      , IRailTimedValue
+    {
+        #region Pooling
+        IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
+        void IRailPoolable<RailStateDelta>.Reset() { this.Reset(); }
+        #endregion
 
-    #region Interface
-    Tick IRailTimedValue.Tick { get { return this.tick; } }
-    #endregion
+        #region Interface
+        Tick IRailTimedValue.Tick { get { return this.tick; } }
+        #endregion
 
-    internal static RailStateDelta CreateFrozen(
+        public static RailStateDelta CreateFrozen(
       RailResource resource,
-      Tick tick, 
-      EntityId entityId)
-    {
-      RailStateDelta delta = resource.CreateDelta();
-      delta.Initialize(tick, entityId, null, Tick.INVALID, Tick.INVALID, true);
-      return delta;
-    }
-
-    internal Tick Tick { get { return this.tick; } }
-    internal EntityId EntityId { get { return this.entityId; } }
-    internal RailState State { get { return this.state; } }
-    internal bool IsFrozen { get; set; }
-
-    internal bool HasControllerData { get { return this.state.HasControllerData; } }
-    internal bool HasImmutableData { get { return this.state.HasImmutableData; } }
-    internal bool IsRemoving { get { return this.RemovedTick.IsValid; } }
-    internal Tick RemovedTick { get; private set; }
-    internal Tick CommandAck { get; private set; } // Controller only
-
-    private Tick tick;
-    private EntityId entityId;
-    private RailState state;
-
-    internal RailEntity ProduceEntity(RailResource resource)
-    {
-      return this.state.ProduceEntity(resource);
-    }
-
-    public void Initialize(
       Tick tick,
-      EntityId entityId,
-      RailState state,
-      Tick removedTick,
-      Tick commandAck,
-      bool isFrozen)
-    {
-      this.tick = tick;
-      this.entityId = entityId;
-      this.state = state;
-      this.RemovedTick = removedTick;
-      this.CommandAck = commandAck;
-      this.IsFrozen = isFrozen;
-    }
+      EntityId entityId)
+        {
+            RailStateDelta delta = resource.CreateDelta();
+            delta.Initialize(tick, entityId, null, Tick.INVALID, Tick.INVALID, true);
+            return delta;
+        }
 
-    public RailStateDelta()
-    {
-      this.Reset();
-    }
+        public Tick Tick { get { return this.tick; } }
+        public EntityId EntityId { get { return this.entityId; } }
+        public RailState State { get { return this.state; } }
+        public bool IsFrozen { get; set; }
 
-    private void Reset()
-    {
-      this.tick = Tick.INVALID;
-      this.entityId = EntityId.INVALID;
-      RailPool.SafeReplace(ref this.state, null);
-      this.IsFrozen = false;
+        public bool HasControllerData { get { return this.state.HasControllerData; } }
+        public bool HasImmutableData { get { return this.state.HasImmutableData; } }
+        public bool IsRemoving { get { return this.RemovedTick.IsValid; } }
+        public Tick RemovedTick { get; private set; }
+        public Tick CommandAck { get; private set; } // Controller only
+
+        private Tick tick;
+        private EntityId entityId;
+        private RailState state;
+
+        public RailEntity ProduceEntity(RailResource resource)
+        {
+            return this.state.ProduceEntity(resource);
+        }
+
+        public void Initialize(
+          Tick tick,
+          EntityId entityId,
+          RailState state,
+          Tick removedTick,
+          Tick commandAck,
+          bool isFrozen)
+        {
+            this.tick = tick;
+            this.entityId = entityId;
+            this.state = state;
+            this.RemovedTick = removedTick;
+            this.CommandAck = commandAck;
+            this.IsFrozen = isFrozen;
+        }
+
+        public RailStateDelta()
+        {
+            this.Reset();
+        }
+
+        private void Reset()
+        {
+            this.tick = Tick.INVALID;
+            this.entityId = EntityId.INVALID;
+            RailPool.SafeReplace(ref this.state, null);
+            this.IsFrozen = false;
+        }
     }
-  }
 }

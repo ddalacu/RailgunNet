@@ -23,105 +23,105 @@ using System.Collections.Generic;
 namespace Railgun
 {
 #if CLIENT
-  interface IRailServerPacket : IRailPacket
-  {
-    Tick ServerTick { get; }
-    IEnumerable<RailStateDelta> Deltas { get; }
-  }
+    public interface IRailServerPacket : IRailPacket
+    {
+        Tick ServerTick { get; }
+        IEnumerable<RailStateDelta> Deltas { get; }
+    }
 #endif
 
-  /// <summary>
-  /// Packet sent from server to client.
-  /// </summary>
-  internal class RailServerPacket
-    : RailPacket 
+    /// <summary>
+    /// Packet sent from server to client.
+    /// </summary>
+    public class RailServerPacket
+      : RailPacket
 #if CLIENT
     , IRailServerPacket
 #endif
-  {
-    #region Interface
+    {
+        #region Interface
 #if CLIENT
-    Tick IRailServerPacket.ServerTick { get { return this.SenderTick; } }
-    IEnumerable<RailStateDelta> IRailServerPacket.Deltas { get { return this.deltas.Received; } }
+        Tick IRailServerPacket.ServerTick { get { return this.SenderTick; } }
+        IEnumerable<RailStateDelta> IRailServerPacket.Deltas { get { return this.deltas.Received; } }
 #endif
-    #endregion
+        #endregion
 
 #if CLIENT
-    internal IEnumerable<RailStateDelta> Deltas { get { return this.deltas.Received; } }
+        public IEnumerable<RailStateDelta> Deltas { get { return this.deltas.Received; } }
 #endif
 #if SERVER
-    internal IEnumerable<RailStateDelta> Sent { get { return this.deltas.Sent; } }
+        public IEnumerable<RailStateDelta> Sent { get { return this.deltas.Sent; } }
 #endif
 
-    private readonly RailPackedListS2C<RailStateDelta> deltas;
+        private readonly RailPackedListS2C<RailStateDelta> deltas;
 
-    public RailServerPacket() : base()
-    {
-      this.deltas = new RailPackedListS2C<RailStateDelta>();
-    }
+        public RailServerPacket() : base()
+        {
+            this.deltas = new RailPackedListS2C<RailStateDelta>();
+        }
 
-    internal override void Reset()
-    {
-      base.Reset();
+        public override void Reset()
+        {
+            base.Reset();
 
-      this.deltas.Clear();
-    }
+            this.deltas.Clear();
+        }
 
 #if SERVER
-    internal void Populate(
-      IEnumerable<RailStateDelta> activeDeltas,
-      IEnumerable<RailStateDelta> frozenDeltas,
-      IEnumerable<RailStateDelta> removedDeltas)
-    {
-      this.deltas.AddPending(removedDeltas);
-      this.deltas.AddPending(frozenDeltas);
-      this.deltas.AddPending(activeDeltas);
-    }
+        public void Populate(
+          IEnumerable<RailStateDelta> activeDeltas,
+          IEnumerable<RailStateDelta> frozenDeltas,
+          IEnumerable<RailStateDelta> removedDeltas)
+        {
+            this.deltas.AddPending(removedDeltas);
+            this.deltas.AddPending(frozenDeltas);
+            this.deltas.AddPending(activeDeltas);
+        }
 #endif
 
-    #region Encode/Decode
-    protected override void EncodePayload(
-      RailResource resource,
-      RailBitBuffer buffer,
-      Tick localTick,
-      int reservedBytes)
-    {
+        #region Encode/Decode
+        protected override void EncodePayload(
+          RailResource resource,
+          RailBitBuffer buffer,
+          Tick localTick,
+          int reservedBytes)
+        {
 #if SERVER
-      // Write: [Deltas]
-      this.EncodeDeltas(resource, buffer, reservedBytes);
-    }
+            // Write: [Deltas]
+            this.EncodeDeltas(resource, buffer, reservedBytes);
+        }
 
-    private void EncodeDeltas(
-      RailResource resource,
-      RailBitBuffer buffer, 
-      int reservedBytes)
-    {
-      this.deltas.Encode(
-        buffer,
-        RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
-        RailConfig.MAXSIZE_ENTITY,
-        (delta) => RailState.EncodeDelta(resource, buffer, delta));
+        private void EncodeDeltas(
+          RailResource resource,
+          RailBitBuffer buffer,
+          int reservedBytes)
+        {
+            this.deltas.Encode(
+              buffer,
+              RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
+              RailConfig.MAXSIZE_ENTITY,
+              (delta) => RailState.EncodeDelta(resource, buffer, delta));
 #endif
-    }
+        }
 
-    protected override void DecodePayload(
-      RailResource resource,
-      RailBitBuffer buffer)
-    {
+        protected override void DecodePayload(
+          RailResource resource,
+          RailBitBuffer buffer)
+        {
 #if CLIENT
-      // Read: [Deltas]
-      this.DecodeDeltas(resource, buffer);
-    }
+            // Read: [Deltas]
+            this.DecodeDeltas(resource, buffer);
+        }
 
-    private void DecodeDeltas(
-      RailResource resource,
-      RailBitBuffer buffer)
-    {
-      this.deltas.Decode(
-        buffer,
-        () => RailState.DecodeDelta(resource, buffer, this.SenderTick));
+        private void DecodeDeltas(
+          RailResource resource,
+          RailBitBuffer buffer)
+        {
+            this.deltas.Decode(
+              buffer,
+              () => RailState.DecodeDelta(resource, buffer, this.SenderTick));
 #endif
+        }
+        #endregion
     }
-    #endregion
-  }
 }

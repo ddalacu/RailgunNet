@@ -20,8 +20,8 @@
 
 namespace Railgun
 {
-  public interface IRailTimedValue
-  {
-    Tick Tick { get; }
-  }
+    public interface IRailTimedValue
+    {
+        Tick Tick { get; }
+    }
 }

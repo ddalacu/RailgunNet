@@ -20,23 +20,23 @@
 
 namespace Railgun
 {
-  public delegate void RailNetPeerEvent(
-    IRailNetPeer peer, 
-    byte[] data, 
-    int length);
+    public delegate void RailNetPeerEvent(
+      IRailNetPeer peer,
+      byte[] data,
+      int length);
 
-  public interface IRailNetPeer
-  {
-    event RailNetPeerEvent PayloadReceived;
+    public interface IRailNetPeer
+    {
+        event RailNetPeerEvent PayloadReceived;
 
-    /// <summary>
-    /// Used for attaching arbitrary player data.
-    /// </summary>
-    object PlayerData { get; set; }
+        /// <summary>
+        /// Used for attaching arbitrary player data.
+        /// </summary>
+        object PlayerData { get; set; }
 
-    float? Ping { get; }
+        float? Ping { get; }
 
-    void SendPayload(byte[] buffer, int length);
-    void BindController(RailController controller);
-  }
+        void SendPayload(byte[] buffer, int length);
+        void BindController(RailController controller);
+    }
 }

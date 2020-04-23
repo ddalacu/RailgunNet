@@ -23,157 +23,157 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  internal class RailPackedListS2C<T>
-    where T : IRailPoolable<T>
-  {
-#if CLIENT
-    internal IEnumerable<T> Received { get { return this.received; } }
-    private readonly List<T> received;
-#endif
-#if SERVER
-    internal IEnumerable<T> Pending { get { return this.pending; } }
-    internal IEnumerable<T> Sent { get { return this.sent; } }
-    private readonly List<T> pending;
-    private readonly List<T> sent;
-#endif
-
-    public RailPackedListS2C()
+    class RailPackedListS2C<T>
+      where T : IRailPoolable<T>
     {
 #if CLIENT
-      this.received = new List<T>();
+        public IEnumerable<T> Received { get { return this.received; } }
+        private readonly List<T> received;
 #endif
 #if SERVER
-      this.pending = new List<T>();
-      this.sent = new List<T>();
+        public IEnumerable<T> Pending { get { return this.pending; } }
+        public IEnumerable<T> Sent { get { return this.sent; } }
+        private readonly List<T> pending;
+        private readonly List<T> sent;
 #endif
-    }
 
-    public void Clear()
-    {
+        public RailPackedListS2C()
+        {
 #if CLIENT
-      // We don't free the received values as they will be passed elsewhere
-      this.received.Clear();
+            this.received = new List<T>();
 #endif
 #if SERVER
-      // Everything in sent is also in pending, so only free pending
-      foreach (T value in this.pending)
-        RailPool.Free(value);
-      this.pending.Clear();
-      this.sent.Clear();
+            this.pending = new List<T>();
+            this.sent = new List<T>();
 #endif
-    }
+        }
+
+        public void Clear()
+        {
+#if CLIENT
+            // We don't free the received values as they will be passed elsewhere
+            this.received.Clear();
+#endif
+#if SERVER
+            // Everything in sent is also in pending, so only free pending
+            foreach (T value in this.pending)
+                RailPool.Free(value);
+            this.pending.Clear();
+            this.sent.Clear();
+#endif
+        }
 
 #if CLIENT
-    public void Decode(
-      RailBitBuffer buffer, 
-      Func<T> decode)
-    {
-      IEnumerable<T> decoded = buffer.UnpackAll(decode);
-      foreach (T delta in decoded)
-        this.received.Add(delta);
-    }
+        public void Decode(
+          RailBitBuffer buffer,
+          Func<T> decode)
+        {
+            IEnumerable<T> decoded = buffer.UnpackAll(decode);
+            foreach (T delta in decoded)
+                this.received.Add(delta);
+        }
 #endif
 #if SERVER
-    public void AddPending(T value)
-    {
-      this.pending.Add(value);
+        public void AddPending(T value)
+        {
+            this.pending.Add(value);
+        }
+
+        public void AddPending(IEnumerable<T> values)
+        {
+            this.pending.AddRange(values);
+        }
+
+        public void Encode(
+          RailBitBuffer buffer,
+          int maxTotalSize,
+          int maxIndividualSize,
+          Action<T> encode)
+        {
+            buffer.PackToSize(
+              maxTotalSize,
+              maxIndividualSize,
+              this.pending,
+              encode,
+              (val) => this.sent.Add(val));
+        }
+#endif
     }
 
-    public void AddPending(IEnumerable<T> values)
-    {
-      this.pending.AddRange(values);
-    }
-
-    public void Encode(
-      RailBitBuffer buffer,
-      int maxTotalSize,
-      int maxIndividualSize,
-      Action<T> encode)
-    {
-      buffer.PackToSize(
-        maxTotalSize,
-        maxIndividualSize,
-        this.pending,
-        encode,
-        (val) => this.sent.Add(val));
-    }
-#endif
-  }
-
-  internal class RailPackedListC2S<T>
-    where T : IRailPoolable<T>
-  {
-#if SERVER
-    internal IEnumerable<T> Received { get { return this.received; } }
-    private readonly List<T> received;
-#endif
-#if CLIENT
-    internal IEnumerable<T> Pending { get { return this.pending; } }
-    internal IEnumerable<T> Sent { get { return this.sent; } }
-    private readonly List<T> pending;
-    private readonly List<T> sent;
-#endif
-
-    public RailPackedListC2S()
+    class RailPackedListC2S<T>
+      where T : IRailPoolable<T>
     {
 #if SERVER
-      this.received = new List<T>();
-#endif
-#if CLIENT
-      this.pending = new List<T>();
-      this.sent = new List<T>();
-#endif
-    }
-
-    public void Clear()
-    {
-#if SERVER
-      // We don't free the received values as they will be passed elsewhere
-      this.received.Clear();
+        public IEnumerable<T> Received { get { return this.received; } }
+        private readonly List<T> received;
 #endif
 #if CLIENT
-      // Everything in sent is also in pending, so only free pending
-      foreach (T value in this.pending)
-        RailPool.Free(value);
-      this.pending.Clear();
-      this.sent.Clear();
+        public IEnumerable<T> Pending { get { return this.pending; } }
+        public IEnumerable<T> Sent { get { return this.sent; } }
+        private readonly List<T> pending;
+        private readonly List<T> sent;
 #endif
-    }
 
+        public RailPackedListC2S()
+        {
 #if SERVER
-    public void Decode(
-      RailBitBuffer buffer,
-      Func<T> decode)
-    {
-      IEnumerable<T> decoded = buffer.UnpackAll(decode);
-      foreach (T delta in decoded)
-        this.received.Add(delta);
-    }
+            this.received = new List<T>();
 #endif
 #if CLIENT
-    public void AddPending(T value)
-    {
-      this.pending.Add(value);
-    }
-
-    public void AddPending(IEnumerable<T> values)
-    {
-      this.pending.AddRange(values);
-    }
-
-    public void Encode(
-      RailBitBuffer buffer,
-      int maxTotalSize,
-      int maxIndividualSize,
-      Action<T> encode)
-    {
-      buffer.PackToSize(
-        maxTotalSize,
-        maxIndividualSize,
-        this.pending,
-        encode,
-        (val) => this.sent.Add(val));
-    }
+            this.pending = new List<T>();
+            this.sent = new List<T>();
 #endif
-  }
+        }
+
+        public void Clear()
+        {
+#if SERVER
+            // We don't free the received values as they will be passed elsewhere
+            this.received.Clear();
+#endif
+#if CLIENT
+            // Everything in sent is also in pending, so only free pending
+            foreach (T value in this.pending)
+                RailPool.Free(value);
+            this.pending.Clear();
+            this.sent.Clear();
+#endif
+        }
+
+#if SERVER
+        public void Decode(
+          RailBitBuffer buffer,
+          Func<T> decode)
+        {
+            IEnumerable<T> decoded = buffer.UnpackAll(decode);
+            foreach (T delta in decoded)
+                this.received.Add(delta);
+        }
+#endif
+#if CLIENT
+        public void AddPending(T value)
+        {
+            this.pending.Add(value);
+        }
+
+        public void AddPending(IEnumerable<T> values)
+        {
+            this.pending.AddRange(values);
+        }
+
+        public void Encode(
+          RailBitBuffer buffer,
+          int maxTotalSize,
+          int maxIndividualSize,
+          Action<T> encode)
+        {
+            buffer.PackToSize(
+              maxTotalSize,
+              maxIndividualSize,
+              this.pending,
+              encode,
+              (val) => this.sent.Add(val));
+        }
+#endif
+    }
 }

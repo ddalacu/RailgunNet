@@ -21,23 +21,23 @@
 #if SERVER
 namespace Railgun
 {
-  public class RailScopeEvaluator
-  {
-    protected internal virtual bool Evaluate(
-      RailEvent evnt)
+    public class RailScopeEvaluator
     {
-      return true;
-    }
+        public virtual bool Evaluate(
+          RailEvent evnt)
+        {
+            return true;
+        }
 
-    protected internal virtual bool Evaluate(
-      IRailEntity entity, 
-      int ticksSinceSend,
-      int ticksSinceAck,
-      out float priority)
-    {
-      priority = 0.0f;
-      return true;
+        public virtual bool Evaluate(
+          IRailEntity entity,
+          int ticksSinceSend,
+          int ticksSinceAck,
+          out float priority)
+        {
+            priority = 0.0f;
+            return true;
+        }
     }
-  }
 }
 #endif

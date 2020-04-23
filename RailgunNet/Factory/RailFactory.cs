@@ -9,7 +9,7 @@ namespace Railgun
 
     public class RailFactory<T> : IRailFactory<T>
     {
-        private readonly Type typeToCreate;
+        protected readonly Type typeToCreate;
 
         public RailFactory()
         {
@@ -31,7 +31,7 @@ namespace Railgun
             }
             this.typeToCreate = typeToCreate;
         }
-        public T Create()
+        public virtual T Create()
         {
             return (T)Activator.CreateInstance(typeToCreate);
         }

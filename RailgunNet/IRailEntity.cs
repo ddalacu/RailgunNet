@@ -20,57 +20,57 @@
 
 namespace Railgun
 {
-  public interface IRailEntity
-  {
-    /// <summary>
-    /// Used internally within Railgun to downcast.
-    /// </summary>
-    RailEntity AsBase { get; }
+    public interface IRailEntity
+    {
+        /// <summary>
+        /// Used internally within Railgun to downcast.
+        /// </summary>
+        RailEntity AsBase { get; }
 
-    RailRoom Room { get; }
-    bool HasStarted { get; }
-    bool IsRemoving { get; }
-    bool IsFrozen { get; }
-    RailController Controller { get; }
+        RailRoom Room { get; }
+        bool HasStarted { get; }
+        bool IsRemoving { get; }
+        bool IsFrozen { get; }
+        RailController Controller { get; }
 
-    EntityId Id { get; }
+        EntityId Id { get; }
 
 #if CLIENT
-    bool IsControlled { get; }
+        bool IsControlled { get; }
 
-    /// <summary>
-    /// The tick of the last authoritative state.
-    /// </summary>
-    Tick AuthTick { get; }
+        /// <summary>
+        /// The tick of the last authoritative state.
+        /// </summary>
+        Tick AuthTick { get; }
 
-    /// <summary>
-    /// The tick of the next authoritative state. May be invalid.
-    /// </summary>
-    Tick NextTick { get; }
+        /// <summary>
+        /// The tick of the next authoritative state. May be invalid.
+        /// </summary>
+        Tick NextTick { get; }
 
-    /// <summary>
-    /// Returns the number of ticks ahead we are, for extrapolation.
-    /// Note that this does not take client-side prediction into account.
-    /// </summary>
-    int TicksAhead { get; }
+        /// <summary>
+        /// Returns the number of ticks ahead we are, for extrapolation.
+        /// Note that this does not take client-side prediction into account.
+        /// </summary>
+        int TicksAhead { get; }
 #endif
 
 #if CLIENT
-    float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
+        float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
 #endif
-  }
+    }
 
-  /// <summary>
-  /// Handy shortcut class for auto-casting the internal state.
-  /// </summary>
-  public interface IRailEntity<TState> : IRailEntity
-    where TState : RailState, new()
-  {
-    TState State { get; }
+    /// <summary>
+    /// Handy shortcut class for auto-casting the state.
+    /// </summary>
+    public interface IRailEntity<TState> : IRailEntity
+      where TState : RailState, new()
+    {
+        TState State { get; }
 
 #if CLIENT
-    TState AuthState { get; }
-    TState NextState { get; }
+        TState AuthState { get; }
+        TState NextState { get; }
 #endif
-  }
+    }
 }

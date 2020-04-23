@@ -20,126 +20,126 @@
 
 namespace Railgun
 {
-  public static class RailFloatCompressorExtensions
-  {
-    #region Array
-    public static void WriteFloats(
-      this RailBitBuffer buffer,
-      RailFloatCompressor compressor,
-      float[] values)
+    public static class RailFloatCompressorExtensions
     {
-      if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-        for (int i = 0; i < values.Length; i++)
-          buffer.WriteUInt(compressor.Pack(values[i]));
-      else
-        for (int i = 0; i < values.Length; i++)
-          buffer.Write(compressor.RequiredBits, compressor.Pack(values[i]));
+        #region Array
+        public static void WriteFloats(
+          this RailBitBuffer buffer,
+          RailFloatCompressor compressor,
+          float[] values)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                for (int i = 0; i < values.Length; i++)
+                    buffer.WriteUInt(compressor.Pack(values[i]));
+            else
+                for (int i = 0; i < values.Length; i++)
+                    buffer.Write(compressor.RequiredBits, compressor.Pack(values[i]));
+        }
+
+        public static void ReadFloats(
+          this RailBitBuffer buffer,
+          RailFloatCompressor compressor,
+          float[] toStore)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                for (int i = 0; i < toStore.Length; i++)
+                    toStore[i] = compressor.Unpack(buffer.ReadUInt());
+            else
+                for (int i = 0; i < toStore.Length; i++)
+                    toStore[i] = compressor.Unpack(buffer.Read(compressor.RequiredBits));
+        }
+        #endregion
+
+        public static void WriteFloat(
+          this RailBitBuffer buffer,
+          RailFloatCompressor compressor,
+          float value)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                buffer.WriteUInt(compressor.Pack(value));
+            else
+                buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+        }
+
+        public static float ReadFloat(
+          this RailBitBuffer buffer,
+          RailFloatCompressor compressor)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                return compressor.Unpack(buffer.ReadUInt());
+            else
+                return compressor.Unpack(buffer.Read(compressor.RequiredBits));
+        }
+
+        public static float PeekFloat(
+          this RailBitBuffer buffer,
+          RailFloatCompressor compressor)
+        {
+            if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+                return compressor.Unpack(buffer.PeekUInt());
+            else
+                return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
+        }
     }
 
-    public static void ReadFloats(
-      this RailBitBuffer buffer,
-      RailFloatCompressor compressor,
-      float[] toStore)
+    /// <summary>
+    /// Compresses floats to a given range with a given precision.
+    /// http://stackoverflow.com/questions/8382629/compress-floating-point-numbers-with-specified-range-and-precision
+    /// </summary>
+    public class RailFloatCompressor
     {
-      if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-        for (int i = 0; i < toStore.Length; i++)
-          toStore[i] = compressor.Unpack(buffer.ReadUInt());
-      else
-        for (int i = 0; i < toStore.Length; i++)
-          toStore[i] = compressor.Unpack(buffer.Read(compressor.RequiredBits));
+        private readonly float precision;
+        private readonly float invPrecision;
+
+        private readonly float minValue;
+        private readonly float maxValue;
+
+        private readonly int requiredBits;
+        private readonly uint mask;
+
+        public int RequiredBits { get { return this.requiredBits; } }
+
+        public RailFloatCompressor(
+          float minValue,
+          float maxValue,
+          float precision)
+        {
+            this.minValue = minValue;
+            this.maxValue = maxValue;
+            this.precision = precision;
+
+            this.invPrecision = 1.0f / precision;
+            this.requiredBits = this.ComputeRequiredBits();
+            this.mask = (uint)((1L << requiredBits) - 1);
+        }
+
+        public uint Pack(float value)
+        {
+            float newValue = RailUtil.Clamp(value, this.minValue, this.maxValue);
+            if (newValue != value)
+                RailDebug.LogWarning(
+                  "Clamping value for send! " +
+                  value +
+                  " vs. [" +
+                  this.minValue +
+                  "," +
+                  this.maxValue +
+                  "]");
+            float adjusted = (value - this.minValue) * this.invPrecision;
+            return (uint)(adjusted + 0.5f) & this.mask;
+        }
+
+        public float Unpack(uint data)
+        {
+            float adjusted = ((float)data * this.precision) + this.minValue;
+            return RailUtil.Clamp(adjusted, this.minValue, this.maxValue);
+        }
+
+        private int ComputeRequiredBits()
+        {
+            float range = this.maxValue - this.minValue;
+            float maxVal = range * (1.0f / this.precision);
+            return RailUtil.Log2((uint)(maxVal + 0.5f)) + 1;
+        }
     }
-    #endregion
-
-    public static void WriteFloat(
-      this RailBitBuffer buffer, 
-      RailFloatCompressor compressor, 
-      float value)
-    {
-      if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-        buffer.WriteUInt(compressor.Pack(value));
-      else
-        buffer.Write(compressor.RequiredBits, compressor.Pack(value));
-    }
-
-    public static float ReadFloat(
-      this RailBitBuffer buffer,
-      RailFloatCompressor compressor)
-    {
-      if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-        return compressor.Unpack(buffer.ReadUInt());
-      else
-        return compressor.Unpack(buffer.Read(compressor.RequiredBits));
-    }
-
-    public static float PeekFloat(
-      this RailBitBuffer buffer,
-      RailFloatCompressor compressor)
-    {
-      if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
-        return compressor.Unpack(buffer.PeekUInt());
-      else
-        return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
-    }
-  }
-
-  /// <summary>
-  /// Compresses floats to a given range with a given precision.
-  /// http://stackoverflow.com/questions/8382629/compress-floating-point-numbers-with-specified-range-and-precision
-  /// </summary>
-  public class RailFloatCompressor
-  {
-    private readonly float precision;
-    private readonly float invPrecision;
-
-    private readonly float minValue;
-    private readonly float maxValue;
-
-    private readonly int requiredBits;
-    private readonly uint mask;
-
-    internal int RequiredBits { get { return this.requiredBits; } }
-
-    public RailFloatCompressor(
-      float minValue, 
-      float maxValue, 
-      float precision)
-    {
-      this.minValue = minValue;
-      this.maxValue = maxValue;
-      this.precision = precision;
-
-      this.invPrecision = 1.0f / precision;
-      this.requiredBits = this.ComputeRequiredBits();
-      this.mask = (uint)((1L << requiredBits) - 1);
-    }
-
-    public uint Pack(float value)
-    {
-      float newValue = RailUtil.Clamp(value, this.minValue, this.maxValue);
-      if (newValue != value)
-        RailDebug.LogWarning(
-          "Clamping value for send! " + 
-          value + 
-          " vs. [" + 
-          this.minValue +
-          "," + 
-          this.maxValue + 
-          "]");
-      float adjusted = (value - this.minValue) * this.invPrecision;
-      return (uint)(adjusted + 0.5f) & this.mask;
-    }
-
-    public float Unpack(uint data)
-    {
-      float adjusted = ((float)data * this.precision) + this.minValue;
-      return RailUtil.Clamp(adjusted, this.minValue, this.maxValue);
-    }
-
-    private int ComputeRequiredBits()
-    {
-      float range = this.maxValue - this.minValue;
-      float maxVal = range * (1.0f / this.precision);
-      return RailUtil.Log2((uint)(maxVal + 0.5f)) + 1;
-    }
-  }
 }

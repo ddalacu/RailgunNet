@@ -23,115 +23,115 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  public class RailClient 
-    : RailConnection
-  {
-    /// <summary>
-    /// The peer for our connection to the server.
-    /// </summary>
-    private RailClientPeer serverPeer;
-
-    /// <summary>
-    /// The local simulation tick, used for commands
-    /// </summary>
-    private Tick localTick;
-
-    /// <summary>
-    /// The client's room instance. TODO: Multiple rooms?
-    /// </summary>
-    private RailClientRoom clientRoom;
-    private new RailClientRoom Room { get { return this.clientRoom; } }
-
-    public RailClient(RailRegistry registry)
-      : base(registry)
+    public class RailClient
+      : RailConnection
     {
-      this.serverPeer = null;
-      this.localTick = Tick.START;
-      this.clientRoom = null;
-    }
+        /// <summary>
+        /// The peer for our connection to the server.
+        /// </summary>
+        private RailClientPeer serverPeer;
 
-    public void StartRoom()
-    {
-      this.clientRoom = new RailClientRoom(this.resource, this);
-      this.SetRoom(this.clientRoom, Tick.INVALID);
-    }
+        /// <summary>
+        /// The local simulation tick, used for commands
+        /// </summary>
+        private Tick localTick;
 
-    /// <summary>
-    /// Sets the current server peer.
-    /// </summary>
-    public void SetPeer(IRailNetPeer netPeer)
-    {
-      if (netPeer == null)
-      {
-        if (this.serverPeer != null)
+        /// <summary>
+        /// The client's room instance. TODO: Multiple rooms?
+        /// </summary>
+        private RailClientRoom clientRoom;
+        private new RailClientRoom Room { get { return this.clientRoom; } }
+
+        public RailClient(RailRegistry registry)
+          : base(registry)
         {
-          this.serverPeer.PacketReceived -= this.OnPacketReceived;
-          this.serverPeer.EventReceived -= base.OnEventReceived;
+            this.serverPeer = null;
+            this.localTick = Tick.START;
+            this.clientRoom = null;
         }
 
-        this.serverPeer = null;
-      }
-      else
-      {
-        RailDebug.Assert(this.serverPeer == null, "Overwriting peer");
-        this.serverPeer = 
-          new RailClientPeer(this.resource, netPeer, this.Interpreter);
-        this.serverPeer.PacketReceived += this.OnPacketReceived;
-        this.serverPeer.EventReceived += base.OnEventReceived;
-      }
-    }
-
-    public override void Update()
-    {
-      if (this.serverPeer != null)
-      {
-        this.DoStart();
-        this.serverPeer.Update(this.localTick);
-
-        if (this.Room != null)
+        public void StartRoom()
         {
-          this.Room.ClientUpdate(
-            this.localTick,
-            this.serverPeer.EstimatedRemoteTick);
-
-          int sendRate = RailConfig.CLIENT_SEND_RATE;
-          if (this.localTick.IsSendTick(sendRate))
-            this.serverPeer.SendPacket(
-              this.localTick,
-              this.Room.LocalEntities);
-
-          this.localTick++;
+            this.clientRoom = new RailClientRoom(this.resource, this);
+            this.SetRoom(this.clientRoom, Tick.INVALID);
         }
-      }
-    }
 
-    /// <summary>
-    /// Queues an event to sent to the server.
-    /// </summary>
-    internal void RaiseEvent(
-      RailEvent evnt, 
-      ushort attempts = 3,
-      bool freeWhenDone = true)
-    {
-      RailDebug.Assert(this.serverPeer != null);
-      if (this.serverPeer != null)
-        this.serverPeer.RaiseEvent(evnt, attempts, freeWhenDone);
-    }
+        /// <summary>
+        /// Sets the current server peer.
+        /// </summary>
+        public void SetPeer(IRailNetPeer netPeer)
+        {
+            if (netPeer == null)
+            {
+                if (this.serverPeer != null)
+                {
+                    this.serverPeer.PacketReceived -= this.OnPacketReceived;
+                    this.serverPeer.EventReceived -= base.OnEventReceived;
+                }
 
-    private void OnPacketReceived(IRailServerPacket packet)
-    {
-      if (this.Room == null)
-      {
-        foreach (RailStateDelta delta in packet.Deltas)
-          RailPool.Free(delta);
-      }
-      else
-      {
-        foreach (RailStateDelta delta in packet.Deltas)
-          if (this.Room.ProcessDelta(delta) == false)
-            RailPool.Free(delta);
-      }
+                this.serverPeer = null;
+            }
+            else
+            {
+                RailDebug.Assert(this.serverPeer == null, "Overwriting peer");
+                this.serverPeer =
+                  new RailClientPeer(this.resource, netPeer, this.Interpreter);
+                this.serverPeer.PacketReceived += this.OnPacketReceived;
+                this.serverPeer.EventReceived += base.OnEventReceived;
+            }
+        }
+
+        public override void Update()
+        {
+            if (this.serverPeer != null)
+            {
+                this.DoStart();
+                this.serverPeer.Update(this.localTick);
+
+                if (this.Room != null)
+                {
+                    this.Room.ClientUpdate(
+                      this.localTick,
+                      this.serverPeer.EstimatedRemoteTick);
+
+                    int sendRate = RailConfig.CLIENT_SEND_RATE;
+                    if (this.localTick.IsSendTick(sendRate))
+                        this.serverPeer.SendPacket(
+                          this.localTick,
+                          this.Room.LocalEntities);
+
+                    this.localTick++;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Queues an event to sent to the server.
+        /// </summary>
+        public void RaiseEvent(
+          RailEvent evnt,
+          ushort attempts = 3,
+          bool freeWhenDone = true)
+        {
+            RailDebug.Assert(this.serverPeer != null);
+            if (this.serverPeer != null)
+                this.serverPeer.RaiseEvent(evnt, attempts, freeWhenDone);
+        }
+
+        private void OnPacketReceived(IRailServerPacket packet)
+        {
+            if (this.Room == null)
+            {
+                foreach (RailStateDelta delta in packet.Deltas)
+                    RailPool.Free(delta);
+            }
+            else
+            {
+                foreach (RailStateDelta delta in packet.Deltas)
+                    if (this.Room.ProcessDelta(delta) == false)
+                        RailPool.Free(delta);
+            }
+        }
     }
-  }
 }
 #endif

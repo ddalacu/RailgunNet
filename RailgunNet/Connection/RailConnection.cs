@@ -22,49 +22,49 @@ using System;
 
 namespace Railgun
 {
-  /// <summary>
-  /// Server is the core executing class for communication. It is responsible
-  /// for managing connection contexts and payload I/O.
-  /// </summary>
-  public abstract class RailConnection
-  {
-    public event Action Started;
-
-    public RailRoom Room { get { return this.room; } }
-    internal RailInterpreter Interpreter { get { return this.interpreter; } }
-
-    internal readonly RailResource resource;
-    private readonly RailInterpreter interpreter;
-    private RailRoom room;
-    private bool hasStarted;
-
-    public abstract void Update();
-
-    protected RailConnection(RailRegistry registry)
+    /// <summary>
+    /// Server is the core executing class for communication. It is responsible
+    /// for managing connection contexts and payload I/O.
+    /// </summary>
+    public abstract class RailConnection
     {
-      this.resource = new RailResource(registry);
-      this.interpreter = new RailInterpreter();
-      this.room = null;
-      this.hasStarted = false;
-    }
+        public event Action Started;
 
-    protected void SetRoom(RailRoom room, Tick startTick)
-    {
-      this.room = room;
-      this.room.Initialize(startTick);
-    }
+        public RailRoom Room { get { return this.room; } }
+        protected RailInterpreter Interpreter { get { return this.interpreter; } }
 
-    internal void OnEventReceived(RailEvent evnt, RailPeer sender)
-    {
-      evnt.Invoke(this.Room, sender);
-    }
+        protected readonly RailResource resource;
+        private readonly RailInterpreter interpreter;
+        private RailRoom room;
+        private bool hasStarted;
 
-    protected void DoStart()
-    {
-      if (this.hasStarted == false)
-        if (this.Started != null)
-          this.Started.Invoke();
-      this.hasStarted = true;
+        public abstract void Update();
+
+        protected RailConnection(RailRegistry registry)
+        {
+            this.resource = new RailResource(registry);
+            this.interpreter = new RailInterpreter();
+            this.room = null;
+            this.hasStarted = false;
+        }
+
+        protected void SetRoom(RailRoom room, Tick startTick)
+        {
+            this.room = room;
+            this.room.Initialize(startTick);
+        }
+
+        protected void OnEventReceived(RailEvent evnt, RailPeer sender)
+        {
+            evnt.Invoke(this.Room, sender);
+        }
+
+        protected void DoStart()
+        {
+            if (this.hasStarted == false)
+                if (this.Started != null)
+                    this.Started.Invoke();
+            this.hasStarted = true;
+        }
     }
-  }
 }

@@ -20,90 +20,90 @@
 
 namespace Railgun
 {
-  /// <summary>
-  /// Commands contain input data from the client to be applied to entities.
-  /// </summary>
-  public abstract class RailCommand : 
-    IRailPoolable<RailCommand>, IRailTimedValue
-  {
-    #region Pooling
-    IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
-    void IRailPoolable<RailCommand>.Reset() { this.Reset(); }
-    #endregion
-
-    internal static RailCommand Create(RailResource resource)
-    {
-      return resource.CreateCommand();
-    }
-
-    #region Interface
-    Tick IRailTimedValue.Tick { get { return this.ClientTick; } }
-    #endregion
-
-    internal abstract void SetDataFrom(RailCommand other);
-
     /// <summary>
-    /// The client's local tick (not server predicted) at the time of sending.
+    /// Commands contain input data from the client to be applied to entities.
     /// </summary>
-    public Tick ClientTick { get; internal set; }    // Synchronized
-
-    protected abstract void EncodeData(RailBitBuffer buffer);
-    protected abstract void DecodeData(RailBitBuffer buffer);
-    protected abstract void ResetData();
-
-    public bool IsNewCommand { get; internal set; }
-
-    private void Reset()
+    public abstract class RailCommand :
+      IRailPoolable<RailCommand>, IRailTimedValue
     {
-      this.ClientTick = Tick.INVALID;
-      this.ResetData();
-    }
+        #region Pooling
+        IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
+        void IRailPoolable<RailCommand>.Reset() { this.Reset(); }
+        #endregion
 
-    #region Encode/Decode/etc.
+        public static RailCommand Create(RailResource resource)
+        {
+            return resource.CreateCommand();
+        }
+
+        #region Interface
+        Tick IRailTimedValue.Tick { get { return this.ClientTick; } }
+        #endregion
+
+        protected abstract void SetDataFrom(RailCommand other);
+
+        /// <summary>
+        /// The client's local tick (not server predicted) at the time of sending.
+        /// </summary>
+        public Tick ClientTick { get; set; }    // Synchronized
+
+        protected abstract void EncodeData(RailBitBuffer buffer);
+        protected abstract void DecodeData(RailBitBuffer buffer);
+        protected abstract void ResetData();
+
+        public bool IsNewCommand { get; set; }
+
+        private void Reset()
+        {
+            this.ClientTick = Tick.INVALID;
+            this.ResetData();
+        }
+
+        #region Encode/Decode/etc.
 #if CLIENT
-    internal void Encode(
-      RailBitBuffer buffer)
-    {
-      // Write: [SenderTick]
-      buffer.WriteTick(this.ClientTick);
+        public void Encode(
+          RailBitBuffer buffer)
+        {
+            // Write: [SenderTick]
+            buffer.WriteTick(this.ClientTick);
 
-      // Write: [Command Data]
-      this.EncodeData(buffer);
-    }
+            // Write: [Command Data]
+            this.EncodeData(buffer);
+        }
 #endif
 
 #if SERVER
-    internal static RailCommand Decode(
-      RailResource resource,
-      RailBitBuffer buffer)
-    {
-      RailCommand command = RailCommand.Create(resource);
+        public static RailCommand Decode(
+          RailResource resource,
+          RailBitBuffer buffer)
+        {
+            RailCommand command = RailCommand.Create(resource);
 
-      // Read: [SenderTick]
-      command.ClientTick = buffer.ReadTick();
+            // Read: [SenderTick]
+            command.ClientTick = buffer.ReadTick();
 
-      // Read: [Command Data]
-      command.DecodeData(buffer);
+            // Read: [Command Data]
+            command.DecodeData(buffer);
 
-      return command;
-    }
+            return command;
+        }
 #endif
-    #endregion
-  }
-
-  /// <summary>
-  /// This is the class to override to attach user-defined data to an entity.
-  /// </summary>
-  public abstract class RailCommand<T> : RailCommand
-    where T : RailCommand<T>, new()
-  {
-    #region Casting Overrides
-    internal override void SetDataFrom(RailCommand other)
-    {
-      this.SetDataFrom((T)other);
+        #endregion
     }
-    #endregion
 
-    protected internal abstract void SetDataFrom(T other);
-  }
+    /// <summary>
+    /// This is the class to override to attach user-defined data to an entity.
+    /// </summary>
+    public abstract class RailCommand<T> : RailCommand
+      where T : RailCommand<T>, new()
+    {
+        #region Casting Overrides
+        protected override void SetDataFrom(RailCommand other)
+        {
+            this.SetDataFrom((T)other);
+        }
+        #endregion
+
+        protected abstract void SetDataFrom(T other);
+    }
 }

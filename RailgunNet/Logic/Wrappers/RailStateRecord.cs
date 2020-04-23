@@ -18,62 +18,61 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
 namespace Railgun
 {
-  /// <summary>
-  /// Used to differentiate/typesafe state records. Not strictly necessary.
-  /// </summary>
-  internal class RailStateRecord 
+    /// <summary>
+    /// Used to differentiate/typesafe state records. Not strictly necessary.
+    /// </summary>
+    [OnlyIn(Component.Server)]
+    public class RailStateRecord
     : IRailTimedValue
     , IRailPoolable<RailStateRecord>
-  {
-    #region Pooling
-    IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
-    void IRailPoolable<RailStateRecord>.Reset() { this.Reset(); }
-    #endregion
-
-    #region Interface
-    Tick IRailTimedValue.Tick { get { return this.tick; } }
-    #endregion
-
-    internal bool IsValid { get { return this.tick.IsValid; } }
-    internal RailState State { get { return this.state; } }
-    internal Tick Tick { get { return this.tick; } }
-
-    private Tick tick;
-    private RailState state;
-
-    public RailStateRecord()
     {
-      this.state = null;
-      this.tick = Tick.INVALID;
-    }
+        #region Pooling
+        IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
+        void IRailPoolable<RailStateRecord>.Reset() { this.Reset(); }
+        #endregion
 
-    public void Overwrite(
-      RailResource resource,
-      Tick tick,
-      RailState state)
-    {
-      RailDebug.Assert(tick.IsValid);
+        #region Interface
+        Tick IRailTimedValue.Tick { get { return this.tick; } }
+        #endregion
 
-      this.tick = tick;
-      if (this.state == null)
-        this.state = state.Clone(resource);
-      else
-        this.state.OverwriteFrom(state);
-    }
+        public bool IsValid { get { return this.tick.IsValid; } }
+        public RailState State { get { return this.state; } }
+        Tick Tick { get { return this.tick; } }
 
-    public void Invalidate()
-    {
-      this.tick = Tick.INVALID;
-    }
+        private Tick tick;
+        private RailState state;
 
-    private void Reset()
-    {
-      this.tick = Tick.INVALID;
-      RailPool.SafeReplace(ref this.state, null);
+        public RailStateRecord()
+        {
+            this.state = null;
+            this.tick = Tick.INVALID;
+        }
+
+        public void Overwrite(
+          RailResource resource,
+          Tick tick,
+          RailState state)
+        {
+            RailDebug.Assert(tick.IsValid);
+
+            this.tick = tick;
+            if (this.state == null)
+                this.state = state.Clone(resource);
+            else
+                this.state.OverwriteFrom(state);
+        }
+
+        public void Invalidate()
+        {
+            this.tick = Tick.INVALID;
+        }
+
+        private void Reset()
+        {
+            this.tick = Tick.INVALID;
+            RailPool.SafeReplace(ref this.state, null);
+        }
     }
-  }
 }
-#endif

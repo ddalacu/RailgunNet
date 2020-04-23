@@ -22,136 +22,136 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  public static class EntityIdExtensions
-  {
-    public static void WriteEntityId(this RailBitBuffer buffer, EntityId entityId)
+    public static class EntityIdExtensions
     {
-      entityId.Write(buffer);
+        public static void WriteEntityId(this RailBitBuffer buffer, EntityId entityId)
+        {
+            entityId.Write(buffer);
+        }
+
+        public static EntityId ReadEntityId(this RailBitBuffer buffer)
+        {
+            return EntityId.Read(buffer);
+        }
+
+        public static EntityId PeekEntityId(this RailBitBuffer buffer)
+        {
+            return EntityId.Peek(buffer);
+        }
     }
 
-    public static EntityId ReadEntityId(this RailBitBuffer buffer)
+    public readonly struct EntityId
     {
-      return EntityId.Read(buffer);
+        #region Encoding/Decoding
+
+        #region Byte Writing
+        public int PutBytes(
+          byte[] buffer,
+          int start)
+        {
+            return RailBitBuffer.PutBytes(this.idValue, buffer, start);
+        }
+
+        public static EntityId ReadBytes(
+          byte[] buffer,
+          ref int position)
+        {
+            return new EntityId(RailBitBuffer.ReadBytes(buffer, ref position));
+        }
+        #endregion
+
+        public void Write(RailBitBuffer buffer)
+        {
+            buffer.WriteUInt(this.idValue);
+        }
+
+        public static EntityId Read(RailBitBuffer buffer)
+        {
+            return new EntityId(buffer.ReadUInt());
+        }
+
+        public static EntityId Peek(RailBitBuffer buffer)
+        {
+            return new EntityId(buffer.PeekUInt());
+        }
+        #endregion
+
+        public class EntityIdComparer : IEqualityComparer<EntityId>
+        {
+            public bool Equals(EntityId x, EntityId y)
+            {
+                return (x.idValue == y.idValue);
+            }
+
+            public int GetHashCode(EntityId x)
+            {
+                return (int)x.idValue;
+            }
+        }
+
+        /// <summary>
+        /// An invalid entity ID. Should never be used explicitly.
+        /// </summary>
+        public static readonly EntityId INVALID = new EntityId(0);
+
+        /// <summary>
+        /// Never used internally in Railgun, and will never be assigned to
+        /// an entity. Provided for use as a "special" entityId in applications.
+        /// </summary>
+        public static readonly EntityId RESERVED1 = new EntityId(1);
+        public static readonly EntityId RESERVED2 = new EntityId(2);
+        public static readonly EntityId RESERVED3 = new EntityId(3);
+        public static readonly EntityId RESERVED4 = new EntityId(4);
+
+        public static readonly EntityId START = new EntityId(5);
+
+        public static IEqualityComparer<EntityId> CreateEqualityComparer()
+        {
+            return new EntityIdComparer();
+        }
+
+        public static bool operator ==(EntityId a, EntityId b)
+        {
+            return (a.idValue == b.idValue);
+        }
+
+        public static bool operator !=(EntityId a, EntityId b)
+        {
+            return (a.idValue != b.idValue);
+        }
+
+        public bool IsValid
+        {
+            get { return this.idValue > 0; }
+        }
+
+        private readonly uint idValue;
+
+        private EntityId(uint idValue)
+        {
+            this.idValue = idValue;
+        }
+
+        public EntityId GetNext()
+        {
+            return new EntityId(this.idValue + 1);
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)this.idValue;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is EntityId)
+                return (((EntityId)obj).idValue == this.idValue);
+            return false;
+        }
+
+        public override string ToString()
+        {
+            return "EntityId:" + this.idValue;
+        }
     }
-
-    public static EntityId PeekEntityId(this RailBitBuffer buffer)
-    {
-      return EntityId.Peek(buffer);
-    }
-  }
-
-  public struct EntityId
-  {
-    #region Encoding/Decoding
-
-    #region Byte Writing
-    public int PutBytes(
-      byte[] buffer,
-      int start)
-    {
-      return RailBitBuffer.PutBytes(this.idValue, buffer, start);
-    }
-
-    public static EntityId ReadBytes(
-      byte[] buffer, 
-      ref int position)
-    {
-      return new EntityId(RailBitBuffer.ReadBytes(buffer, ref position));
-    }
-    #endregion
-
-    internal void Write(RailBitBuffer buffer)
-    {
-      buffer.WriteUInt(this.idValue);
-    }
-
-    internal static EntityId Read(RailBitBuffer buffer)
-    {
-      return new EntityId(buffer.ReadUInt());
-    }
-
-    internal static EntityId Peek(RailBitBuffer buffer)
-    {
-      return new EntityId(buffer.PeekUInt());
-    }
-    #endregion
-
-    public class EntityIdComparer : IEqualityComparer<EntityId>
-    {
-      public bool Equals(EntityId x, EntityId y)
-      {
-        return (x.idValue == y.idValue);
-      }
-
-      public int GetHashCode(EntityId x)
-      {
-        return (int)x.idValue;
-      }
-    }
-
-    /// <summary>
-    /// An invalid entity ID. Should never be used explicitly.
-    /// </summary>
-    public static readonly EntityId INVALID = new EntityId(0);
-
-    /// <summary>
-    /// Never used internally in Railgun, and will never be assigned to
-    /// an entity. Provided for use as a "special" entityId in applications.
-    /// </summary>
-    public static readonly EntityId RESERVED1 = new EntityId(1);
-    public static readonly EntityId RESERVED2 = new EntityId(2);
-    public static readonly EntityId RESERVED3 = new EntityId(3);
-    public static readonly EntityId RESERVED4 = new EntityId(4);
-
-    internal static readonly EntityId START = new EntityId(5);
-
-    public static IEqualityComparer<EntityId> CreateEqualityComparer()
-    {
-      return new EntityIdComparer();
-    }
-
-    public static bool operator ==(EntityId a, EntityId b)
-    {
-      return (a.idValue == b.idValue);
-    }
-
-    public static bool operator !=(EntityId a, EntityId b)
-    {
-      return (a.idValue != b.idValue);
-    }
-
-    public bool IsValid 
-    { 
-      get { return this.idValue > 0; } 
-    }
-
-    private readonly uint idValue;
-
-    private EntityId(uint idValue)
-    {
-      this.idValue = idValue;
-    }
-
-    public EntityId GetNext()
-    {
-      return new EntityId(this.idValue + 1);
-    }
-
-    public override int GetHashCode()
-    {
-      return (int)this.idValue;
-    }
-
-    public override bool Equals(object obj)
-    {
-      if (obj is EntityId)
-        return (((EntityId)obj).idValue == this.idValue);
-      return false;
-    }
-
-    public override string ToString()
-    {
-      return "EntityId:" + this.idValue;
-    }
-  }
 }

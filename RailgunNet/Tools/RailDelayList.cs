@@ -23,74 +23,74 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  /// <summary>
-  /// Helper function for delaying events and other timed occurences. 
-  /// Not used internally.
-  /// </summary>
-  public class RailDelayList<T>
-    where T : class, IRailTimedValue, IRailListNode<T>
-  {
-    private RailList<T> list;
-
-    public int Count { get { return this.list.Count; } }
-    public T Newest { get { return this.list.Last; } }
-    public T Oldest { get { return this.list.First; } }
-
-    public void Clear(Action<T> cleanup = null)
-    {
-      if (cleanup != null)
-        this.list.ForEach(cleanup);
-      this.list.Clear();
-    }
-
-    public void ForEach(Action<T> action)
-    {
-      this.list.ForEach(action);
-    }
-
-    public RailDelayList()
-      : base()
-    {
-      this.list = new RailList<T>();
-    }
-
     /// <summary>
-    /// Inserts a value in the buffer. Allows for duplicate ticks.
+    /// Helper function for delaying events and other timed occurences. 
+    /// Not used internally.
     /// </summary>
-    public void Insert(T value)
+    public class RailDelayList<T>
+      where T : class, IRailTimedValue, IRailListNode<T>
     {
-      T iter = this.list.First;
-      if (iter == null)
-      {
-        this.list.Add(value);
-      }
-      else
-      {
-        while (iter != null)
+        private RailList<T> list;
+
+        public int Count { get { return this.list.Count; } }
+        public T Newest { get { return this.list.Last; } }
+        public T Oldest { get { return this.list.First; } }
+
+        public void Clear(Action<T> cleanup = null)
         {
-          if (iter.Tick >= value.Tick)
-          {
-            this.list.InsertBefore(iter, value);
-            return;
-          }
-          iter = this.list.GetNext(iter);
+            if (cleanup != null)
+                this.list.ForEach(cleanup);
+            this.list.Clear();
         }
-        this.list.Add(value);
-      }
-    }
 
-    /// <summary>
-    /// Removes all elements older than the given tick.
-    /// </summary>
-    public IEnumerable<T> Drain(Tick tick)
-    {
-      while (this.list.First != null)
-      {
-        if (this.list.First.Tick <= tick)
-          yield return this.list.RemoveFirst();
-        else
-          break;
-      }
+        public void ForEach(Action<T> action)
+        {
+            this.list.ForEach(action);
+        }
+
+        public RailDelayList()
+          : base()
+        {
+            this.list = new RailList<T>();
+        }
+
+        /// <summary>
+        /// Inserts a value in the buffer. Allows for duplicate ticks.
+        /// </summary>
+        public void Insert(T value)
+        {
+            T iter = this.list.First;
+            if (iter == null)
+            {
+                this.list.Add(value);
+            }
+            else
+            {
+                while (iter != null)
+                {
+                    if (iter.Tick >= value.Tick)
+                    {
+                        this.list.InsertBefore(iter, value);
+                        return;
+                    }
+                    iter = this.list.GetNext(iter);
+                }
+                this.list.Add(value);
+            }
+        }
+
+        /// <summary>
+        /// Removes all elements older than the given tick.
+        /// </summary>
+        public IEnumerable<T> Drain(Tick tick)
+        {
+            while (this.list.First != null)
+            {
+                if (this.list.First.Tick <= tick)
+                    yield return this.list.RemoveFirst();
+                else
+                    break;
+            }
+        }
     }
-  }
 }

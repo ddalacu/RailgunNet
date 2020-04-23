@@ -23,67 +23,67 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  /// <summary>
-  /// A rolling buffer that contains a sliding window of the most recent
-  /// stored values.
-  /// </summary>
-  internal class RailRollingBuffer<T>
-  {
-    internal int Count { get { return this.count; } }
-
-    private int count;
-    private int start;
-
-    private readonly T[] data;
-    private readonly int capacity;
-
-    public RailRollingBuffer(int capacity)
-    {
-      if (capacity <= 0)
-        throw new ArgumentOutOfRangeException("capacity");
-
-      this.capacity = capacity;
-
-      this.data = new T[capacity];
-      this.count = 0;
-      this.start = 0;
-    }
-
-    public void Clear()
-    {
-      this.count = 0;
-      this.start = 0;
-    }
-
     /// <summary>
-    /// Stores a value as latest.
+    /// A rolling buffer that contains a sliding window of the most recent
+    /// stored values.
     /// </summary>
-    public void Store(T value)
+    class RailRollingBuffer<T>
     {
-      if (this.count < this.capacity)
-      {
-        this.data[this.count++] = value;
-        this.IncrementStart();
-      }
-      else
-      {
-        this.data[this.start] = value;
-        this.IncrementStart();
-      }
-    }
+        public int Count { get { return this.count; } }
 
-    /// <summary>
-    /// Returns all values, but not in order.
-    /// </summary>
-    public IEnumerable<T> GetValues()
-    {
-      for (int i = 0; i < this.count; i++)
-        yield return this.data[i];
-    }
+        private int count;
+        private int start;
 
-    private void IncrementStart()
-    {
-      this.start = (this.start + 1) % this.capacity;
+        private readonly T[] data;
+        private readonly int capacity;
+
+        public RailRollingBuffer(int capacity)
+        {
+            if (capacity <= 0)
+                throw new ArgumentOutOfRangeException("capacity");
+
+            this.capacity = capacity;
+
+            this.data = new T[capacity];
+            this.count = 0;
+            this.start = 0;
+        }
+
+        public void Clear()
+        {
+            this.count = 0;
+            this.start = 0;
+        }
+
+        /// <summary>
+        /// Stores a value as latest.
+        /// </summary>
+        public void Store(T value)
+        {
+            if (this.count < this.capacity)
+            {
+                this.data[this.count++] = value;
+                this.IncrementStart();
+            }
+            else
+            {
+                this.data[this.start] = value;
+                this.IncrementStart();
+            }
+        }
+
+        /// <summary>
+        /// Returns all values, but not in order.
+        /// </summary>
+        public IEnumerable<T> GetValues()
+        {
+            for (int i = 0; i < this.count; i++)
+                yield return this.data[i];
+        }
+
+        private void IncrementStart()
+        {
+            this.start = (this.start + 1) % this.capacity;
+        }
     }
-  }
 }

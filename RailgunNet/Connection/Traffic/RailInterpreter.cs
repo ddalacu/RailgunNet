@@ -20,36 +20,36 @@
 
 namespace Railgun
 {
-  /// <summary>
-  /// Responsible for encoding and decoding packet information.
-  /// </summary>
-  internal class RailInterpreter
-  {
-    private readonly byte[] bytes;
-    private readonly RailBitBuffer bitBuffer;
-
-    internal RailInterpreter()
+    /// <summary>
+    /// Responsible for encoding and decoding packet information.
+    /// </summary>
+    public class RailInterpreter
     {
-      this.bytes = new byte[RailConfig.DATA_BUFFER_SIZE];
-      this.bitBuffer = new RailBitBuffer();
-    }
+        private readonly byte[] bytes;
+        private readonly RailBitBuffer bitBuffer;
 
-    internal void SendPacket(
-      RailResource resource,
-      IRailNetPeer peer, 
-      IRailPacket packet)
-    {
-      this.bitBuffer.Clear();
-      packet.Encode(resource, this.bitBuffer);
-      int length = this.bitBuffer.Store(this.bytes);
-      RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
-      peer.SendPayload(this.bytes, length);
-    }
+        public RailInterpreter()
+        {
+            this.bytes = new byte[RailConfig.DATA_BUFFER_SIZE];
+            this.bitBuffer = new RailBitBuffer();
+        }
 
-    internal RailBitBuffer LoadData(byte[] buffer, int length)
-    {
-      this.bitBuffer.Load(buffer, length);
-      return this.bitBuffer;
+        public void SendPacket(
+          RailResource resource,
+          IRailNetPeer peer,
+          IRailPacket packet)
+        {
+            this.bitBuffer.Clear();
+            packet.Encode(resource, this.bitBuffer);
+            int length = this.bitBuffer.Store(this.bytes);
+            RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
+            peer.SendPayload(this.bytes, length);
+        }
+
+        public RailBitBuffer LoadData(byte[] buffer, int length)
+        {
+            this.bitBuffer.Load(buffer, length);
+            return this.bitBuffer;
+        }
     }
-  }
 }
