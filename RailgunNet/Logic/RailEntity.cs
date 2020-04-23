@@ -35,6 +35,156 @@ namespace Railgun
         : IRailPoolable<RailEntity>
             , IRailEntity
     {
+        private bool deferNotifyControllerChanged;
+        private int factoryType;
+
+        private RailResource resource;
+
+        protected RailEntity()
+        {
+#if SERVER
+            // We use no divisor for storing commands because commands are sent in
+            // batches that we can use to fill in the holes between send ticks
+            incomingCommands =
+                new RailDejitterBuffer<RailCommand>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
+            outgoingStates =
+                new RailQueueBuffer<RailStateRecord>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
+#endif
+
+#if CLIENT
+            incomingStates =
+                new RailDejitterBuffer<RailStateDelta>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH,
+                    RailConfig.SERVER_SEND_RATE);
+            outgoingCommands =
+                new Queue<RailCommand>();
+#endif
+
+            Reset();
+        }
+
+        // Configuration
+        public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
+
+        public virtual bool CanFreeze => true;
+
+        protected abstract RailState StateBase { get; set; }
+        public Tick RemovedTick { get; private set; }
+
+        /// <summary>
+        ///     Whether or not this entity should be removed from a room this tick.
+        /// </summary>
+        public bool ShouldRemove =>
+            RemovedTick.IsValid &&
+            RemovedTick <= Room.Tick;
+
+        #region Interface
+
+        RailEntity IRailEntity.AsBase => this;
+
+        #endregion
+
+        // Simulation info
+        public RailRoom Room { get; set; }
+        public bool HasStarted { get; private set; }
+        public bool IsRemoving => RemovedTick.IsValid;
+        public bool IsFrozen { get; private set; }
+        public RailController Controller { get; private set; }
+
+        // Synchronization info
+        public EntityId Id { get; private set; }
+
+        private void Reset()
+        {
+            // TODO: Is this complete/usable?
+
+            Room = null;
+            HasStarted = false;
+            IsFrozen = false;
+            resource = null;
+
+            Id = EntityId.INVALID;
+            Controller = null;
+
+            // We always notify a controller change at start
+            deferNotifyControllerChanged = true;
+
+#if SERVER
+            outgoingStates.Clear();
+            incomingCommands.Clear();
+#endif
+
+#if CLIENT
+            LastSentCommandTick = Tick.START;
+            IsFrozen = true; // Entities start frozen on client
+            shouldBeFrozen = true;
+
+            incomingStates.Clear();
+            RailPool.DrainQueue(outgoingCommands);
+
+            authTick = Tick.START;
+            nextTick = Tick.INVALID;
+#endif
+
+            ResetStates();
+            OnReset();
+        }
+
+        private void ResetStates()
+        {
+            if (StateBase != null)
+                RailPool.Free(StateBase);
+#if CLIENT
+            if (AuthStateBase != null)
+                RailPool.Free(AuthStateBase);
+            if (NextStateBase != null)
+                RailPool.Free(NextStateBase);
+#endif
+
+            StateBase = null;
+#if CLIENT
+            AuthStateBase = null;
+            NextStateBase = null;
+#endif
+        }
+
+        public void AssignId(EntityId id)
+        {
+            Id = id;
+        }
+
+        public void AssignController(RailController controller)
+        {
+            if (Controller != controller)
+            {
+                Controller = controller;
+                ClearCommands();
+                deferNotifyControllerChanged = true;
+            }
+        }
+
+        private void ClearCommands()
+        {
+#if SERVER
+            incomingCommands.Clear();
+            commandAck = Tick.INVALID;
+#endif
+
+#if CLIENT
+            outgoingCommands.Clear();
+            LastSentCommandTick = Tick.START;
+#endif
+        }
+
+        private void NotifyControllerChanged()
+        {
+            if (deferNotifyControllerChanged)
+                OnControllerChanged();
+            deferNotifyControllerChanged = false;
+        }
+
         #region Pooling
 
         IRailMemoryPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
@@ -43,12 +193,6 @@ namespace Railgun
         {
             Reset();
         }
-
-        #endregion
-
-        #region Interface
-
-        RailEntity IRailEntity.AsBase => this;
 
         #endregion
 
@@ -144,35 +288,6 @@ namespace Railgun
 
         #endregion
 
-        // Configuration
-        public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
-
-        public virtual bool CanFreeze => true;
-
-        // Simulation info
-        public RailRoom Room { get; set; }
-        public bool HasStarted { get; private set; }
-        public bool IsRemoving => RemovedTick.IsValid;
-        public bool IsFrozen { get; private set; }
-        public RailController Controller { get; private set; }
-
-        protected abstract RailState StateBase { get; set; }
-
-        // Synchronization info
-        public EntityId Id { get; private set; }
-        public Tick RemovedTick { get; private set; }
-
-        /// <summary>
-        ///     Whether or not this entity should be removed from a room this tick.
-        /// </summary>
-        public bool ShouldRemove =>
-            RemovedTick.IsValid &&
-            RemovedTick <= Room.Tick;
-
-        private RailResource resource;
-        private int factoryType;
-        private bool deferNotifyControllerChanged;
-
 #if SERVER
         private readonly RailDejitterBuffer<RailCommand> incomingCommands;
         private readonly RailQueueBuffer<RailStateRecord> outgoingStates;
@@ -185,27 +300,27 @@ namespace Railgun
 #endif
 
 #if CLIENT
-        public bool IsControlled { get { return (this.Controller != null); } }
+        public bool IsControlled => Controller != null;
 
         /// <summary>
-        /// The tick of the last authoritative state.
+        ///     The tick of the last authoritative state.
         /// </summary>
-        public Tick AuthTick { get { return this.authTick; } }
+        public Tick AuthTick => authTick;
 
         /// <summary>
-        /// The tick of the next authoritative state. May be invalid.
+        ///     The tick of the next authoritative state. May be invalid.
         /// </summary>
-        public Tick NextTick { get { return this.nextTick; } }
+        public Tick NextTick => nextTick;
 
         /// <summary>
-        /// Returns the number of ticks ahead we are, for extrapolation.
-        /// Note that this does not take client-side prediction into account.
+        ///     Returns the number of ticks ahead we are, for extrapolation.
+        ///     Note that this does not take client-side prediction into account.
         /// </summary>
-        public int TicksAhead { get { return this.Room.Tick - this.authTick; } }
+        public int TicksAhead => Room.Tick - authTick;
 
         protected abstract RailState AuthStateBase { get; set; }
         protected abstract RailState NextStateBase { get; set; }
-        public IEnumerable<RailCommand> OutgoingCommands { get { return this.outgoingCommands; } }
+        public IEnumerable<RailCommand> OutgoingCommands => outgoingCommands;
         public Tick LastSentCommandTick { get; set; } // The last local tick we sent our commands to the server
 
         private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
@@ -216,107 +331,13 @@ namespace Railgun
         private bool shouldBeFrozen;
 #endif
 
-        protected RailEntity()
-        {
-#if SERVER
-            // We use no divisor for storing commands because commands are sent in
-            // batches that we can use to fill in the holes between send ticks
-            incomingCommands =
-                new RailDejitterBuffer<RailCommand>(
-                    RailConfig.DEJITTER_BUFFER_LENGTH);
-            outgoingStates =
-                new RailQueueBuffer<RailStateRecord>(
-                    RailConfig.DEJITTER_BUFFER_LENGTH);
-#endif
-
-#if CLIENT
-            this.incomingStates =
-              new RailDejitterBuffer<RailStateDelta>(
-                RailConfig.DEJITTER_BUFFER_LENGTH,
-                RailConfig.SERVER_SEND_RATE);
-            this.outgoingCommands =
-              new Queue<RailCommand>();
-#endif
-
-            Reset();
-        }
-
-        private void Reset()
-        {
-            // TODO: Is this complete/usable?
-
-            Room = null;
-            HasStarted = false;
-            IsFrozen = false;
-            resource = null;
-
-            Id = EntityId.INVALID;
-            Controller = null;
-
-            // We always notify a controller change at start
-            deferNotifyControllerChanged = true;
-
-#if SERVER
-            outgoingStates.Clear();
-            incomingCommands.Clear();
-#endif
-
-#if CLIENT
-            this.LastSentCommandTick = Tick.START;
-            this.IsFrozen = true; // Entities start frozen on client
-            this.shouldBeFrozen = true;
-
-            this.incomingStates.Clear();
-            RailPool.DrainQueue(this.outgoingCommands);
-
-            this.authTick = Tick.START;
-            this.nextTick = Tick.INVALID;
-#endif
-
-            ResetStates();
-            OnReset();
-        }
-
-        private void ResetStates()
-        {
-            if (StateBase != null)
-                RailPool.Free(StateBase);
-#if CLIENT
-            if (this.AuthStateBase != null)
-                RailPool.Free(this.AuthStateBase);
-            if (this.NextStateBase != null)
-                RailPool.Free(this.NextStateBase);
-#endif
-
-            StateBase = null;
-#if CLIENT
-            this.AuthStateBase = null;
-            this.NextStateBase = null;
-#endif
-        }
-
-        public void AssignId(EntityId id)
-        {
-            Id = id;
-        }
-
-        public void AssignController(RailController controller)
-        {
-            if (Controller != controller)
-            {
-                Controller = controller;
-                ClearCommands();
-                deferNotifyControllerChanged = true;
-            }
-        }
-
         #region Lifecycle and Loop
 
         public void Startup()
         {
 #if CLIENT
-            this.UpdateAuthState();
-            this.StateBase.OverwriteFrom(this.AuthStateBase);
+            UpdateAuthState();
+            StateBase.OverwriteFrom(AuthStateBase);
 #endif
 
             if (HasStarted == false)
@@ -352,22 +373,22 @@ namespace Railgun
 #if CLIENT
         public void ClientUpdate(Tick localTick)
         {
-            this.SetFreeze(this.shouldBeFrozen);
-            if (this.IsFrozen)
+            SetFreeze(shouldBeFrozen);
+            if (IsFrozen)
             {
-                this.UpdateFrozen();
+                UpdateFrozen();
             }
             else
             {
-                if (this.Controller == null)
+                if (Controller == null)
                 {
-                    this.UpdateProxy();
+                    UpdateProxy();
                 }
                 else
                 {
-                    this.nextTick = Tick.INVALID;
-                    this.UpdateControlled(localTick);
-                    this.UpdatePredicted();
+                    nextTick = Tick.INVALID;
+                    UpdateControlled(localTick);
+                    UpdatePredicted();
                 }
             }
         }
@@ -376,11 +397,9 @@ namespace Railgun
         public void PostUpdate()
         {
 #if CLIENT
-            if (this.IsFrozen == false)
+            if (IsFrozen == false)
 #endif
-            {
                 OnPostUpdate();
-            }
         }
 
 #if SERVER
@@ -412,27 +431,14 @@ namespace Railgun
 
 #if CLIENT
             // Set the final auth state before removing
-            this.UpdateAuthState();
-            this.StateBase.OverwriteFrom(this.AuthStateBase);
+            UpdateAuthState();
+            StateBase.OverwriteFrom(AuthStateBase);
 #endif
 
             OnShutdown();
         }
 
         #endregion
-
-        private void ClearCommands()
-        {
-#if SERVER
-            incomingCommands.Clear();
-            commandAck = Tick.INVALID;
-#endif
-
-#if CLIENT
-            this.outgoingCommands.Clear();
-            this.LastSentCommandTick = Tick.START;
-#endif
-        }
 
 #if SERVER
         public void StoreRecord()
@@ -499,15 +505,15 @@ namespace Railgun
 
 #if CLIENT
         public float ComputeInterpolation(
-          float tickDeltaTime,
-          float timeSinceTick)
+            float tickDeltaTime,
+            float timeSinceTick)
         {
-            if (this.nextTick == Tick.INVALID)
+            if (nextTick == Tick.INVALID)
                 throw new InvalidOperationException("Next state is invalid");
 
-            float curTime = this.authTick.ToTime(tickDeltaTime);
-            float nextTime = this.nextTick.ToTime(tickDeltaTime);
-            float showTime = this.Room.Tick.ToTime(tickDeltaTime) + timeSinceTick;
+            float curTime = authTick.ToTime(tickDeltaTime);
+            float nextTime = nextTick.ToTime(tickDeltaTime);
+            float showTime = Room.Tick.ToTime(tickDeltaTime) + timeSinceTick;
 
             float progress = showTime - curTime;
             float span = nextTime - curTime;
@@ -518,22 +524,22 @@ namespace Railgun
 
         public bool HasReadyState(Tick tick)
         {
-            return (this.incomingStates.GetLatestAt(tick) != null);
+            return incomingStates.GetLatestAt(tick) != null;
         }
 
         /// <summary>
-        /// Applies the initial creation delta.
+        ///     Applies the initial creation delta.
         /// </summary>
         public void PrimeState(RailStateDelta delta)
         {
             RailDebug.Assert(delta.IsFrozen == false);
             RailDebug.Assert(delta.IsRemoving == false);
             RailDebug.Assert(delta.HasImmutableData);
-            this.AuthStateBase.ApplyDelta(delta);
+            AuthStateBase.ApplyDelta(delta);
         }
 
         /// <summary>
-        /// Returns true iff we stored the delta. False if it will leak.
+        ///     Returns true iff we stored the delta. False if it will leak.
         /// </summary>
         public bool ReceiveDelta(RailStateDelta delta)
         {
@@ -542,13 +548,13 @@ namespace Railgun
             {
                 // Frozen deltas have no state data, so we need to treat them
                 // separately when doing checks based on state content
-                stored = this.incomingStates.Store(delta);
+                stored = incomingStates.Store(delta);
             }
             else
             {
                 if (delta.IsRemoving)
-                    this.RemovedTick = delta.RemovedTick;
-                stored = this.incomingStates.Store(delta);
+                    RemovedTick = delta.RemovedTick;
+                stored = incomingStates.Store(delta);
             }
 
             return stored;
@@ -559,66 +565,65 @@ namespace Railgun
             if (ackTick.IsValid == false)
                 return;
 
-            while (this.outgoingCommands.Count > 0)
+            while (outgoingCommands.Count > 0)
             {
-                RailCommand command = this.outgoingCommands.Peek();
+                RailCommand command = outgoingCommands.Peek();
                 if (command.ClientTick > ackTick)
                     break;
-                RailPool.Free(this.outgoingCommands.Dequeue());
+                RailPool.Free(outgoingCommands.Dequeue());
             }
         }
 
         private void UpdateControlled(Tick localTick)
         {
-            RailDebug.Assert(this.Controller != null);
-            if (this.outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
+            RailDebug.Assert(Controller != null);
+            if (outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
             {
-                RailCommand command = RailCommand.Create(this.resource);
+                RailCommand command = RailCommand.Create(resource);
 
                 command.ClientTick = localTick;
                 command.IsNewCommand = true;
 
-                this.UpdateControlGeneric(command);
-                this.outgoingCommands.Enqueue(command);
+                UpdateControlGeneric(command);
+                outgoingCommands.Enqueue(command);
             }
         }
+
         [OnlyIn(Component.Client)]
         private void UpdateAuthState()
         {
             // Apply all un-applied deltas to the auth state
             IEnumerable<RailStateDelta> toApply =
-              this.incomingStates.GetRangeAndNext(
-                this.authTick,
-                this.Room.Tick,
-                out RailStateDelta next);
+                incomingStates.GetRangeAndNext(
+                    authTick,
+                    Room.Tick,
+                    out RailStateDelta next);
 
             RailStateDelta lastDelta = null;
             foreach (RailStateDelta delta in toApply)
             {
                 if (delta.IsFrozen == false)
-                    this.AuthStateBase.ApplyDelta(delta);
-                this.shouldBeFrozen = delta.IsFrozen;
-                this.authTick = delta.Tick;
+                    AuthStateBase.ApplyDelta(delta);
+                shouldBeFrozen = delta.IsFrozen;
+                authTick = delta.Tick;
                 lastDelta = delta;
             }
 
             if (lastDelta != null)
-            {
                 // Update the control status based on the most recent delta
-                (this.Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
-            }
+                (Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
 
             // If there was a next state, update the next state
-            bool canGetNext = (this.shouldBeFrozen == false);
-            if (canGetNext && (next != null) && (next.IsFrozen == false))
+            bool canGetNext = shouldBeFrozen == false;
+            if (canGetNext && next != null && next.IsFrozen == false)
             {
-                this.NextStateBase.OverwriteFrom(this.AuthStateBase);
-                this.NextStateBase.ApplyDelta(next);
-                this.nextTick = next.Tick;
+                NextStateBase.OverwriteFrom(AuthStateBase);
+                NextStateBase.ApplyDelta(next);
+                nextTick = next.Tick;
             }
             else
             {
-                this.nextTick = Tick.INVALID;
+                nextTick = Tick.INVALID;
             }
         }
 
@@ -626,10 +631,10 @@ namespace Railgun
         {
             // Bring the main state up to the latest (apply all deltas)
             IList<RailStateDelta> deltas =
-              this.incomingStates.GetRange(this.authTick);
+                incomingStates.GetRange(authTick);
 
             RailStateDelta lastDelta = null;
-            foreach (var delta in deltas)
+            foreach (RailStateDelta delta in deltas)
             {
                 // It's possible the state is null if we lost control
                 // and then immediately went out of scope of the entity
@@ -637,38 +642,31 @@ namespace Railgun
                     break;
                 if (delta.HasControllerData == false)
                     break;
-                this.StateBase.ApplyDelta(delta);
+                StateBase.ApplyDelta(delta);
                 lastDelta = delta;
             }
 
             if (lastDelta != null)
-                this.CleanCommands(lastDelta.CommandAck);
-            this.Revert();
+                CleanCommands(lastDelta.CommandAck);
+            Revert();
 
             // Forward-simulate
-            foreach (RailCommand command in this.outgoingCommands)
+            foreach (RailCommand command in outgoingCommands)
             {
-                this.ApplyControlGeneric(command);
+                ApplyControlGeneric(command);
                 command.IsNewCommand = false;
             }
         }
 
         private void SetFreeze(bool isFrozen)
         {
-            if ((this.IsFrozen == false) && isFrozen)
-                this.OnFrozen();
-            else if (this.IsFrozen && (isFrozen == false))
-                this.OnUnfrozen();
-            this.IsFrozen = isFrozen;
+            if (IsFrozen == false && isFrozen)
+                OnFrozen();
+            else if (IsFrozen && isFrozen == false)
+                OnUnfrozen();
+            IsFrozen = isFrozen;
         }
 #endif
-
-        private void NotifyControllerChanged()
-        {
-            if (deferNotifyControllerChanged)
-                OnControllerChanged();
-            deferNotifyControllerChanged = false;
-        }
     }
 
     /// <summary>
@@ -685,55 +683,55 @@ namespace Railgun
             set => State = (TState) value;
         }
 
+        public TState State { get; private set; }
+
 #if CLIENT
         protected override RailState AuthStateBase
         {
-            get { return this.authState; }
-            set { this.authState = (TState)value; }
+            get => authState;
+            set => authState = (TState) value;
         }
 
         protected override RailState NextStateBase
         {
-            get { return this.nextState; }
-            set { this.nextState = (TState)value; }
+            get => nextState;
+            set => nextState = (TState) value;
         }
 #endif
-
-        public TState State { get; private set; }
 
 #if CLIENT
         private TState authState;
         private TState nextState;
 
         /// <summary>
-        /// Returns the current dejittered authoritative state from the server.
-        /// Will return null if the entity is locally controlled (use State).
+        ///     Returns the current dejittered authoritative state from the server.
+        ///     Will return null if the entity is locally controlled (use State).
         /// </summary>
         public TState AuthState
         {
             get
             {
                 // Not valid if we're controlling
-                if (this.IsControlled)
+                if (IsControlled)
                     return null;
-                return this.authState;
+                return authState;
             }
         }
 
         /// <summary>
-        /// Returns the next dejittered authoritative state from the server. Will 
-        /// return null none is available or if the entity is locally controlled.
+        ///     Returns the next dejittered authoritative state from the server. Will
+        ///     return null none is available or if the entity is locally controlled.
         /// </summary>
         public TState NextState
         {
             get
             {
                 // Not valid if we're controlling
-                if (this.IsControlled)
+                if (IsControlled)
                     return null;
                 // Only return if we have a valid next state assigned
-                if (this.NextTick.IsValid)
-                    return this.nextState;
+                if (NextTick.IsValid)
+                    return nextState;
                 return null;
             }
         }

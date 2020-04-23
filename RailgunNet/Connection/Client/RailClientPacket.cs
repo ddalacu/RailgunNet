@@ -38,6 +38,21 @@ namespace Railgun
             , IRailClientPacket
 #endif
     {
+        private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
+
+        public RailClientPacket()
+        {
+            View = new RailView();
+            commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
+        }
+
+#if SERVER
+        public RailView View { get; }
+#endif
+#if CLIENT
+        public IEnumerable<RailCommandUpdate> Sent => commandUpdates.Sent;
+#endif
+
         #region Interface
 
 #if SERVER
@@ -46,38 +61,23 @@ namespace Railgun
 
         #endregion
 
-#if SERVER
-        public RailView View { get { return this.view; } }
-#endif
-#if CLIENT
-        public IEnumerable<RailCommandUpdate> Sent { get { return this.commandUpdates.Sent; } }
-#endif
-        private readonly RailView view;
-        private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
-
-        public RailClientPacket()
-        {
-            view = new RailView();
-            commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
-        }
-
         public override void Reset()
         {
             base.Reset();
 
-            view.Clear();
+            View.Clear();
             commandUpdates.Clear();
         }
 
 #if CLIENT
         public void Populate(
-          IEnumerable<RailCommandUpdate> commandUpdates,
-          RailView view)
+            IEnumerable<RailCommandUpdate> commandUpdates,
+            RailView view)
         {
             this.commandUpdates.AddPending(commandUpdates);
 
             // We don't care about sending/storing the local tick
-            this.view.Integrate(view);
+            View.Integrate(view);
         }
 #endif
 
@@ -91,37 +91,37 @@ namespace Railgun
         {
 #if CLIENT
             // Write: [Commands]
-            this.EncodeCommands(buffer);
+            EncodeCommands(buffer);
 
             // Write: [View]
-            this.EncodeView(buffer, localTick, reservedBytes);
+            EncodeView(buffer, localTick, reservedBytes);
         }
 
         protected void EncodeCommands(RailBitBuffer buffer)
         {
-            this.commandUpdates.Encode(
-              buffer,
-              RailConfig.PACKCAP_COMMANDS,
-              RailConfig.MAXSIZE_COMMANDUPDATE,
-              (commandUpdate) => commandUpdate.Encode(buffer));
+            commandUpdates.Encode(
+                buffer,
+                RailConfig.PACKCAP_COMMANDS,
+                RailConfig.MAXSIZE_COMMANDUPDATE,
+                commandUpdate => commandUpdate.Encode(buffer));
         }
 
         protected void EncodeView(
-          RailBitBuffer buffer,
-          Tick localTick,
-          int reservedBytes)
+            RailBitBuffer buffer,
+            Tick localTick,
+            int reservedBytes)
         {
             buffer.PackToSize(
-              RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
-              int.MaxValue,
-              this.view.GetOrdered(localTick),
-              (pair) =>
-              {
-                  buffer.WriteEntityId(pair.Key);                // Write: [EntityId]
-                  buffer.WriteTick(pair.Value.LastReceivedTick); // Write: [LastReceivedTick]
-                                                                 // (Local tick not transmitted)
-                  buffer.WriteBool(pair.Value.IsFrozen);         // Write: [IsFrozen]
-              });
+                RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
+                int.MaxValue,
+                View.GetOrdered(localTick),
+                pair =>
+                {
+                    buffer.WriteEntityId(pair.Key); // Write: [EntityId]
+                    buffer.WriteTick(pair.Value.LastReceivedTick); // Write: [LastReceivedTick]
+                    // (Local tick not transmitted)
+                    buffer.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
+                });
 #endif
         }
 
@@ -157,10 +157,10 @@ namespace Railgun
                                 buffer.ReadTick(), // Read: [LastReceivedTick]
                                 Tick.INVALID, // (Local tick not transmitted)
                                 buffer.ReadBool())) // Read: [IsFrozen]
-                    );
+                );
 
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
-                view.RecordUpdate(pair.Key, pair.Value);
+                View.RecordUpdate(pair.Key, pair.Value);
 #endif
         }
 

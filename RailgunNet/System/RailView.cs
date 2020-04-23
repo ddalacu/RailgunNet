@@ -41,8 +41,8 @@ namespace Railgun
             bool isFrozen)
         {
             this.lastReceivedTick = lastReceivedTick;
-            this.LocalUpdateTick = localUpdateTick;
-            this.IsFrozen = isFrozen;
+            LocalUpdateTick = localUpdateTick;
+            IsFrozen = isFrozen;
         }
     }
 

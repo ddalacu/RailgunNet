@@ -29,8 +29,6 @@ namespace Railgun
     /// </summary>
     public class RailServer : RailConnection
     {
-        private readonly List<IRailEntity> toRemove; // Pre-allocated list for reuse
-
         /// <summary>
         ///     Collection of all participating clients.
         /// </summary>
@@ -40,6 +38,8 @@ namespace Railgun
         ///     Entities that have been removed or are about to be.
         /// </summary>
         private readonly Dictionary<EntityId, IRailEntity> removedEntities;
+
+        private readonly List<IRailEntity> toRemove; // Pre-allocated list for reuse
 
         public RailServer(RailRegistry registry) : base(registry)
         {
@@ -160,10 +160,7 @@ namespace Railgun
                     toRemove.Add(entity);
             }
 
-            foreach (IRailEntity entityToRemove in toRemove)
-            {
-                removedEntities.Remove(entityToRemove.Id);
-            }
+            foreach (IRailEntity entityToRemove in toRemove) removedEntities.Remove(entityToRemove.Id);
             toRemove.Clear();
         }
 

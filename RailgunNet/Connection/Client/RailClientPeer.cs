@@ -25,43 +25,43 @@ using System.Collections.Generic;
 namespace Railgun
 {
     /// <summary>
-    /// The peer created by the client representing the server.
+    ///     The peer created by the client representing the server.
     /// </summary>
     public class RailClientPeer
-      : RailPeer<RailServerPacket, RailClientPacket>
+        : RailPeer<RailServerPacket, RailClientPacket>
     {
-        public event Action<IRailServerPacket> PacketReceived;
-
         private readonly RailView localView;
         private readonly Comparer<Tick> tickComparer;
 
-        private List<IRailEntity> sortingList;
+        private readonly List<IRailEntity> sortingList;
 
         public RailClientPeer(
-          RailResource resource,
-          IRailNetPeer netPeer,
-          RailInterpreter interpreter)
-          : base(
-              resource,
-              netPeer,
-              RailConfig.SERVER_SEND_RATE,
-              interpreter)
+            RailResource resource,
+            IRailNetPeer netPeer,
+            RailInterpreter interpreter)
+            : base(
+                resource,
+                netPeer,
+                RailConfig.SERVER_SEND_RATE,
+                interpreter)
         {
-            this.localView = new RailView();
-            this.tickComparer = Tick.CreateComparer();
-            this.sortingList = new List<IRailEntity>();
+            localView = new RailView();
+            tickComparer = Tick.CreateComparer();
+            sortingList = new List<IRailEntity>();
         }
 
+        public event Action<IRailServerPacket> PacketReceived;
+
         public void SendPacket(
-          Tick localTick,
-          IEnumerable<IRailEntity> controlledEntities)
+            Tick localTick,
+            IEnumerable<IRailEntity> controlledEntities)
         {
             // TODO: Sort controlledEntities by most recently sent
 
-            RailClientPacket packet = base.PrepareSend<RailClientPacket>(localTick);
+            RailClientPacket packet = PrepareSend<RailClientPacket>(localTick);
             packet.Populate(
-              this.ProduceCommandUpdates(controlledEntities),
-              this.localView);
+                ProduceCommandUpdates(controlledEntities),
+                localView);
 
             // Send the packet
             base.SendPacket(packet);
@@ -71,40 +71,40 @@ namespace Railgun
         }
 
         protected override void ProcessPacket(
-          RailPacket packet,
-          Tick localTick)
+            RailPacket packet,
+            Tick localTick)
         {
             base.ProcessPacket(packet, localTick);
 
-            RailServerPacket serverPacket = (RailServerPacket)packet;
+            RailServerPacket serverPacket = (RailServerPacket) packet;
             foreach (RailStateDelta delta in serverPacket.Deltas)
-                this.localView.RecordUpdate(
-                  delta.EntityId,
-                  packet.SenderTick,
-                  localTick,
-                  delta.IsFrozen);
-            this.PacketReceived?.Invoke(serverPacket);
+                localView.RecordUpdate(
+                    delta.EntityId,
+                    packet.SenderTick,
+                    localTick,
+                    delta.IsFrozen);
+            PacketReceived?.Invoke(serverPacket);
         }
 
         private IEnumerable<RailCommandUpdate> ProduceCommandUpdates(
-          IEnumerable<IRailEntity> entities)
+            IEnumerable<IRailEntity> entities)
         {
             // If we have too many entities to fit commands for in a packet,
             // we want to round-robin sort them to avoid starvation
-            this.sortingList.Clear();
-            this.sortingList.AddRange(entities);
-            this.sortingList.Sort(
-              (x, y) => this.tickComparer.Compare(
-                x.AsBase.LastSentCommandTick,
-                y.AsBase.LastSentCommandTick));
+            sortingList.Clear();
+            sortingList.AddRange(entities);
+            sortingList.Sort(
+                (x, y) => tickComparer.Compare(
+                    x.AsBase.LastSentCommandTick,
+                    y.AsBase.LastSentCommandTick));
 
             foreach (IRailEntity entity in sortingList)
             {
                 RailCommandUpdate commandUpdate =
-                  RailCommandUpdate.Create(
-                    this.resource,
-                    entity.Id,
-                    entity.AsBase.OutgoingCommands);
+                    RailCommandUpdate.Create(
+                        resource,
+                        entity.Id,
+                        entity.AsBase.OutgoingCommands);
                 commandUpdate.Entity = entity;
                 yield return commandUpdate;
             }

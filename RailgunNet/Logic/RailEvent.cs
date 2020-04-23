@@ -94,7 +94,7 @@ namespace Railgun
             if (Room.TryGet(id, out IRailEntity entity) == false)
                 return null;
 #if CLIENT
-            if ((policy == RailPolicy.NoFrozen) && (entity.IsFrozen))
+            if (policy == RailPolicy.NoFrozen && entity.IsFrozen)
                 return null;
 #endif
 #if SERVER

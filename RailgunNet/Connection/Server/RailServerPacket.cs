@@ -36,31 +36,22 @@ namespace Railgun
     public class RailServerPacket
         : RailPacket
 #if CLIENT
-    , IRailServerPacket
+            , IRailServerPacket
 #endif
     {
-        #region Interface
-
-#if CLIENT
-        Tick IRailServerPacket.ServerTick { get { return this.SenderTick; } }
-        IEnumerable<RailStateDelta> IRailServerPacket.Deltas { get { return this.deltas.Received; } }
-#endif
-
-        #endregion
-
-#if CLIENT
-        public IEnumerable<RailStateDelta> Deltas { get { return this.deltas.Received; } }
-#endif
-#if SERVER
-        public IEnumerable<RailStateDelta> Sent => deltas.Sent;
-#endif
-
         private readonly RailPackedListS2C<RailStateDelta> deltas;
 
         public RailServerPacket()
         {
             deltas = new RailPackedListS2C<RailStateDelta>();
         }
+
+#if CLIENT
+        public IEnumerable<RailStateDelta> Deltas => deltas.Received;
+#endif
+#if SERVER
+        public IEnumerable<RailStateDelta> Sent => deltas.Sent;
+#endif
 
         public override void Reset()
         {
@@ -80,6 +71,15 @@ namespace Railgun
             deltas.AddPending(activeDeltas);
         }
 #endif
+
+        #region Interface
+
+#if CLIENT
+        Tick IRailServerPacket.ServerTick => SenderTick;
+        IEnumerable<RailStateDelta> IRailServerPacket.Deltas => deltas.Received;
+#endif
+
+        #endregion
 
         #region Encode/Decode
 
@@ -113,16 +113,16 @@ namespace Railgun
         {
 #if CLIENT
             // Read: [Deltas]
-            this.DecodeDeltas(resource, buffer);
+            DecodeDeltas(resource, buffer);
         }
 
         private void DecodeDeltas(
-          RailResource resource,
-          RailBitBuffer buffer)
+            RailResource resource,
+            RailBitBuffer buffer)
         {
-            this.deltas.Decode(
-              buffer,
-              () => RailState.DecodeDelta(resource, buffer, this.SenderTick));
+            deltas.Decode(
+                buffer,
+                () => RailState.DecodeDelta(resource, buffer, SenderTick));
 #endif
         }
 

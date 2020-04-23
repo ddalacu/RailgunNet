@@ -73,8 +73,8 @@ namespace Railgun
             Tick commandAck,
             bool isFrozen)
         {
-            this.Tick = tick;
-            this.EntityId = entityId;
+            Tick = tick;
+            EntityId = entityId;
             this.state = state;
             RemovedTick = removedTick;
             CommandAck = commandAck;

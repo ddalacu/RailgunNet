@@ -25,6 +25,40 @@ namespace Railgun
 {
     public abstract class RailRoom
     {
+        private readonly RailConnection connection;
+        private readonly Dictionary<EntityId, IRailEntity> entities;
+
+        public readonly RailResource resource;
+        protected List<RailEntity> toRemove; // Pre-allocated removal list
+
+        protected List<RailEntity> toUpdate; // Pre-allocated update list
+
+        protected RailRoom(RailResource resource, RailConnection connection)
+        {
+            this.resource = resource;
+            this.connection = connection;
+            entities =
+                new Dictionary<EntityId, IRailEntity>(
+                    EntityId.CreateEqualityComparer());
+            Tick = Tick.INVALID;
+
+            toUpdate = new List<RailEntity>();
+            toRemove = new List<RailEntity>();
+        }
+
+        public object UserData { get; set; }
+
+        /// <summary>
+        ///     The current synchronized tick. On clients this will be the predicted
+        ///     server tick. On the server this will be the authoritative tick.
+        /// </summary>
+        public Tick Tick { get; protected set; }
+
+        /// <summary>
+        ///     All of the entities currently added to this room.
+        /// </summary>
+        public Dictionary<EntityId, IRailEntity>.ValueCollection Entities => entities.Values;
+
         /// <summary>
         ///     Fired before all entities have updated, for updating global logic.
         /// </summary>
@@ -40,29 +74,9 @@ namespace Railgun
         /// </summary>
         public event Action<IRailEntity> EntityRemoved;
 
-        public object UserData { get; set; }
-
-        /// <summary>
-        ///     The current synchronized tick. On clients this will be the predicted
-        ///     server tick. On the server this will be the authoritative tick.
-        /// </summary>
-        public Tick Tick { get; protected set; }
-
-        /// <summary>
-        ///     All of the entities currently added to this room.
-        /// </summary>
-        public Dictionary<EntityId, IRailEntity>.ValueCollection Entities => entities.Values;
-
-        protected List<RailEntity> toUpdate; // Pre-allocated update list
-        protected List<RailEntity> toRemove; // Pre-allocated removal list
-
         protected virtual void HandleRemovedEntity(EntityId entityId)
         {
         }
-
-        public readonly RailResource resource;
-        private readonly RailConnection connection;
-        private readonly Dictionary<EntityId, IRailEntity> entities;
 
         public bool TryGet(EntityId id, out IRailEntity value)
         {
@@ -73,18 +87,6 @@ namespace Railgun
             where TEvent : RailEvent, new()
         {
             return RailEvent.Create<TEvent>(resource);
-        }
-        protected RailRoom(RailResource resource, RailConnection connection)
-        {
-            this.resource = resource;
-            this.connection = connection;
-            entities =
-                new Dictionary<EntityId, IRailEntity>(
-                    EntityId.CreateEqualityComparer());
-            Tick = Tick.INVALID;
-
-            toUpdate = new List<RailEntity>();
-            toRemove = new List<RailEntity>();
         }
 
         public void Initialize(Tick tick)

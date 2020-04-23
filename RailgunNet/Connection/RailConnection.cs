@@ -18,8 +18,8 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using JetBrains.Annotations;
 using System;
+using JetBrains.Annotations;
 
 namespace Railgun
 {
@@ -51,8 +51,8 @@ namespace Railgun
 
         protected void SetRoom(RailRoom room, Tick startTick)
         {
-            this.Room = room;
-            this.Room.Initialize(startTick);
+            Room = room;
+            Room.Initialize(startTick);
         }
 
         protected void OnEventReceived(RailEvent evnt, RailPeer sender)

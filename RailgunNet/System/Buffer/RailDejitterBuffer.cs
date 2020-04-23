@@ -29,16 +29,15 @@ namespace Railgun
     internal class RailDejitterBuffer<T>
         where T : class, IRailTimedValue, IRailPoolable<T>
     {
-        private readonly Comparer<Tick> tickComparer;
-
         private readonly T[] data;
 
         // Used for converting a key to an index. For example, the server may only
         // send a snapshot every two ticks, so we would divide the tick number
         // key by 2 so as to avoid wasting space in the frame buffer
         private readonly int divisor;
-        private int latestIdx;
         private readonly List<T> returnList; // A reusable list for returning results
+        private readonly Comparer<Tick> tickComparer;
+        private int latestIdx;
 
         public RailDejitterBuffer(int capacity, int divisor = 1)
         {
@@ -173,10 +172,8 @@ namespace Railgun
                     return value;
 
                 if (value.Tick < tick)
-                {
                     if (result == null || result.Tick < value.Tick)
                         result = value;
-                }
             }
 
             return result;
@@ -192,10 +189,8 @@ namespace Railgun
                 return returnList;
 
             foreach (T val in data)
-            {
                 if (val != null && val.Tick >= start)
                     returnList.Add(val);
-            }
 
             returnList.Sort(Compare);
             return returnList;
@@ -220,13 +215,11 @@ namespace Railgun
                 if (val.Tick >= start && val.Tick <= end) returnList.Add(val);
 
                 if (val.Tick > end)
-                {
                     if (lowest == Tick.INVALID || val.Tick < lowest)
                     {
                         next = val;
                         lowest = val.Tick;
                     }
-                }
             }
 
             returnList.Sort(Compare);

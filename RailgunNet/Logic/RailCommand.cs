@@ -26,6 +26,36 @@ namespace Railgun
     public abstract class RailCommand :
         IRailPoolable<RailCommand>, IRailTimedValue
     {
+        /// <summary>
+        ///     The client's local tick (not server predicted) at the time of sending.
+        /// </summary>
+        public Tick ClientTick { get; set; } // Synchronized
+
+        public bool IsNewCommand { get; set; }
+
+        #region Interface
+
+        Tick IRailTimedValue.Tick => ClientTick;
+
+        #endregion
+
+        public static RailCommand Create(RailResource resource)
+        {
+            return resource.CreateCommand();
+        }
+
+        protected abstract void SetDataFrom(RailCommand other);
+
+        protected abstract void EncodeData(RailBitBuffer buffer);
+        protected abstract void DecodeData(RailBitBuffer buffer);
+        protected abstract void ResetData();
+
+        private void Reset()
+        {
+            ClientTick = Tick.INVALID;
+            ResetData();
+        }
+
         #region Pooling
 
         IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
@@ -37,47 +67,17 @@ namespace Railgun
 
         #endregion
 
-        public static RailCommand Create(RailResource resource)
-        {
-            return resource.CreateCommand();
-        }
-
-        #region Interface
-
-        Tick IRailTimedValue.Tick => ClientTick;
-
-        #endregion
-
-        protected abstract void SetDataFrom(RailCommand other);
-
-        /// <summary>
-        ///     The client's local tick (not server predicted) at the time of sending.
-        /// </summary>
-        public Tick ClientTick { get; set; } // Synchronized
-
-        protected abstract void EncodeData(RailBitBuffer buffer);
-        protected abstract void DecodeData(RailBitBuffer buffer);
-        protected abstract void ResetData();
-
-        public bool IsNewCommand { get; set; }
-
-        private void Reset()
-        {
-            ClientTick = Tick.INVALID;
-            ResetData();
-        }
-
         #region Encode/Decode/etc.
 
 #if CLIENT
         public void Encode(
-          RailBitBuffer buffer)
+            RailBitBuffer buffer)
         {
             // Write: [SenderTick]
-            buffer.WriteTick(this.ClientTick);
+            buffer.WriteTick(ClientTick);
 
             // Write: [Command Data]
-            this.EncodeData(buffer);
+            EncodeData(buffer);
         }
 #endif
 

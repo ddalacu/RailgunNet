@@ -43,6 +43,211 @@ namespace Railgun
     public abstract class RailState
         : IRailPoolable<RailState>
     {
+        private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
+        private const uint FLAGS_NONE = 0x00000000; // No values different
+
+        private int factoryType;
+
+        protected abstract int FlagBits { get; }
+
+        private uint Flags { get; set; } // Synchronized
+        public bool HasControllerData { get; set; } // Synchronized
+        public bool HasImmutableData { get; set; } // Synchronized
+
+        protected virtual void InitializeData()
+        {
+        }
+
+        protected abstract void ResetAllData();
+        protected abstract void ResetControllerData();
+
+        protected abstract void ApplyMutableFrom(RailState source, uint flags);
+        protected abstract void ApplyControllerFrom(RailState source);
+        protected abstract void ApplyImmutableFrom(RailState source);
+
+        protected abstract uint CompareMutableData(RailState basis);
+        protected abstract bool IsControllerDataEqual(RailState basis);
+
+        protected bool GetFlag(uint flags, uint flag)
+        {
+            return (flags & flag) == flag;
+        }
+
+        protected uint SetFlag(bool isEqual, uint flag)
+        {
+            if (isEqual == false)
+                return flag;
+            return 0;
+        }
+
+        public RailEntity ProduceEntity(RailResource resource)
+        {
+            return RailEntity.Create(resource, factoryType);
+        }
+
+        public RailState Clone(RailResource resource)
+        {
+            RailState clone = Create(resource, factoryType);
+            clone.OverwriteFrom(this);
+            return clone;
+        }
+
+        public void OverwriteFrom(RailState source)
+        {
+            Flags = source.Flags;
+            ApplyMutableFrom(source, FLAGS_ALL);
+            ApplyControllerFrom(source);
+            ApplyImmutableFrom(source);
+            HasControllerData = source.HasControllerData;
+            HasImmutableData = source.HasImmutableData;
+        }
+
+        private void Reset()
+        {
+            Flags = 0;
+            HasControllerData = false;
+            HasImmutableData = false;
+            ResetAllData();
+        }
+
+#if CLIENT
+        public void ApplyDelta(RailStateDelta delta)
+        {
+            RailState deltaState = delta.State;
+            ApplyMutableFrom(deltaState, deltaState.Flags);
+
+            ResetControllerData();
+            if (deltaState.HasControllerData)
+                ApplyControllerFrom(deltaState);
+            HasControllerData = delta.HasControllerData;
+
+            HasImmutableData =
+                delta.HasImmutableData || HasImmutableData;
+            if (deltaState.HasImmutableData)
+                ApplyImmutableFrom(deltaState);
+        }
+#endif
+
+#if SERVER
+        public static void EncodeDelta(
+            RailResource resource,
+            RailBitBuffer buffer,
+            RailStateDelta delta)
+        {
+            // Write: [EntityId]
+            buffer.WriteEntityId(delta.EntityId);
+
+            // Write: [IsFrozen]
+            buffer.WriteBool(delta.IsFrozen);
+
+            if (delta.IsFrozen == false)
+            {
+                // Write: [FactoryType]
+                RailState state = delta.State;
+                buffer.WriteInt(resource.EntityTypeCompressor, state.factoryType);
+
+                // Write: [IsRemoved]
+                buffer.WriteBool(delta.RemovedTick.IsValid);
+
+                if (delta.RemovedTick.IsValid)
+                    // Write: [RemovedTick]
+                    buffer.WriteTick(delta.RemovedTick);
+
+                // Write: [HasControllerData]
+                buffer.WriteBool(state.HasControllerData);
+
+                // Write: [HasImmutableData]
+                buffer.WriteBool(state.HasImmutableData);
+
+                // Write: [Flags]
+                buffer.Write(state.FlagBits, state.Flags);
+
+                // Write: [Mutable Data]
+                state.EncodeMutableData(buffer, state.Flags);
+
+                if (state.HasControllerData)
+                {
+                    // Write: [Controller Data]
+                    state.EncodeControllerData(buffer);
+
+                    // Write: [Command Ack]
+                    buffer.WriteTick(delta.CommandAck);
+                }
+
+                if (state.HasImmutableData)
+                    // Write: [Immutable Data]
+                    state.EncodeImmutableData(buffer);
+            }
+        }
+#endif
+#if CLIENT
+        public static RailStateDelta DecodeDelta(
+            RailResource resource,
+            RailBitBuffer buffer,
+            Tick packetTick)
+        {
+            RailStateDelta delta = resource.CreateDelta();
+            RailState state = null;
+
+            Tick commandAck = Tick.INVALID;
+            Tick removedTick = Tick.INVALID;
+
+            // Read: [EntityId]
+            EntityId entityId = buffer.ReadEntityId();
+
+            // Read: [IsFrozen]
+            bool isFrozen = buffer.ReadBool();
+
+            if (isFrozen == false)
+            {
+                // Read: [FactoryType]
+                int factoryType = buffer.ReadInt(resource.EntityTypeCompressor);
+                state = Create(resource, factoryType);
+
+                // Read: [IsRemoved]
+                bool isRemoved = buffer.ReadBool();
+
+                if (isRemoved)
+                    // Read: [RemovedTick]
+                    removedTick = buffer.ReadTick();
+
+                // Read: [HasControllerData]
+                state.HasControllerData = buffer.ReadBool();
+
+                // Read: [HasImmutableData]
+                state.HasImmutableData = buffer.ReadBool();
+
+                // Read: [Flags]
+                state.Flags = buffer.Read(state.FlagBits);
+
+                // Read: [Mutable Data]
+                state.DecodeMutableData(buffer, state.Flags);
+
+                if (state.HasControllerData)
+                {
+                    // Read: [Controller Data]
+                    state.DecodeControllerData(buffer);
+
+                    // Read: [Command Ack]
+                    commandAck = buffer.ReadTick();
+                }
+
+                if (state.HasImmutableData)
+                    // Read: [Immutable Data]
+                    state.DecodeImmutableData(buffer);
+            }
+
+            delta.Initialize(
+                packetTick,
+                entityId,
+                state,
+                removedTick,
+                commandAck,
+                isFrozen);
+            return delta;
+        }
+#endif
+
         #region Pooling
 
         IRailMemoryPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
@@ -53,9 +258,6 @@ namespace Railgun
         }
 
         #endregion
-
-        private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
-        private const uint FLAGS_NONE = 0x00000000; // No values different
 
         #region Creation
 
@@ -157,12 +359,6 @@ namespace Railgun
 
         #endregion
 
-        protected abstract int FlagBits { get; }
-
-        private uint Flags { get; set; } // Synchronized
-        public bool HasControllerData { get; set; } // Synchronized
-        public bool HasImmutableData { get; set; } // Synchronized
-
         #region Client
 
         protected abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
@@ -178,206 +374,6 @@ namespace Railgun
         protected abstract void EncodeImmutableData(RailBitBuffer buffer);
 
         #endregion
-
-        protected virtual void InitializeData()
-        {
-        }
-
-        protected abstract void ResetAllData();
-        protected abstract void ResetControllerData();
-
-        protected abstract void ApplyMutableFrom(RailState source, uint flags);
-        protected abstract void ApplyControllerFrom(RailState source);
-        protected abstract void ApplyImmutableFrom(RailState source);
-
-        protected abstract uint CompareMutableData(RailState basis);
-        protected abstract bool IsControllerDataEqual(RailState basis);
-
-        private int factoryType;
-
-        protected bool GetFlag(uint flags, uint flag)
-        {
-            return (flags & flag) == flag;
-        }
-
-        protected uint SetFlag(bool isEqual, uint flag)
-        {
-            if (isEqual == false)
-                return flag;
-            return 0;
-        }
-
-        public RailEntity ProduceEntity(RailResource resource)
-        {
-            return RailEntity.Create(resource, factoryType);
-        }
-
-        public RailState Clone(RailResource resource)
-        {
-            RailState clone = Create(resource, factoryType);
-            clone.OverwriteFrom(this);
-            return clone;
-        }
-
-        public void OverwriteFrom(RailState source)
-        {
-            Flags = source.Flags;
-            ApplyMutableFrom(source, FLAGS_ALL);
-            ApplyControllerFrom(source);
-            ApplyImmutableFrom(source);
-            HasControllerData = source.HasControllerData;
-            HasImmutableData = source.HasImmutableData;
-        }
-
-        private void Reset()
-        {
-            Flags = 0;
-            HasControllerData = false;
-            HasImmutableData = false;
-            ResetAllData();
-        }
-
-#if CLIENT
-        public void ApplyDelta(RailStateDelta delta)
-        {
-            RailState deltaState = delta.State;
-            this.ApplyMutableFrom(deltaState, deltaState.Flags);
-
-            this.ResetControllerData();
-            if (deltaState.HasControllerData)
-                this.ApplyControllerFrom(deltaState);
-            this.HasControllerData = delta.HasControllerData;
-
-            this.HasImmutableData =
-              delta.HasImmutableData || this.HasImmutableData;
-            if (deltaState.HasImmutableData)
-                this.ApplyImmutableFrom(deltaState);
-        }
-#endif
-
-#if SERVER
-        public static void EncodeDelta(
-            RailResource resource,
-            RailBitBuffer buffer,
-            RailStateDelta delta)
-        {
-            // Write: [EntityId]
-            buffer.WriteEntityId(delta.EntityId);
-
-            // Write: [IsFrozen]
-            buffer.WriteBool(delta.IsFrozen);
-
-            if (delta.IsFrozen == false)
-            {
-                // Write: [FactoryType]
-                RailState state = delta.State;
-                buffer.WriteInt(resource.EntityTypeCompressor, state.factoryType);
-
-                // Write: [IsRemoved]
-                buffer.WriteBool(delta.RemovedTick.IsValid);
-
-                if (delta.RemovedTick.IsValid)
-                    // Write: [RemovedTick]
-                    buffer.WriteTick(delta.RemovedTick);
-
-                // Write: [HasControllerData]
-                buffer.WriteBool(state.HasControllerData);
-
-                // Write: [HasImmutableData]
-                buffer.WriteBool(state.HasImmutableData);
-
-                // Write: [Flags]
-                buffer.Write(state.FlagBits, state.Flags);
-
-                // Write: [Mutable Data]
-                state.EncodeMutableData(buffer, state.Flags);
-
-                if (state.HasControllerData)
-                {
-                    // Write: [Controller Data]
-                    state.EncodeControllerData(buffer);
-
-                    // Write: [Command Ack]
-                    buffer.WriteTick(delta.CommandAck);
-                }
-
-                if (state.HasImmutableData)
-                    // Write: [Immutable Data]
-                    state.EncodeImmutableData(buffer);
-            }
-        }
-#endif
-#if CLIENT
-        public static RailStateDelta DecodeDelta(
-          RailResource resource,
-          RailBitBuffer buffer,
-          Tick packetTick)
-        {
-            RailStateDelta delta = resource.CreateDelta();
-            RailState state = null;
-
-            Tick commandAck = Tick.INVALID;
-            Tick removedTick = Tick.INVALID;
-
-            // Read: [EntityId]
-            EntityId entityId = buffer.ReadEntityId();
-
-            // Read: [IsFrozen]
-            bool isFrozen = buffer.ReadBool();
-
-            if (isFrozen == false)
-            {
-                // Read: [FactoryType]
-                int factoryType = buffer.ReadInt(resource.EntityTypeCompressor);
-                state = RailState.Create(resource, factoryType);
-
-                // Read: [IsRemoved]
-                bool isRemoved = buffer.ReadBool();
-
-                if (isRemoved)
-                {
-                    // Read: [RemovedTick]
-                    removedTick = buffer.ReadTick();
-                }
-
-                // Read: [HasControllerData]
-                state.HasControllerData = buffer.ReadBool();
-
-                // Read: [HasImmutableData]
-                state.HasImmutableData = buffer.ReadBool();
-
-                // Read: [Flags]
-                state.Flags = buffer.Read(state.FlagBits);
-
-                // Read: [Mutable Data]
-                state.DecodeMutableData(buffer, state.Flags);
-
-                if (state.HasControllerData)
-                {
-                    // Read: [Controller Data]
-                    state.DecodeControllerData(buffer);
-
-                    // Read: [Command Ack]
-                    commandAck = buffer.ReadTick();
-                }
-
-                if (state.HasImmutableData)
-                {
-                    // Read: [Immutable Data]
-                    state.DecodeImmutableData(buffer);
-                }
-            }
-
-            delta.Initialize(
-              packetTick,
-              entityId,
-              state,
-              removedTick,
-              commandAck,
-              isFrozen);
-            return delta;
-        }
-#endif
     }
 
     public abstract class RailState<T> : RailState

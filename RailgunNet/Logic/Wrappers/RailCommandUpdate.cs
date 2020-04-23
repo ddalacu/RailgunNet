@@ -31,16 +31,23 @@ namespace Railgun
         private static readonly int BUFFER_COUNT_BITS =
             RailUtil.Log2(BUFFER_CAPACITY) + 1;
 
-        #region Pooling
+        private readonly RailRollingBuffer<RailCommand> commands;
 
-        IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
-
-        void IRailPoolable<RailCommandUpdate>.Reset()
+        public RailCommandUpdate()
         {
-            Reset();
+            EntityId = EntityId.INVALID;
+            commands =
+                new RailRollingBuffer<RailCommand>(
+                    BUFFER_CAPACITY);
         }
 
-        #endregion
+#if CLIENT
+        public IRailEntity Entity { get; set; }
+#endif
+
+        public EntityId EntityId { get; private set; }
+
+        public IEnumerable<RailCommand> Commands => commands.GetValues();
 
         public static RailCommandUpdate Create(
             RailResource resource,
@@ -52,29 +59,11 @@ namespace Railgun
             return update;
         }
 
-#if CLIENT
-        public IRailEntity Entity { get; set; }
-#endif
-
-        public EntityId EntityId { get; private set; }
-
-        public IEnumerable<RailCommand> Commands => commands.GetValues();
-
-        private readonly RailRollingBuffer<RailCommand> commands;
-
-        public RailCommandUpdate()
-        {
-            EntityId = EntityId.INVALID;
-            commands =
-                new RailRollingBuffer<RailCommand>(
-                    BUFFER_CAPACITY);
-        }
-
         private void Initialize(
             EntityId entityId,
             IEnumerable<RailCommand> outgoingCommands)
         {
-            this.EntityId = entityId;
+            EntityId = entityId;
             foreach (RailCommand command in outgoingCommands)
                 commands.Store(command);
         }
@@ -92,7 +81,7 @@ namespace Railgun
             buffer.WriteEntityId(EntityId);
 
             // Write: [Count]
-            buffer.Write(BUFFER_COUNT_BITS, (uint)commands.Count);
+            buffer.Write(BUFFER_COUNT_BITS, (uint) commands.Count);
 
             // Write: [Commands]
             foreach (RailCommand command in commands.GetValues())
@@ -120,5 +109,16 @@ namespace Railgun
             return update;
         }
 #endif
+
+        #region Pooling
+
+        IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
+
+        void IRailPoolable<RailCommandUpdate>.Reset()
+        {
+            Reset();
+        }
+
+        #endregion
     }
 }

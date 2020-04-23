@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Railgun
 {
@@ -49,18 +50,21 @@ namespace Railgun
 
         public IEnumerable<KeyValuePair<Type, Type>> EntityTypes => entityTypes;
 
+        [PublicAPI]
         public void SetCommandType<TCommand>()
             where TCommand : RailCommand
         {
             CommandType = typeof(TCommand);
         }
 
+        [PublicAPI]
         public void AddEventType<TEvent>()
             where TEvent : RailEvent
         {
             eventTypes.Add(typeof(TEvent));
         }
 
+        [PublicAPI]
         public void AddEntityType<TEntity, TState>()
             where TEntity : RailEntity
             where TState : RailState

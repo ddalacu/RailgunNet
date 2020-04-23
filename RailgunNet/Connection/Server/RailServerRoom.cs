@@ -18,26 +18,14 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
 using System;
 using System.Collections.Generic;
 
 namespace Railgun
 {
+    [OnlyIn(Component.Server)]
     internal class RailServerRoom : RailRoom
     {
-        /// <summary>
-        ///     Fired when a controller has been added (i.e. player join).
-        ///     The controller has control of no entities at this point.
-        /// </summary>
-        public event Action<RailController> ClientJoined;
-
-        /// <summary>
-        ///     Fired when a controller has been removed (i.e. player leave).
-        ///     This event fires before the controller has control of its entities
-        ///     revoked (this is done immediately afterwards).
-        /// </summary>
-        public event Action<RailController> ClientLeft;
         /// <summary>
         ///     All client controllers involved in this room.
         ///     Does not include the server's controller.
@@ -62,6 +50,19 @@ namespace Railgun
         }
 
         /// <summary>
+        ///     Fired when a controller has been added (i.e. player join).
+        ///     The controller has control of no entities at this point.
+        /// </summary>
+        public event Action<RailController> ClientJoined;
+
+        /// <summary>
+        ///     Fired when a controller has been removed (i.e. player leave).
+        ///     This event fires before the controller has control of its entities
+        ///     revoked (this is done immediately afterwards).
+        /// </summary>
+        public event Action<RailController> ClientLeft;
+
+        /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
         public T AddNewEntity<T>() where T : RailEntity
@@ -83,6 +84,7 @@ namespace Railgun
                 server.LogRemovedEntity(entity);
             }
         }
+
         /// <summary>
         ///     Queues an event to broadcast to all present clients.
         /// </summary>
@@ -152,6 +154,7 @@ namespace Railgun
             nextEntityId = nextEntityId.GetNext();
             return entity;
         }
+
         protected void OnClientJoined(RailController client)
         {
             ClientJoined?.Invoke(client);
@@ -163,4 +166,3 @@ namespace Railgun
         }
     }
 }
-#endif
