@@ -22,9 +22,7 @@ using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.System.Encoding;
-using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
-using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Connection
@@ -37,6 +35,7 @@ namespace RailgunNet.Connection
             Tick localTick,
             int reservedBytes);
     }
+
     public abstract class RailPacketIncoming : RailPacketBase
     {
         public abstract void DecodePayload(
@@ -47,10 +46,7 @@ namespace RailgunNet.Connection
     public abstract class RailPacketBase
         : IRailPoolable<RailPacketBase>
     {
-
         private readonly List<RailEvent> pendingEvents;
-
-        public int EventsWritten { get; set; }
 
         protected RailPacketBase()
         {
@@ -62,6 +58,8 @@ namespace RailgunNet.Connection
             Events = new List<RailEvent>();
             EventsWritten = 0;
         }
+
+        public int EventsWritten { get; set; }
 
         /// <summary>
         ///     The latest tick from the sender.
@@ -108,6 +106,16 @@ namespace RailgunNet.Connection
             EventsWritten = 0;
         }
 
+        #region Encoding/Decoding
+
+        public IEnumerable<RailEvent> GetNextEvents()
+        {
+            for (int i = EventsWritten; i < pendingEvents.Count; i++)
+                yield return pendingEvents[i];
+        }
+
+        #endregion
+
         #region Pooling
 
         IRailMemoryPool<RailPacketBase> IRailPoolable<RailPacketBase>.Pool { get; set; }
@@ -115,15 +123,6 @@ namespace RailgunNet.Connection
         void IRailPoolable<RailPacketBase>.Reset()
         {
             Reset();
-        }
-
-        #endregion
-
-        #region Encoding/Decoding
-        public IEnumerable<RailEvent> GetNextEvents()
-        {
-            for (int i = EventsWritten; i < pendingEvents.Count; i++)
-                yield return pendingEvents[i];
         }
 
         #endregion

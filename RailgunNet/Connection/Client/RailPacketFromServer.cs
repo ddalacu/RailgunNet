@@ -3,18 +3,18 @@ using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
-using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Client
 {
     /// <summary>
     ///     Packet sent from server to client.
     /// </summary>
+    [OnlyIn(Component.Client)]
     public sealed class RailPacketFromServer
         : RailPacketIncoming
     {
         private readonly RailPackedListS2C<RailStateDelta> deltas;
-        Tick ServerTick { get; }
 
         public RailPacketFromServer()
         {

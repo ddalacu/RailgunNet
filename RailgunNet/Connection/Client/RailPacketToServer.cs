@@ -32,7 +32,7 @@ namespace RailgunNet.Connection.Client
     ///     Packet sent from client to server.
     /// </summary>
     [OnlyIn(Component.Client)]
-    public sealed class RailPacketToServer 
+    public sealed class RailPacketToServer
         : RailPacketOutgoing
     {
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;

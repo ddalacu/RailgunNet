@@ -54,7 +54,7 @@ namespace RailgunNet
             ShouldTick = false;
         }
 
-        public bool ShouldTick { get; private set; }
+        private bool ShouldTick { get; set; }
         public Tick EstimatedRemote { get; private set; }
         public Tick LatestRemote { get; private set; }
 

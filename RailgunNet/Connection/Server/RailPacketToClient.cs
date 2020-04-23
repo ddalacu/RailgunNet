@@ -24,13 +24,15 @@ using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Server
 {
-
     /// <summary>
-    ///     Packet sent from server to client.
+    ///     Packet sent from server to client. Corresponding packet on client
+    ///     side is RailPacketFromServer.
     /// </summary>
+    [OnlyIn(Component.Server)]
     public sealed class RailPacketToClient
         : RailPacketOutgoing
     {

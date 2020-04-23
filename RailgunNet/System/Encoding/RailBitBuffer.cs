@@ -63,7 +63,7 @@ namespace RailgunNet.System.Encoding
         /// <summary>
         ///     Size the buffer will require in bytes.
         /// </summary>
-        public int ByteSize => ((writePos - 1) >> 3) + 1;
+        private int ByteSize => ((writePos - 1) >> 3) + 1;
 
         /// <summary>
         ///     Returns true iff we have read everything off of the buffer.

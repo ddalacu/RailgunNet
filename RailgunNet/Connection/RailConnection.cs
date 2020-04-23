@@ -33,24 +33,25 @@ namespace RailgunNet.Connection
     /// </summary>
     public abstract class RailConnection
     {
-        protected RailResource resource { get; }
         private bool hasStarted;
 
         protected RailConnection(RailRegistry registry)
         {
-            resource = new RailResource(registry);
+            Resource = new RailResource(registry);
             Interpreter = new RailInterpreter();
             Room = null;
             hasStarted = false;
         }
 
-        public RailRoom Room { get; private set; }
+        protected RailResource Resource { get; }
+
+        private RailRoom Room { get; set; }
 
         protected RailInterpreter Interpreter { get; }
 
+        [PublicAPI]
         public event Action Started;
 
-        [PublicAPI]
         public abstract void Update();
 
         protected void SetRoom(RailRoom room, Tick startTick)

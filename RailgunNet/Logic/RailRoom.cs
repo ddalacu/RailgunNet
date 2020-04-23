@@ -31,13 +31,9 @@ namespace RailgunNet.Logic
         private readonly RailConnection connection;
         private readonly Dictionary<EntityId, IRailEntity> entities;
 
-        protected RailResource Resource { get; }
-        protected List<RailEntity> ToRemove { get; } // Pre-allocated removal list
-        protected List<RailEntity> ToUpdate { get; } // Pre-allocated update list
-
         protected RailRoom(RailResource resource, RailConnection connection)
         {
-            this.Resource = resource;
+            Resource = resource;
             this.connection = connection;
             entities =
                 new Dictionary<EntityId, IRailEntity>(
@@ -47,6 +43,10 @@ namespace RailgunNet.Logic
             ToUpdate = new List<RailEntity>();
             ToRemove = new List<RailEntity>();
         }
+
+        protected RailResource Resource { get; }
+        protected List<RailEntity> ToRemove { get; } // Pre-allocated removal list
+        protected List<RailEntity> ToUpdate { get; } // Pre-allocated update list
 
         public object UserData { get; set; }
 

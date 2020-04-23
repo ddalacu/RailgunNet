@@ -57,18 +57,18 @@ namespace RailgunNet.Util.Pooling
     public class RailMemoryPool<T> : IRailMemoryPool<T>
         where T : IRailPoolable<T>
     {
-        protected IRailFactory<T> Factory { get; }
+        private readonly IRailFactory<T> factory;
         private readonly Stack<T> freeList;
 
         public RailMemoryPool(IRailFactory<T> factory)
         {
-            this.Factory = factory;
+            this.factory = factory;
             freeList = new Stack<T>();
         }
 
         public T Allocate()
         {
-            T obj = freeList.Count > 0 ? freeList.Pop() : Factory.Create();
+            T obj = freeList.Count > 0 ? freeList.Pop() : factory.Create();
             obj.Pool = this;
             obj.Reset();
             return obj;

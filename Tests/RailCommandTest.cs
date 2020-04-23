@@ -67,7 +67,7 @@ namespace Tests
         [InlineData(Int32.MaxValue)]
         void DecodeReadsTickAndCommandData(int iData)
         {
-            var mockCreator = new Mock<ICommandCreator>();
+            var mockCreator = new Mock<IRailCommandCreator>();
             mockCreator.Setup(m => m.CreateCommand()).Returns(new Command());
 
             RailBitBuffer bitBuffer = new RailBitBuffer(2);

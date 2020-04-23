@@ -52,9 +52,11 @@ namespace RailgunNet.Connection
             // Read: [Events] (Fill Pack)
             DecodeEvents(packet, resource, resource.EventTypeCompressor, buffer);
         }
+
         #region Header
+
         private static void EncodeHeader(
-            RailPacketOutgoing packet, 
+            RailPacketOutgoing packet,
             RailBitBuffer buffer)
         {
             RailDebug.Assert(packet.SenderTick.IsValid);
@@ -108,7 +110,7 @@ namespace RailgunNet.Connection
 
         private static void DecodeEvents(
             RailPacketIncoming packet,
-            IEventCreator creator,
+            IRailEventCreator creator,
             RailIntCompressor compressor,
             RailBitBuffer buffer)
         {
@@ -118,6 +120,7 @@ namespace RailgunNet.Connection
             foreach (RailEvent evnt in decoded)
                 packet.Events.Add(evnt);
         }
+
         #endregion
     }
 }

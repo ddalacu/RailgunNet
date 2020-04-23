@@ -159,12 +159,12 @@ namespace RailgunNet.Connection.Server
             return entity;
         }
 
-        protected void OnClientJoined(RailController client)
+        private void OnClientJoined(RailController client)
         {
             ClientJoined?.Invoke(client);
         }
 
-        protected void OnClientLeft(RailController client)
+        private void OnClientLeft(RailController client)
         {
             ClientLeft?.Invoke(client);
         }

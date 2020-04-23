@@ -41,7 +41,7 @@ namespace RailgunNet.Logic.Wrappers
         public EntityId EntityId { get; private set; }
 
         public RailState State => state;
-        public bool IsFrozen { get; set; }
+        public bool IsFrozen { get; private set; }
 
         public bool HasControllerData => state.HasControllerData;
         public bool HasImmutableData => state.HasImmutableData;

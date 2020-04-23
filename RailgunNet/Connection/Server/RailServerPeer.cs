@@ -20,7 +20,6 @@
 
 using System;
 using System.Collections.Generic;
-using RailgunNet.Connection.Client;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
@@ -75,7 +74,7 @@ namespace RailgunNet.Connection.Server
                     delta.IsFrozen);
         }
 
-        protected override void ProcessPacket(RailPacketBase packetBase, Tick localTick)
+        protected override void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
         {
             base.ProcessPacket(packetBase, localTick);
 

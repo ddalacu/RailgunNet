@@ -20,7 +20,6 @@
 
 using System;
 using System.Collections.Generic;
-using RailgunNet.Connection.Server;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
@@ -78,12 +77,12 @@ namespace RailgunNet.Connection.Client
         }
 
         protected override void ProcessPacket(
-            RailPacketBase packetBase,
+            RailPacketIncoming packetBase,
             Tick localTick)
         {
             base.ProcessPacket(packetBase, localTick);
 
-            RailPacketFromServer packetFromServer = packetBase as RailPacketFromServer;
+            RailPacketFromServer packetFromServer = (RailPacketFromServer) packetBase;
             foreach (RailStateDelta delta in packetFromServer.Deltas)
                 localView.RecordUpdate(
                     delta.EntityId,

@@ -65,8 +65,8 @@ namespace RailgunNet.Logic
         // Local only
         public int Attempts { get; set; }
 
-        public RailRoom Room { get; private set; }
-        public RailController Sender { get; private set; }
+        private RailRoom Room { get; set; }
+        private RailController Sender { get; set; }
 
         public static TEvent Create<TEvent>(RailResource resource)
             where TEvent : RailEvent
@@ -76,7 +76,7 @@ namespace RailgunNet.Logic
             return evnt;
         }
 
-        private static RailEvent Create(IEventCreator creator, int factoryType)
+        private static RailEvent Create(IRailEventCreator creator, int factoryType)
         {
             RailEvent evnt = creator.CreateEvent(factoryType);
             evnt.factoryType = factoryType;
@@ -215,7 +215,7 @@ namespace RailgunNet.Logic
         ///     is intended for use in tick diffs for compression.
         /// </summary>
         public static RailEvent Decode(
-            IEventCreator creator,
+            IRailEventCreator creator,
             RailIntCompressor compressor,
             RailBitBuffer buffer,
             Tick packetTick)

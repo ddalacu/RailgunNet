@@ -61,7 +61,7 @@ namespace RailgunNet.System
             }
         }
 
-        public bool Contains(SequenceId value)
+        private bool Contains(SequenceId value)
         {
             int difference = Latest - value;
             if (difference < 0)
@@ -85,7 +85,7 @@ namespace RailgunNet.System
             return highest - lowest <= history.Capacity;
         }
 
-        public bool ValueTooOld(SequenceId value)
+        private bool ValueTooOld(SequenceId value)
         {
             return Latest - value > history.Capacity;
         }

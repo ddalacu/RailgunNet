@@ -2,7 +2,7 @@
 
 namespace RailgunNet.Factory
 {
-    public interface ICommandCreator
+    public interface IRailCommandCreator
     {
         RailCommand CreateCommand();
     }

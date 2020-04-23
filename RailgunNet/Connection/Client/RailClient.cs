@@ -18,7 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using RailgunNet.Connection.Server;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -30,6 +30,7 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Connection.Client
 {
+    [PublicAPI]
     [OnlyIn(Component.Client)]
     public class RailClient
         : RailConnection
@@ -55,11 +56,12 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     The client's room instance. TODO: Multiple rooms?
         /// </summary>
-        private new RailClientRoom Room { get; set; }
+        [CanBeNull]
+        private RailClientRoom Room { get; set; }
 
         public void StartRoom()
         {
-            Room = new RailClientRoom(resource, this);
+            Room = new RailClientRoom(Resource, this);
             SetRoom(Room, Tick.INVALID);
         }
 
@@ -82,12 +84,13 @@ namespace RailgunNet.Connection.Client
             {
                 RailDebug.Assert(serverPeer == null, "Overwriting peer");
                 serverPeer =
-                    new RailClientPeer(resource, netPeer, Interpreter);
+                    new RailClientPeer(Resource, netPeer, Interpreter);
                 serverPeer.PacketReceived += OnPacketReceived;
                 serverPeer.EventReceived += OnEventReceived;
             }
         }
 
+        [PublicAPI]
         public override void Update()
         {
             if (serverPeer != null)

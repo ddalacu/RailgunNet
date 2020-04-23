@@ -36,12 +36,6 @@ namespace RailgunNet.Logic
         /// </summary>
         private readonly HashSet<IRailEntity> controlledEntities;
 
-        /// <summary>
-        ///     The network I/O peer for sending/receiving data.
-        /// </summary>
-        [CanBeNull]
-        protected IRailNetPeer NetPeer { get; }
-
         public RailController(
             RailResource resource,
             IRailNetPeer netPeer = null)
@@ -55,6 +49,12 @@ namespace RailgunNet.Logic
 
             netPeer?.BindController(this);
         }
+
+        /// <summary>
+        ///     The network I/O peer for sending/receiving data.
+        /// </summary>
+        [CanBeNull]
+        protected IRailNetPeer NetPeer { get; }
 
         public object UserData { get; set; }
 

@@ -4,6 +4,7 @@ using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Server
 {
@@ -16,9 +17,10 @@ namespace RailgunNet.Connection.Server
     ///     Packet from the client received by the server. Corresponding packet on client
     ///     side is RailPacketToServer.
     /// </summary>
+    [OnlyIn(Component.Server)]
     public class RailPacketFromClient
         : RailPacketIncoming
-        , IRailClientPacket
+            , IRailClientPacket
     {
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
 
@@ -43,6 +45,7 @@ namespace RailgunNet.Connection.Server
             View.Clear();
             commandUpdates.Clear();
         }
+
         public override void DecodePayload(
             RailResource resource,
             RailBitBuffer buffer)
@@ -53,6 +56,7 @@ namespace RailgunNet.Connection.Server
             // Read: [View]
             DecodeView(buffer);
         }
+
         private void DecodeCommands(
             RailResource resource,
             RailBitBuffer buffer)
@@ -61,6 +65,7 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 () => RailCommandUpdate.Decode(resource, buffer));
         }
+
         private void DecodeView(RailBitBuffer buffer)
         {
             IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =

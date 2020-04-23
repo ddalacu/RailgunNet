@@ -111,7 +111,7 @@ namespace RailgunNet.System.Buffer
             return store;
         }
 
-        public T Get(Tick tick)
+        private T Get(Tick tick)
         {
             if (tick == Tick.INVALID)
                 return null;

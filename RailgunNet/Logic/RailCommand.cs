@@ -114,7 +114,7 @@ namespace RailgunNet.Logic
 
         [OnlyIn(Component.Server)]
         public static RailCommand Decode(
-            ICommandCreator creator,
+            IRailCommandCreator creator,
             RailBitBuffer buffer)
         {
             RailCommand command = creator.CreateCommand();

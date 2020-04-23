@@ -42,27 +42,27 @@ namespace RailgunNet.Logic
 
         protected override void ApplyMutableFrom(RailState source, uint flags)
         {
-            ApplyMutableFrom((T)source, flags);
+            ApplyMutableFrom((T) source, flags);
         }
 
         protected override void ApplyControllerFrom(RailState source)
         {
-            ApplyControllerFrom((T)source);
+            ApplyControllerFrom((T) source);
         }
 
         protected override void ApplyImmutableFrom(RailState source)
         {
-            ApplyImmutableFrom((T)source);
+            ApplyImmutableFrom((T) source);
         }
 
         protected override uint CompareMutableData(RailState basis)
         {
-            return CompareMutableData((T)basis);
+            return CompareMutableData((T) basis);
         }
 
         protected override bool IsControllerDataEqual(RailState basis)
         {
-            return IsControllerDataEqual((T)basis);
+            return IsControllerDataEqual((T) basis);
         }
 
         #endregion
@@ -74,15 +74,15 @@ namespace RailgunNet.Logic
     ///     function. States have multiple sub-fields that are sent at different
     ///     cadences, as follows:
     ///     Mutable Data:
-    ///         Sent whenever the state differs from the client's view.
-    ///         Delta-encoded against the client's view.
+    ///     Sent whenever the state differs from the client's view.
+    ///     Delta-encoded against the client's view.
     ///     Controller Data:
-    ///         Sent to the controller of the entity every update.
-    ///         Not delta-encoded -- always sent full-encode.
+    ///     Sent to the controller of the entity every update.
+    ///     Not delta-encoded -- always sent full-encode.
     ///     Immutable Data:
-    ///         Sent only once at creation. Can not be changed after.
+    ///     Sent only once at creation. Can not be changed after.
     ///     Removal Data (Not currently implemented):
-    ///         Sent when the state is removed. Arrives at the time of removal.
+    ///     Sent when the state is removed. Arrives at the time of removal.
     /// </summary>
     public abstract class RailState
         : IRailPoolable<RailState>

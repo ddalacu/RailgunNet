@@ -19,7 +19,7 @@
  */
 
 using System.Collections.Generic;
-using RailgunNet.Connection.Client;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -34,6 +34,7 @@ namespace RailgunNet.Connection.Server
     ///     Server is the core executing class on the server. It is responsible for
     ///     managing connection contexts and payload I/O.
     /// </summary>
+    [PublicAPI]
     [OnlyIn(Component.Server)]
     public class RailServer : RailConnection
     {
@@ -59,27 +60,30 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     The server's room instance. TODO: Multiple rooms?
         /// </summary>
-        private new RailServerRoom Room { get; set; }
+        [CanBeNull]
+        private RailServerRoom Room { get; set; }
 
         /// <summary>
         ///     Starts the server's room.
         /// </summary>
+        [PublicAPI]
         public void StartRoom()
         {
-            Room = new RailServerRoom(resource, this);
+            Room = new RailServerRoom(Resource, this);
             SetRoom(Room, Tick.START);
         }
 
         /// <summary>
         ///     Wraps an incoming connection in a peer and stores it.
         /// </summary>
+        [PublicAPI]
         public void AddClient(IRailNetPeer netPeer, string identifier)
         {
             if (clients.ContainsKey(netPeer) == false)
             {
                 RailServerPeer client =
                     new RailServerPeer(
-                        resource,
+                        Resource,
                         netPeer,
                         Interpreter)
                     {
@@ -95,6 +99,7 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Wraps an incoming connection in a peer and stores it.
         /// </summary>
+        [PublicAPI]
         public void RemoveClient(IRailNetPeer netClient)
         {
             if (clients.ContainsKey(netClient))
@@ -113,6 +118,7 @@ namespace RailgunNet.Connection.Server
         ///     be called once per game simulation tick (e.g. during Unity's
         ///     FixedUpdate pass).
         /// </summary>
+        [PublicAPI]
         public override void Update()
         {
             DoStart();

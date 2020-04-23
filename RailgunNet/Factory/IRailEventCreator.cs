@@ -2,7 +2,7 @@
 
 namespace RailgunNet.Factory
 {
-    public interface IEventCreator
+    public interface IRailEventCreator
     {
         RailEvent CreateEvent(int iFactoryType);
     }

@@ -45,7 +45,6 @@ namespace RailgunNet.Connection
         /// </summary>
         private readonly RailClock remoteClock;
 
-        protected RailResource Resource { get; }
         private readonly RailPacketIncoming reusableIncoming;
         private readonly RailPacketOutgoing reusableOutgoing;
 
@@ -63,7 +62,7 @@ namespace RailgunNet.Connection
             RailPacketOutgoing reusableOutgoing)
             : base(resource, netPeer)
         {
-            this.Resource = resource;
+            Resource = resource;
             remoteClock = new RailClock(remoteSendRate);
             this.interpreter = interpreter;
 
@@ -76,6 +75,8 @@ namespace RailgunNet.Connection
             localTick = Tick.START;
             netPeer.PayloadReceived += OnPayloadReceived;
         }
+
+        protected RailResource Resource { get; }
 
         public override Tick EstimatedRemoteTick => remoteClock.EstimatedRemote;
 
@@ -136,7 +137,7 @@ namespace RailgunNet.Connection
         ///     Records acknowledging information for the packet.
         /// </summary>
         protected virtual void ProcessPacket(
-            RailPacketBase packetBase,
+            RailPacketIncoming packetBase,
             Tick localTick)
         {
             remoteClock.UpdateLatest(packetBase.SenderTick);
@@ -298,7 +299,7 @@ namespace RailgunNet.Connection
         where TIncoming : RailPacketIncoming, new()
         where TOutgoing : RailPacketOutgoing, new()
     {
-        public RailPeer(
+        protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
             int remoteSendRate,
