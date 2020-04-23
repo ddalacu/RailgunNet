@@ -22,14 +22,14 @@ using System.Collections.Generic;
 
 namespace Railgun
 {
-  internal interface IRailPool<T>
+  public interface IRailPool<T>
   {
     T Allocate();
     void Deallocate(T obj);
     IRailPool<T> Clone();
   }
 
-  internal static class RailPool
+  public static class RailPool
   {
     public static void Free<T>(T obj)
       where T : IRailPoolable<T>
@@ -53,7 +53,7 @@ namespace Railgun
     }
   }
 
-  internal abstract class RailPoolBase<T> : IRailPool<T>
+  public abstract class RailPoolBase<T> : IRailPool<T>
     where T : IRailPoolable<T>
   {
     private readonly Stack<T> freeList;
@@ -85,7 +85,7 @@ namespace Railgun
     }
   }
 
-  internal class RailPool<T> : RailPoolBase<T>
+  public class RailPool<T> : RailPoolBase<T>
     where T : IRailPoolable<T>
   {
       public RailPool(IRailFactory<T> factory) : base(factory)

@@ -20,7 +20,7 @@
 
 namespace Railgun
 {
-  internal interface IRailPoolable<T>
+  public interface IRailPoolable<T>
     where T : IRailPoolable<T>
   {
     IRailPool<T> Pool { get; set; }

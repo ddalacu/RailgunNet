@@ -42,6 +42,12 @@ namespace Railgun
       RailUpdateOrder.VeryLate,
     };
 
+    public enum RailApplication
+    {
+        Client,
+        Server
+    }
+
     /// <summary>
     /// Network send rate in ticks/packet.
     /// </summary>
