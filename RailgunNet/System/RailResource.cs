@@ -30,11 +30,7 @@ namespace Railgun
       Type derivedType)
       where T : IRailPoolable<T>
     {
-      Type factoryType = typeof(RailPool<,>);
-      Type specific =
-        factoryType.MakeGenericType(typeof(T), derivedType);
-      ConstructorInfo ci = specific.GetConstructor(Type.EmptyTypes);
-      return (IRailPool<T>)ci.Invoke(new object[] { });
+        return new RailPool<T>(new RailFactory<T>(derivedType));
     }
 
     internal RailIntCompressor EventTypeCompressor { get { return this.eventTypeCompressor; } }
@@ -75,19 +71,17 @@ namespace Railgun
       this.entityTypeCompressor = 
         new RailIntCompressor(0, this.entityPools.Count + 1);
 
-      this.deltaPool = new RailPool<RailStateDelta>();
-      this.commandUpdatePool = new RailPool<RailCommandUpdate>();
+      this.deltaPool = new RailPool<RailStateDelta>(new RailFactory<RailStateDelta>());
+      this.commandUpdatePool = new RailPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 #if SERVER
-      this.recordPool = new RailPool<RailStateRecord>();
+      this.recordPool = new RailPool<RailStateRecord>(new RailFactory<RailStateRecord>());
 #endif
     }
 
     private IRailPool<RailCommand> CreateCommandPool(
       RailRegistry registry)
     {
-      return
-        RailResource.CreatePool<RailCommand>(
-          registry.CommandType);
+        return CreatePool<RailCommand>(registry.CommandType);
     }
 
     private void RegisterEvents(

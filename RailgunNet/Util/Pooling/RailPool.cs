@@ -29,7 +29,7 @@ namespace Railgun
     IRailPool<T> Clone();
   }
 
-  internal class RailPool
+  internal static class RailPool
   {
     public static void Free<T>(T obj)
       where T : IRailPoolable<T>
@@ -57,23 +57,19 @@ namespace Railgun
     where T : IRailPoolable<T>
   {
     private readonly Stack<T> freeList;
+    protected readonly IRailFactory<T> factory;
 
     public abstract IRailPool<T> Clone();
-    protected abstract T Create();
 
-    public RailPoolBase()
+    public RailPoolBase(IRailFactory<T> factory)
     {
-      this.freeList = new Stack<T>();
+        this.factory = factory;
+        this.freeList = new Stack<T>();
     }
 
     public T Allocate()
     {
-      T obj;
-      if (this.freeList.Count > 0)
-        obj = this.freeList.Pop();
-      else
-        obj = this.Create();
-
+      T obj = this.freeList.Count > 0 ? this.freeList.Pop() : factory.Create();
       obj.Pool = this;
       obj.Reset();
       return obj;
@@ -90,31 +86,14 @@ namespace Railgun
   }
 
   internal class RailPool<T> : RailPoolBase<T>
-    where T : IRailPoolable<T>, new()
+    where T : IRailPoolable<T>
   {
-    protected override T Create()
-    {
-      return new T();
-    }
-
+      public RailPool(IRailFactory<T> factory) : base(factory)
+      {
+      }
     public override IRailPool<T> Clone()
     {
-      return new RailPool<T>();
-    }
-  }
-
-  internal class RailPool<TBase, TDerived> : RailPoolBase<TBase>
-    where TBase : IRailPoolable<TBase>
-    where TDerived : TBase, new()
-  {
-    protected override TBase Create()
-    {
-      return new TDerived();
-    }
-
-    public override IRailPool<TBase> Clone()
-    {
-      return new RailPool<TBase, TDerived>();
+      return new RailPool<T>(factory);
     }
   }
 }
