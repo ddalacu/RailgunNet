@@ -13,10 +13,11 @@ namespace RailgunNet.Connection.Server
     }
 
     /// <summary>
-    ///     Packet from the client received by the server.
+    ///     Packet from the client received by the server. Corresponding packet on client
+    ///     side is RailPacketToServer.
     /// </summary>
     public class RailPacketFromClient
-        : RailPacket
+        : RailPacketIncoming
         , IRailClientPacket
     {
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
@@ -42,20 +43,7 @@ namespace RailgunNet.Connection.Server
             View.Clear();
             commandUpdates.Clear();
         }
-
-
-        #region Encode/Decode
-
-        protected override void EncodePayload(
-            RailResource resource,
-            RailBitBuffer buffer,
-            Tick localTick,
-            int reservedBytes)
-        {
-
-        }
-
-        protected override void DecodePayload(
+        public override void DecodePayload(
             RailResource resource,
             RailBitBuffer buffer)
         {
@@ -65,8 +53,7 @@ namespace RailgunNet.Connection.Server
             // Read: [View]
             DecodeView(buffer);
         }
-
-        protected void DecodeCommands(
+        private void DecodeCommands(
             RailResource resource,
             RailBitBuffer buffer)
         {
@@ -74,8 +61,7 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 () => RailCommandUpdate.Decode(resource, buffer));
         }
-
-        public void DecodeView(RailBitBuffer buffer)
+        private void DecodeView(RailBitBuffer buffer)
         {
             IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
                 buffer.UnpackAll(
@@ -91,7 +77,5 @@ namespace RailgunNet.Connection.Server
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
                 View.RecordUpdate(pair.Key, pair.Value);
         }
-
-        #endregion
     }
 }

@@ -41,10 +41,10 @@ namespace RailgunNet.Connection.Traffic
         public void SendPacket(
             RailResource resource,
             IRailNetPeer peer,
-            IRailPacket packet)
+            RailPacketOutgoing packet)
         {
             bitBuffer.Clear();
-            packet.Encode(resource, bitBuffer);
+            RailPacketSerializer.Encode(packet, resource, bitBuffer);
             int length = bitBuffer.Store(bytes);
             RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
             peer.SendPayload(bytes, length);

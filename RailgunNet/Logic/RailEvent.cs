@@ -76,9 +76,9 @@ namespace RailgunNet.Logic
             return evnt;
         }
 
-        private static RailEvent Create(RailResource resource, int factoryType)
+        private static RailEvent Create(IEventCreator creator, int factoryType)
         {
-            RailEvent evnt = resource.CreateEvent(factoryType);
+            RailEvent evnt = creator.CreateEvent(factoryType);
             evnt.factoryType = factoryType;
             return evnt;
         }
@@ -195,12 +195,12 @@ namespace RailgunNet.Logic
         ///     is intended for use in tick diffs for compression.
         /// </summary>
         public void Encode(
-            RailResource resource,
+            RailIntCompressor compressor,
             RailBitBuffer buffer,
             Tick packetTick)
         {
             // Write: [EventType]
-            buffer.WriteInt(resource.EventTypeCompressor, factoryType);
+            buffer.WriteInt(compressor, factoryType);
 
             // Write: [EventId]
             buffer.WriteSequenceId(EventId);
@@ -215,14 +215,15 @@ namespace RailgunNet.Logic
         ///     is intended for use in tick diffs for compression.
         /// </summary>
         public static RailEvent Decode(
-            RailResource resource,
+            IEventCreator creator,
+            RailIntCompressor compressor,
             RailBitBuffer buffer,
             Tick packetTick)
         {
             // Read: [EventType]
-            int factoryType = buffer.ReadInt(resource.EventTypeCompressor);
+            int factoryType = buffer.ReadInt(compressor);
 
-            RailEvent evnt = Create(resource, factoryType);
+            RailEvent evnt = Create(creator, factoryType);
 
             // Read: [EventId]
             evnt.EventId = buffer.ReadSequenceId();

@@ -35,7 +35,7 @@ namespace RailgunNet.Connection.Client
     /// </summary>
     [OnlyIn(Component.Client)]
     public class RailClientPeer
-        : RailPeer<RailServerPacket, RailPacketToServer>
+        : RailPeer<RailPacketFromServer, RailPacketToServer>
     {
         private readonly RailView localView;
 
@@ -57,7 +57,7 @@ namespace RailgunNet.Connection.Client
             sortingList = new List<IRailEntity>();
         }
 
-        public event Action<IRailServerPacket> PacketReceived;
+        public event Action<RailPacketFromServer> PacketReceived;
 
         public void SendPacket(
             Tick localTick,
@@ -78,19 +78,19 @@ namespace RailgunNet.Connection.Client
         }
 
         protected override void ProcessPacket(
-            RailPacket packet,
+            RailPacketBase packetBase,
             Tick localTick)
         {
-            base.ProcessPacket(packet, localTick);
+            base.ProcessPacket(packetBase, localTick);
 
-            RailServerPacket serverPacket = packet as RailServerPacket;
-            foreach (RailStateDelta delta in serverPacket.Deltas)
+            RailPacketFromServer packetFromServer = packetBase as RailPacketFromServer;
+            foreach (RailStateDelta delta in packetFromServer.Deltas)
                 localView.RecordUpdate(
                     delta.EntityId,
-                    packet.SenderTick,
+                    packetBase.SenderTick,
                     localTick,
                     delta.IsFrozen);
-            PacketReceived?.Invoke(serverPacket);
+            PacketReceived?.Invoke(packetFromServer);
         }
 
         private IEnumerable<RailCommandUpdate> ProduceCommandUpdates(

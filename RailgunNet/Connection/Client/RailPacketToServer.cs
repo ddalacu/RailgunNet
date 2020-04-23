@@ -32,8 +32,8 @@ namespace RailgunNet.Connection.Client
     ///     Packet sent from client to server.
     /// </summary>
     [OnlyIn(Component.Client)]
-    public sealed class RailPacketToServer
-        : RailPacket
+    public sealed class RailPacketToServer 
+        : RailPacketOutgoing
     {
         private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
         private readonly RailView view;
@@ -66,7 +66,7 @@ namespace RailgunNet.Connection.Client
 
         #region Encode/Decode
 
-        protected override void EncodePayload(
+        public override void EncodePayload(
             RailResource resource,
             RailBitBuffer buffer,
             Tick localTick,
@@ -104,12 +104,6 @@ namespace RailgunNet.Connection.Client
                     // (Local tick not transmitted)
                     buffer.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
                 });
-        }
-
-        protected override void DecodePayload(
-            RailResource resource,
-            RailBitBuffer buffer)
-        {
         }
 
         #endregion

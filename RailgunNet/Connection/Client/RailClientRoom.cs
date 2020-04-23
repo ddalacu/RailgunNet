@@ -18,7 +18,6 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if CLIENT
 using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -201,4 +200,3 @@ namespace RailgunNet.Connection.Client
         }
     }
 }
-#endif

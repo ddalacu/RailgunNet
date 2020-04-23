@@ -109,7 +109,7 @@ namespace RailgunNet.Connection.Server
         }
 
         /// <summary>
-        ///     Updates all entites and dispatches a snapshot if applicable. Should
+        ///     Updates all entities and dispatches a snapshot if applicable. Should
         ///     be called once per game simulation tick (e.g. during Unity's
         ///     FixedUpdate pass).
         /// </summary>

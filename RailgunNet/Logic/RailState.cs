@@ -28,21 +28,61 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
+    public abstract class RailState<T> : RailState
+        where T : RailState<T>, new()
+    {
+        protected abstract void ApplyMutableFrom(T source, uint flags);
+        protected abstract void ApplyControllerFrom(T source);
+        protected abstract void ApplyImmutableFrom(T source);
+
+        protected abstract uint CompareMutableData(T basis);
+        protected abstract bool IsControllerDataEqual(T basis);
+
+        #region Casting Overrides
+
+        protected override void ApplyMutableFrom(RailState source, uint flags)
+        {
+            ApplyMutableFrom((T)source, flags);
+        }
+
+        protected override void ApplyControllerFrom(RailState source)
+        {
+            ApplyControllerFrom((T)source);
+        }
+
+        protected override void ApplyImmutableFrom(RailState source)
+        {
+            ApplyImmutableFrom((T)source);
+        }
+
+        protected override uint CompareMutableData(RailState basis)
+        {
+            return CompareMutableData((T)basis);
+        }
+
+        protected override bool IsControllerDataEqual(RailState basis)
+        {
+            return IsControllerDataEqual((T)basis);
+        }
+
+        #endregion
+    }
+
     /// <summary>
     ///     States are the fundamental data management class of Railgun. They
     ///     contain all of the synchronized information that an Entity needs to
     ///     function. States have multiple sub-fields that are sent at different
     ///     cadences, as follows:
     ///     Mutable Data:
-    ///     Sent whenever the state differs from the client's view.
-    ///     Delta-encoded against the client's view.
+    ///         Sent whenever the state differs from the client's view.
+    ///         Delta-encoded against the client's view.
     ///     Controller Data:
-    ///     Sent to the controller of the entity every update.
-    ///     Not delta-encoded -- always sent full-encode.
+    ///         Sent to the controller of the entity every update.
+    ///         Not delta-encoded -- always sent full-encode.
     ///     Immutable Data:
-    ///     Sent only once at creation. Can not be changed after.
+    ///         Sent only once at creation. Can not be changed after.
     ///     Removal Data (Not currently implemented):
-    ///     Sent when the state is removed. Arrives at the time of removal.
+    ///         Sent when the state is removed. Arrives at the time of removal.
     /// </summary>
     public abstract class RailState
         : IRailPoolable<RailState>
@@ -55,8 +95,8 @@ namespace RailgunNet.Logic
         protected abstract int FlagBits { get; }
 
         private uint Flags { get; set; } // Synchronized
-        public bool HasControllerData { get; set; } // Synchronized
-        public bool HasImmutableData { get; set; } // Synchronized
+        public bool HasControllerData { get; private set; } // Synchronized
+        public bool HasImmutableData { get; private set; } // Synchronized
 
         protected virtual void InitializeData()
         {
@@ -376,46 +416,6 @@ namespace RailgunNet.Logic
         protected abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
         protected abstract void EncodeControllerData(RailBitBuffer buffer);
         protected abstract void EncodeImmutableData(RailBitBuffer buffer);
-
-        #endregion
-    }
-
-    public abstract class RailState<T> : RailState
-        where T : RailState<T>, new()
-    {
-        protected abstract void ApplyMutableFrom(T source, uint flags);
-        protected abstract void ApplyControllerFrom(T source);
-        protected abstract void ApplyImmutableFrom(T source);
-
-        protected abstract uint CompareMutableData(T basis);
-        protected abstract bool IsControllerDataEqual(T basis);
-
-        #region Casting Overrides
-
-        protected override void ApplyMutableFrom(RailState source, uint flags)
-        {
-            ApplyMutableFrom((T) source, flags);
-        }
-
-        protected override void ApplyControllerFrom(RailState source)
-        {
-            ApplyControllerFrom((T) source);
-        }
-
-        protected override void ApplyImmutableFrom(RailState source)
-        {
-            ApplyImmutableFrom((T) source);
-        }
-
-        protected override uint CompareMutableData(RailState basis)
-        {
-            return CompareMutableData((T) basis);
-        }
-
-        protected override bool IsControllerDataEqual(RailState basis)
-        {
-            return IsControllerDataEqual((T) basis);
-        }
 
         #endregion
     }

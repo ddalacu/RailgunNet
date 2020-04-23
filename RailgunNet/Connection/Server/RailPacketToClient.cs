@@ -27,36 +27,21 @@ using RailgunNet.System.Types;
 
 namespace RailgunNet.Connection.Server
 {
-#if CLIENT
-    public interface IRailServerPacket : IRailPacket
-    {
-        Tick ServerTick { get; }
-        IEnumerable<RailStateDelta> Deltas { get; }
-    }
-#endif
 
     /// <summary>
     ///     Packet sent from server to client.
     /// </summary>
-    public sealed class RailServerPacket
-        : RailPacket
-#if CLIENT
-            , IRailServerPacket
-#endif
+    public sealed class RailPacketToClient
+        : RailPacketOutgoing
     {
         private readonly RailPackedListS2C<RailStateDelta> deltas;
 
-        public RailServerPacket()
+        public RailPacketToClient()
         {
             deltas = new RailPackedListS2C<RailStateDelta>();
         }
 
-#if CLIENT
-        public IEnumerable<RailStateDelta> Deltas => deltas.Received;
-#endif
-#if SERVER
         public IEnumerable<RailStateDelta> Sent => deltas.Sent;
-#endif
 
         public override void Reset()
         {
@@ -65,7 +50,6 @@ namespace RailgunNet.Connection.Server
             deltas.Clear();
         }
 
-#if SERVER
         public void Populate(
             IEnumerable<RailStateDelta> activeDeltas,
             IEnumerable<RailStateDelta> frozenDeltas,
@@ -75,26 +59,15 @@ namespace RailgunNet.Connection.Server
             deltas.AddPending(frozenDeltas);
             deltas.AddPending(activeDeltas);
         }
-#endif
-
-        #region Interface
-
-#if CLIENT
-        Tick IRailServerPacket.ServerTick => SenderTick;
-        IEnumerable<RailStateDelta> IRailServerPacket.Deltas => deltas.Received;
-#endif
-
-        #endregion
 
         #region Encode/Decode
 
-        protected override void EncodePayload(
+        public override void EncodePayload(
             RailResource resource,
             RailBitBuffer buffer,
             Tick localTick,
             int reservedBytes)
         {
-#if SERVER
             // Write: [Deltas]
             EncodeDeltas(resource, buffer, reservedBytes);
         }
@@ -109,26 +82,6 @@ namespace RailgunNet.Connection.Server
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 RailConfig.MAXSIZE_ENTITY,
                 delta => RailState.EncodeDelta(resource, buffer, delta));
-#endif
-        }
-
-        protected override void DecodePayload(
-            RailResource resource,
-            RailBitBuffer buffer)
-        {
-#if CLIENT
-            // Read: [Deltas]
-            DecodeDeltas(resource, buffer);
-        }
-
-        private void DecodeDeltas(
-            RailResource resource,
-            RailBitBuffer buffer)
-        {
-            deltas.Decode(
-                buffer,
-                () => RailState.DecodeDelta(resource, buffer, SenderTick));
-#endif
         }
 
         #endregion

@@ -124,7 +124,7 @@ namespace RailgunNet.Connection.Client
             serverPeer?.RaiseEvent(evnt, attempts, freeWhenDone);
         }
 
-        private void OnPacketReceived(IRailServerPacket packet)
+        private void OnPacketReceived(RailPacketFromServer packet)
         {
             if (Room == null)
                 foreach (RailStateDelta delta in packet.Deltas)

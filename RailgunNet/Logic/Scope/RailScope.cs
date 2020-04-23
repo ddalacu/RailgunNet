@@ -68,14 +68,14 @@ namespace RailgunNet.Logic.Scope
 
         public void PopulateDeltas(
             Tick serverTick,
-            RailServerPacket packet,
+            RailPacketToClient packetToClient,
             IEnumerable<IRailEntity> activeEntities,
             IEnumerable<IRailEntity> removedEntities)
         {
             ProduceScoped(serverTick, activeEntities);
             ProduceRemoved(owner, removedEntities);
 
-            packet.Populate(activeList, frozenList, removedList);
+            packetToClient.Populate(activeList, frozenList, removedList);
 
             removedList.Clear();
             frozenList.Clear();
@@ -165,7 +165,7 @@ namespace RailgunNet.Logic.Scope
                 // TODO: Currently if we're unfreezing we force the server to send a
                 //       delta with the FULL mutable dataset. There is probably a
                 //       less wasteful option, like having clients send back
-                //       what tick they last received a non-frozen packet on.
+                //       what tick they last received a non-frozen packetToClient on.
                 //       However, this would cause some tedious tick comparison.
                 //       Should investigate a smarter way to handle this later.
                 RailStateDelta delta =

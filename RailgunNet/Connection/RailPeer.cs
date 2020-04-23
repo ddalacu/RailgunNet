@@ -46,8 +46,8 @@ namespace RailgunNet.Connection
         private readonly RailClock remoteClock;
 
         protected RailResource Resource { get; }
-        private readonly RailPacket reusableIncoming;
-        private readonly RailPacket reusableOutgoing;
+        private readonly RailPacketIncoming reusableIncoming;
+        private readonly RailPacketOutgoing reusableOutgoing;
 
         /// <summary>
         ///     Our local tick. Set during update.
@@ -59,8 +59,8 @@ namespace RailgunNet.Connection
             IRailNetPeer netPeer,
             int remoteSendRate,
             RailInterpreter interpreter,
-            RailPacket reusableIncoming,
-            RailPacket reusableOutgoing)
+            RailPacketIncoming reusableIncoming,
+            RailPacketOutgoing reusableOutgoing)
             : base(resource, netPeer)
         {
             this.Resource = resource;
@@ -87,12 +87,12 @@ namespace RailgunNet.Connection
             this.localTick = localTick;
         }
 
-        public void SendPacket(RailPacket packet)
+        protected void SendPacket(RailPacketOutgoing packet)
         {
             interpreter.SendPacket(Resource, NetPeer, packet);
         }
 
-        protected void OnPayloadReceived(
+        private void OnPayloadReceived(
             IRailNetPeer peer,
             byte[] buffer,
             int length)
@@ -101,7 +101,7 @@ namespace RailgunNet.Connection
             {
                 RailBitBuffer bitBuffer = interpreter.LoadData(buffer, length);
                 reusableIncoming.Reset();
-                reusableIncoming.Decode(Resource, bitBuffer);
+                RailPacketSerializer.Decode(reusableIncoming, Resource, bitBuffer);
 
                 if (bitBuffer.IsFinished)
                     ProcessPacket(reusableIncoming, localTick);
@@ -118,8 +118,8 @@ namespace RailgunNet.Connection
         ///     Allocates a packet and writes common boilerplate information to it.
         ///     Make sure to call OnSent() afterwards.
         /// </summary>
-        public T PrepareSend<T>(Tick localTick)
-            where T : RailPacket
+        protected T PrepareSend<T>(Tick localTick)
+            where T : RailPacketOutgoing
         {
             // It would be best to reset after rather than before, but that's
             // error prone as it would require a second post-send function call.
@@ -136,13 +136,13 @@ namespace RailgunNet.Connection
         ///     Records acknowledging information for the packet.
         /// </summary>
         protected virtual void ProcessPacket(
-            RailPacket packet,
+            RailPacketBase packetBase,
             Tick localTick)
         {
-            remoteClock.UpdateLatest(packet.SenderTick);
-            foreach (RailEvent evnt in FilterIncomingEvents(packet.Events))
+            remoteClock.UpdateLatest(packetBase.SenderTick);
+            foreach (RailEvent evnt in FilterIncomingEvents(packetBase.Events))
                 ProcessEvent(evnt);
-            CleanOutgoingEvents(packet.AckEventId);
+            CleanOutgoingEvents(packetBase.AckEventId);
         }
 
         #region Event-Related
@@ -295,8 +295,8 @@ namespace RailgunNet.Connection
     }
 
     public class RailPeer<TIncoming, TOutgoing> : RailPeer
-        where TIncoming : RailPacket, new()
-        where TOutgoing : RailPacket, new()
+        where TIncoming : RailPacketIncoming, new()
+        where TOutgoing : RailPacketOutgoing, new()
     {
         public RailPeer(
             RailResource resource,

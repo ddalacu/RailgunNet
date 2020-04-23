@@ -18,7 +18,6 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
 using System;
 using System.Collections.Generic;
 using RailgunNet.Connection.Client;
@@ -35,7 +34,7 @@ namespace RailgunNet.Connection.Server
     /// </summary>
     [OnlyIn(Component.Server)]
     public class RailServerPeer
-        : RailPeer<RailPacketFromClient, RailServerPacket>
+        : RailPeer<RailPacketFromClient, RailPacketToClient>
     {
         public RailServerPeer(
             RailResource resource,
@@ -61,29 +60,28 @@ namespace RailgunNet.Connection.Server
             IEnumerable<IRailEntity> active,
             IEnumerable<IRailEntity> removed)
         {
-            RailServerPacket packet = PrepareSend<RailServerPacket>(localTick);
+            RailPacketToClient packetToClient = PrepareSend<RailPacketToClient>(localTick);
             Scope.PopulateDeltas(
                 localTick,
-                packet,
+                packetToClient,
                 active,
                 removed);
-            base.SendPacket(packet);
+            base.SendPacket(packetToClient);
 
-            foreach (RailStateDelta delta in packet.Sent)
+            foreach (RailStateDelta delta in packetToClient.Sent)
                 Scope.RegisterSent(
                     delta.EntityId,
                     localTick,
                     delta.IsFrozen);
         }
 
-        protected override void ProcessPacket(RailPacket packet, Tick localTick)
+        protected override void ProcessPacket(RailPacketBase packetBase, Tick localTick)
         {
-            base.ProcessPacket(packet, localTick);
+            base.ProcessPacket(packetBase, localTick);
 
-            RailPacketFromClient clientPacket = (RailPacketFromClient) packet;
+            RailPacketFromClient clientPacket = (RailPacketFromClient) packetBase;
             Scope.IntegrateAcked(clientPacket.View);
             PacketReceived?.Invoke(this, clientPacket);
         }
     }
 }
-#endif
