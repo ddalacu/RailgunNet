@@ -40,7 +40,7 @@ namespace Railgun
     : IRailPoolable<RailEvent>
   {
     #region Pooling
-    IRailPool<RailEvent> IRailPoolable<RailEvent>.Pool { get; set; }
+    IRailMemoryPool<RailEvent> IRailPoolable<RailEvent>.Pool { get; set; }
     void IRailPoolable<RailEvent>.Reset() { this.Reset(); }
     #endregion
 

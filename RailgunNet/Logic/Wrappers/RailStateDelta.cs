@@ -25,7 +25,7 @@ namespace Railgun
     , IRailTimedValue
   {
     #region Pooling
-    IRailPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
+    IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
     void IRailPoolable<RailStateDelta>.Reset() { this.Reset(); }
     #endregion
 

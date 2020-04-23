@@ -49,7 +49,7 @@ namespace Railgun
     : IRailPoolable<RailState>
   {
     #region Pooling
-    IRailPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
+    IRailMemoryPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
     void IRailPoolable<RailState>.Reset() { this.Reset(); }
     #endregion
 

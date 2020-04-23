@@ -26,31 +26,28 @@ namespace Railgun
 {
   internal class RailResource
   {
-    private static IRailPool<T> CreatePool<T>(
+    private static IRailMemoryPool<T> CreatePool<T>(
       Type derivedType)
       where T : IRailPoolable<T>
     {
-        return new RailPool<T>(new RailFactory<T>(derivedType));
+        return new RailMemoryPool<T>(new RailFactory<T>(derivedType));
     }
 
-    internal RailIntCompressor EventTypeCompressor { get { return this.eventTypeCompressor; } }
-    internal RailIntCompressor EntityTypeCompressor { get { return this.entityTypeCompressor; } }
-
-    private readonly RailIntCompressor eventTypeCompressor;
-    private readonly RailIntCompressor entityTypeCompressor;
+    internal RailIntCompressor EventTypeCompressor { get; }
+    internal RailIntCompressor EntityTypeCompressor { get; }
 
     private readonly Dictionary<Type, int> entityTypeToKey;
     private readonly Dictionary<Type, int> eventTypeToKey;
 
-    private readonly IRailPool<RailCommand> commandPool;
-    private readonly Dictionary<int, IRailPool<RailEntity>> entityPools;
-    private readonly Dictionary<int, IRailPool<RailState>> statePools;
-    private readonly Dictionary<int, IRailPool<RailEvent>> eventPools;
+    private readonly IRailMemoryPool<RailCommand> commandPool;
+    private readonly Dictionary<int, IRailMemoryPool<RailEntity>> entityPools;
+    private readonly Dictionary<int, IRailMemoryPool<RailState>> statePools;
+    private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
 
-    private readonly IRailPool<RailStateDelta> deltaPool;
-    private readonly IRailPool<RailCommandUpdate> commandUpdatePool;
+    private readonly IRailMemoryPool<RailStateDelta> deltaPool;
+    private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
 #if SERVER
-    private readonly IRailPool<RailStateRecord> recordPool;
+    private readonly IRailMemoryPool<RailStateRecord> recordPool;
 #endif
 
     internal RailResource(RailRegistry registry)
@@ -59,26 +56,26 @@ namespace Railgun
       this.eventTypeToKey = new Dictionary<Type, int>();
 
       this.commandPool = this.CreateCommandPool(registry);
-      this.entityPools = new Dictionary<int, IRailPool<RailEntity>>();
-      this.statePools = new Dictionary<int, IRailPool<RailState>>();
-      this.eventPools = new Dictionary<int, IRailPool<RailEvent>>();
+      this.entityPools = new Dictionary<int, IRailMemoryPool<RailEntity>>();
+      this.statePools = new Dictionary<int, IRailMemoryPool<RailState>>();
+      this.eventPools = new Dictionary<int, IRailMemoryPool<RailEvent>>();
 
       this.RegisterEvents(registry);
       this.RegisterEntities(registry);
 
-      this.eventTypeCompressor =
+      this.EventTypeCompressor =
         new RailIntCompressor(0, this.eventPools.Count + 1);
-      this.entityTypeCompressor = 
+      this.EntityTypeCompressor = 
         new RailIntCompressor(0, this.entityPools.Count + 1);
 
-      this.deltaPool = new RailPool<RailStateDelta>(new RailFactory<RailStateDelta>());
-      this.commandUpdatePool = new RailPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
+      this.deltaPool = new RailMemoryPool<RailStateDelta>(new RailFactory<RailStateDelta>());
+      this.commandUpdatePool = new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 #if SERVER
-      this.recordPool = new RailPool<RailStateRecord>(new RailFactory<RailStateRecord>());
+      this.recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
 #endif
     }
 
-    private IRailPool<RailCommand> CreateCommandPool(
+    private IRailMemoryPool<RailCommand> CreateCommandPool(
       RailRegistry registry)
     {
         return CreatePool<RailCommand>(registry.CommandType);
@@ -89,7 +86,7 @@ namespace Railgun
     {
       foreach (Type eventType in registry.EventTypes)
       {
-        IRailPool<RailEvent> statePool =
+        IRailMemoryPool<RailEvent> statePool =
           RailResource.CreatePool<RailEvent>(eventType);
 
         int typeKey = this.eventPools.Count + 1; // 0 is an invalid type
@@ -106,9 +103,9 @@ namespace Railgun
         Type entityType = pair.Key;
         Type stateType = pair.Value;
 
-        IRailPool<RailState> statePool =
+        IRailMemoryPool<RailState> statePool =
           RailResource.CreatePool<RailState>(stateType);
-        IRailPool<RailEntity> entityPool =
+        IRailMemoryPool<RailEntity> entityPool =
           RailResource.CreatePool<RailEntity>(entityType);
 
         int typeKey = this.statePools.Count + 1; // 0 is an invalid type

@@ -31,7 +31,7 @@ namespace Railgun
       RailUtil.Log2(RailCommandUpdate.BUFFER_CAPACITY) + 1;
 
     #region Pooling
-    IRailPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
+    IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
     void IRailPoolable<RailCommandUpdate>.Reset() { this.Reset(); }
     #endregion
 

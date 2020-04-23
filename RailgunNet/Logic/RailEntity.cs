@@ -37,7 +37,7 @@ namespace Railgun
     , IRailEntity
   {
     #region Pooling
-    IRailPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
+    IRailMemoryPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
     void IRailPoolable<RailEntity>.Reset() { this.Reset(); }
     #endregion
 

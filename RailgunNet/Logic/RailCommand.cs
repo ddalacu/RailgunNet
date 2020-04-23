@@ -27,7 +27,7 @@ namespace Railgun
     IRailPoolable<RailCommand>, IRailTimedValue
   {
     #region Pooling
-    IRailPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
+    IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
     void IRailPoolable<RailCommand>.Reset() { this.Reset(); }
     #endregion
 

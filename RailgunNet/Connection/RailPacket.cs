@@ -32,7 +32,7 @@ namespace Railgun
     , IRailPacket
   {
     #region Pooling
-    IRailPool<RailPacket> IRailPoolable<RailPacket>.Pool { get; set; }
+    IRailMemoryPool<RailPacket> IRailPoolable<RailPacket>.Pool { get; set; }
     void IRailPoolable<RailPacket>.Reset() { this.Reset(); }
     #endregion
 

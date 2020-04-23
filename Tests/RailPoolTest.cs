@@ -8,7 +8,7 @@ namespace Tests
     {
         public class A : IRailPoolable<A>
         {
-            IRailPool<A> IRailPoolable<A>.Pool { get; set; }
+            IRailMemoryPool<A> IRailPoolable<A>.Pool { get; set; }
             void IRailPoolable<A>.Reset() { }
         }
 
@@ -30,7 +30,7 @@ namespace Tests
             A instance = new A();
             factoryMock.Setup(f => f.Create()).Returns(instance);
 
-            var pool = new RailPool<A>(factoryMock.Object);
+            var pool = new RailMemoryPool<A>(factoryMock.Object);
             var allocatedObject = pool.Allocate();
             factoryMock.Verify(f => f.Create(), Times.Once);
             Assert.Same(instance, allocatedObject);
@@ -39,7 +39,7 @@ namespace Tests
         public void PoolReusesInstances()
         {
             factoryMock.Setup(f => f.Create()).Returns(new A());
-            var pool = new RailPool<A>(factoryMock.Object);
+            var pool = new RailMemoryPool<A>(factoryMock.Object);
             var firstObject = pool.Allocate();
             factoryMock.Verify(f => f.Create(), Times.Once);
 
