@@ -11,7 +11,6 @@ namespace Tests
     public class RailPackedListTest
     {
         private int elementsCreated = 0;
-        private int elementsDestroyed = 0;
         public class Foo : IRailPoolable<Foo>
         {
             public int Data { get; private set; }
@@ -67,7 +66,7 @@ namespace Tests
                 buffer, 
                 RailConfig.PACKCAP_COMMANDS, 
                 RailConfig.MAXSIZE_COMMANDUPDATE,
-                foo => foo.WriteData(buffer));
+                (foo, buf) => foo.WriteData(buf));
             Assert.False(buffer.Empty);
             poolMock.Verify(p => p.Allocate(), Times.Exactly(iNumberOfEntries));
             poolMock.Verify(p => p.Deallocate(It.IsAny<Foo>()), Times.Never);
@@ -102,17 +101,17 @@ namespace Tests
                 buffer,
                 RailConfig.PACKCAP_COMMANDS,
                 RailConfig.MAXSIZE_COMMANDUPDATE,
-                foo => foo.WriteData(buffer));
+                (foo, buf) => foo.WriteData(buf));
             Assert.False(buffer.Empty);
             poolMock.Verify(p => p.Allocate(), Times.Exactly(iNumberOfEntries));
             poolMock.Verify(p => p.Deallocate(It.IsAny<Foo>()), Times.Never);
             Assert.Equal(iNumberOfEntries, list.Sent.Count());
 
             RailPackedListIncoming<Foo> incoming = new RailPackedListIncoming<Foo>();
-            incoming.Decode(buffer, () =>
+            incoming.Decode(buffer, (b) =>
             {
                 Foo foo = poolMock.Object.Allocate();
-                foo.ReadData(buffer);
+                foo.ReadData(b);
                 return foo;
             });
 

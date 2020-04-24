@@ -85,7 +85,7 @@ namespace RailgunNet.Connection.Client
                 buffer,
                 RailConfig.PACKCAP_COMMANDS,
                 RailConfig.MAXSIZE_COMMANDUPDATE,
-                commandUpdate => commandUpdate.Encode(buffer));
+                (commandUpdate, buf) => commandUpdate.Encode(buf));
         }
 
         private void EncodeView(
@@ -97,12 +97,12 @@ namespace RailgunNet.Connection.Client
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 int.MaxValue,
                 view.GetOrdered(localTick),
-                pair =>
+                (pair, buf) =>
                 {
-                    buffer.WriteEntityId(pair.Key); // Write: [EntityId]
-                    buffer.WriteTick(pair.Value.LastReceivedTick); // Write: [LastReceivedTick]
+                    buf.WriteEntityId(pair.Key); // Write: [EntityId]
+                    buf.WriteTick(pair.Value.LastReceivedTick); // Write: [LastReceivedTick]
                     // (Local tick not transmitted)
-                    buffer.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
+                    buf.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
                 });
         }
 

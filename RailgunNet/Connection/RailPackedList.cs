@@ -41,7 +41,7 @@ namespace RailgunNet.Connection
 
         public void Decode(
             RailBitBuffer buffer,
-            Func<T> decode)
+            Func<RailBitBuffer, T> decode)
         {
             IEnumerable<T> decoded = buffer.UnpackAll(decode);
             foreach (T delta in decoded)
@@ -94,7 +94,7 @@ namespace RailgunNet.Connection
             RailBitBuffer buffer,
             int maxTotalSize,
             int maxIndividualSize,
-            Action<T> encode)
+            Action<T, RailBitBuffer> encode)
         {
             // TODO: prevent loss of data if there are too many pending or the individual size is too large.
             buffer.PackToSize(

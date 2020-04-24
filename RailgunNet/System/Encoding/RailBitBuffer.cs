@@ -353,8 +353,8 @@ namespace RailgunNet.System.Encoding
             int maxTotalBytes,
             int maxIndividualBytes,
             IEnumerable<T> elements,
-            Action<T> encode, // TODO: Make this take a buffer!
-            Action<T> packed = null) // TODO: Make this take a buffer!
+            Action<T, RailBitBuffer> encode,
+            Action<T> packed = null)
         {
             const int MAX_SIZE = 255;
             const int SIZE_BITS = 8;
@@ -374,7 +374,7 @@ namespace RailgunNet.System.Encoding
                 int rollback = writePos;
                 int startByteSize = ByteSize;
 
-                encode.Invoke(val);
+                encode.Invoke(val, this);
 
                 int endByteSize = ByteSize;
                 int writeByteSize = endByteSize - startByteSize;
@@ -406,14 +406,14 @@ namespace RailgunNet.System.Encoding
         ///     Max 255 elements.
         /// </summary>
         public IEnumerable<T> UnpackAll<T>(
-            Func<T> decode) // TODO: Make this take a buffer!
+            Func<RailBitBuffer, T> decode)
         {
             // Read: [Count]
             byte count = ReadByte();
 
             // Read: [Elements]
             for (uint i = 0; i < count; i++)
-                yield return decode.Invoke();
+                yield return decode.Invoke(this);
         }
 
         #endregion

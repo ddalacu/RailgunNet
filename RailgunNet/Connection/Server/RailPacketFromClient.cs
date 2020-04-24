@@ -64,20 +64,20 @@ namespace RailgunNet.Connection.Server
         {
             commandUpdates.Decode(
                 buffer,
-                () => RailCommandUpdate.Decode(commandCreator, buffer));
+                (buf) => RailCommandUpdate.Decode(commandCreator, buf));
         }
 
         private void DecodeView(RailBitBuffer buffer)
         {
             IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
                 buffer.UnpackAll(
-                    () =>
+                    (buf) =>
                         new KeyValuePair<EntityId, RailViewEntry>(
-                            buffer.ReadEntityId(), // Read: [EntityId] 
+                            buf.ReadEntityId(), // Read: [EntityId] 
                             new RailViewEntry(
-                                buffer.ReadTick(), // Read: [LastReceivedTick]
+                                buf.ReadTick(), // Read: [LastReceivedTick]
                                 Tick.INVALID, // (Local tick not transmitted)
-                                buffer.ReadBool())) // Read: [IsFrozen]
+                                buf.ReadBool())) // Read: [IsFrozen]
                 );
 
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)

@@ -83,7 +83,7 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 RailConfig.MAXSIZE_ENTITY,
-                delta => RailState.EncodeDelta(stateCreator, buffer, delta));
+                (delta, buf) => RailState.EncodeDelta(stateCreator, buf, delta));
         }
 
         #endregion

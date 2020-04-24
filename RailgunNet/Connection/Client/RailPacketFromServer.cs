@@ -47,7 +47,7 @@ namespace RailgunNet.Connection.Client
         {
             deltas.Decode(
                 buffer,
-                () => RailState.DecodeDelta(stateCreator, buffer, SenderTick));
+                (buf) => RailState.DecodeDelta(stateCreator, buf, SenderTick));
         }
 
         #endregion

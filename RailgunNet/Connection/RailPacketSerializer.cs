@@ -122,7 +122,7 @@ namespace RailgunNet.Connection
                     maxSize,
                     RailConfig.MAXSIZE_EVENT,
                     packet.GetNextEvents(),
-                    evnt => evnt.Encode(eventCreator.EventTypeCompressor, buffer, packet.SenderTick),
+                    (evnt, buf) => evnt.Encode(eventCreator.EventTypeCompressor, buf, packet.SenderTick),
                     evnt => evnt.RegisterSent());
         }
 
@@ -133,7 +133,7 @@ namespace RailgunNet.Connection
         {
             IEnumerable<RailEvent> decoded =
                 buffer.UnpackAll(
-                    () => RailEvent.Decode(eventCreator, eventCreator.EventTypeCompressor, buffer, packet.SenderTick));
+                    (buf) => RailEvent.Decode(eventCreator, eventCreator.EventTypeCompressor, buf, packet.SenderTick));
             foreach (RailEvent evnt in decoded)
                 packet.Events.Add(evnt);
         }
