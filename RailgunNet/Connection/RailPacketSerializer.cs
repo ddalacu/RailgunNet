@@ -82,11 +82,11 @@ namespace RailgunNet.Connection
             // Write: [LocalTick]
             buffer.WriteTick(packet.SenderTick);
 
-            // Write: [AckTick]
-            buffer.WriteTick(packet.AckTick);
+            // Write: [LastAckTick]
+            buffer.WriteTick(packet.LastAckTick);
 
             // Write: [AckReliableEventId]
-            buffer.WriteSequenceId(packet.AckEventId);
+            buffer.WriteSequenceId(packet.LastAckEventId);
         }
 
         private static void DecodeHeader(
@@ -96,11 +96,11 @@ namespace RailgunNet.Connection
             // Read: [LocalTick]
             packet.SenderTick = buffer.ReadTick();
 
-            // Read: [AckTick]
-            packet.AckTick = buffer.ReadTick();
+            // Read: [LastAckTick]
+            packet.LastAckTick = buffer.ReadTick();
 
             // Read: [AckReliableEventId]
-            packet.AckEventId = buffer.ReadSequenceId();
+            packet.LastAckEventId = buffer.ReadSequenceId();
         }
 
         #endregion

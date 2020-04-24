@@ -60,10 +60,12 @@ namespace RailgunNet.System.Encoding
             writePos = 0;
         }
 
+        public bool Empty => writePos == 0;
+
         /// <summary>
         ///     Size the buffer will require in bytes.
         /// </summary>
-        private int ByteSize => ((writePos - 1) >> 3) + 1;
+        public int ByteSize => ((writePos - 1) >> 3) + 1;
 
         /// <summary>
         ///     Returns true iff we have read everything off of the buffer.

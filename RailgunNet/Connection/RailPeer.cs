@@ -142,7 +142,7 @@ namespace RailgunNet.Connection
             remoteClock.UpdateLatest(packetBase.SenderTick);
             foreach (RailEvent evnt in FilterIncomingEvents(packetBase.Events))
                 ProcessEvent(evnt);
-            CleanOutgoingEvents(packetBase.AckEventId);
+            CleanOutgoingEvents(packetBase.LastAckEventId);
         }
 
         #region Event-Related

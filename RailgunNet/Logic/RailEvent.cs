@@ -109,8 +109,8 @@ namespace RailgunNet.Logic
 
         protected abstract void SetDataFrom(RailEvent other);
 
-        protected abstract void EncodeData(RailBitBuffer buffer, Tick packetTick);
-        protected abstract void DecodeData(RailBitBuffer buffer, Tick packetTick);
+        protected abstract void WriteData(RailBitBuffer buffer, Tick packetTick);
+        protected abstract void ReadData(RailBitBuffer buffer, Tick packetTick);
         protected abstract void ResetData();
 
         protected virtual bool Validate()
@@ -201,7 +201,7 @@ namespace RailgunNet.Logic
             buffer.WriteSequenceId(EventId);
 
             // Write: [EventData]
-            EncodeData(buffer, packetTick);
+            WriteData(buffer, packetTick);
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace RailgunNet.Logic
             evnt.EventId = buffer.ReadSequenceId();
 
             // Read: [EventData]
-            evnt.DecodeData(buffer, packetTick);
+            evnt.ReadData(buffer, packetTick);
 
             return evnt;
         }
@@ -242,11 +242,11 @@ namespace RailgunNet.Logic
 
         protected override void SetDataFrom(RailEvent other)
         {
-            SetDataFrom((TDerived) other);
+            CopyDataFrom((TDerived) other);
         }
 
         #endregion
 
-        protected abstract void SetDataFrom(TDerived other);
+        protected abstract void CopyDataFrom(TDerived other);
     }
 }

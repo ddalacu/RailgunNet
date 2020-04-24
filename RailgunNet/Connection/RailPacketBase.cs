@@ -52,8 +52,8 @@ namespace RailgunNet.Connection
         protected RailPacketBase()
         {
             SenderTick = Tick.INVALID;
-            AckTick = Tick.INVALID;
-            AckEventId = SequenceId.Invalid;
+            LastAckTick = Tick.INVALID;
+            LastAckEventId = SequenceId.Invalid;
 
             pendingEvents = new List<RailEvent>();
             Events = new List<RailEvent>();
@@ -70,12 +70,12 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     The last tick the sender received.
         /// </summary>
-        public Tick AckTick { get; set; }
+        public Tick LastAckTick { get; set; }
 
         /// <summary>
         ///     The last event id the sender received.
         /// </summary>
-        public SequenceId AckEventId { get; set; }
+        public SequenceId LastAckEventId { get; set; }
 
         /// <summary>
         ///     All received events from the sender, in order.
@@ -84,13 +84,13 @@ namespace RailgunNet.Connection
 
         public void Initialize(
             Tick senderTick,
-            Tick ackTick,
-            SequenceId ackEventId,
+            Tick lastAckTick,
+            SequenceId lastAckEventId,
             IEnumerable<RailEvent> events)
         {
             SenderTick = senderTick;
-            AckTick = ackTick;
-            AckEventId = ackEventId;
+            LastAckTick = lastAckTick;
+            LastAckEventId = lastAckEventId;
 
             pendingEvents.AddRange(events);
             EventsWritten = 0;
@@ -99,8 +99,8 @@ namespace RailgunNet.Connection
         public virtual void Reset()
         {
             SenderTick = Tick.INVALID;
-            AckTick = Tick.INVALID;
-            AckEventId = SequenceId.Invalid;
+            LastAckTick = Tick.INVALID;
+            LastAckEventId = SequenceId.Invalid;
 
             pendingEvents.Clear();
             Events.Clear();
