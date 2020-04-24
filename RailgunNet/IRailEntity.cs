@@ -38,43 +38,5 @@ namespace RailgunNet
         RailController Controller { get; }
 
         EntityId Id { get; }
-
-#if CLIENT
-        float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
-#endif
-
-#if CLIENT
-        bool IsControlled { get; }
-
-        /// <summary>
-        ///     The tick of the last authoritative state.
-        /// </summary>
-        Tick AuthTick { get; }
-
-        /// <summary>
-        ///     The tick of the next authoritative state. May be invalid.
-        /// </summary>
-        Tick NextTick { get; }
-
-        /// <summary>
-        ///     Returns the number of ticks ahead we are, for extrapolation.
-        ///     Note that this does not take client-side prediction into account.
-        /// </summary>
-        int TicksAhead { get; }
-#endif
-    }
-
-    /// <summary>
-    ///     Handy shortcut class for auto-casting the state.
-    /// </summary>
-    public interface IRailEntity<out TState> : IRailEntity
-        where TState : RailState, new()
-    {
-        TState State { get; }
-
-#if CLIENT
-        TState AuthState { get; }
-        TState NextState { get; }
-#endif
     }
 }

@@ -20,8 +20,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
+using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Types;
@@ -38,9 +40,6 @@ namespace RailgunNet.Connection.Client
     {
         private readonly RailView localView;
 
-        private readonly List<IRailEntity> sortingList;
-        private readonly Comparer<Tick> tickComparer;
-
         public RailClientPeer(
             RailResource resource,
             IRailNetPeer netPeer,
@@ -53,8 +52,6 @@ namespace RailgunNet.Connection.Client
                 interpreter)
         {
             localView = new RailView();
-            tickComparer = Tick.CreateComparer();
-            sortingList = new List<IRailEntity>();
         }
 
         public event Action<RailPacketFromServer> PacketReceived;
@@ -74,7 +71,7 @@ namespace RailgunNet.Connection.Client
             base.SendPacket(packet);
 
             foreach (RailCommandUpdate commandUpdate in packet.Sent)
-                commandUpdate.Entity.AsBase.LastSentCommandTick = localTick;
+                commandUpdate.Entity.LastSentCommandTick = localTick;
         }
 
         protected override void ProcessPacket(
@@ -98,23 +95,10 @@ namespace RailgunNet.Connection.Client
         {
             // If we have too many entities to fit commands for in a packet,
             // we want to round-robin sort them to avoid starvation
-            sortingList.Clear();
-            sortingList.AddRange(entities);
-            sortingList.Sort(
-                (x, y) => tickComparer.Compare(
-                    x.AsBase.LastSentCommandTick,
-                    y.AsBase.LastSentCommandTick));
-
-            foreach (IRailEntity entity in sortingList)
-            {
-                RailCommandUpdate commandUpdate =
-                    RailCommandUpdate.Create(
-                        Resource,
-                        entity.Id,
-                        entity.AsBase.OutgoingCommands);
-                commandUpdate.Entity = entity;
-                yield return commandUpdate;
-            }
+            return entities
+                    .Select(e => e as RailEntityClient)
+                    .OrderBy(e => e.LastSentCommandTick)
+                    .Select(e => RailCommandUpdate.Create(Resource, e, e.OutgoingCommands));
         }
     }
 }

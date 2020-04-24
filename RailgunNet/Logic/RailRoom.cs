@@ -39,14 +39,9 @@ namespace RailgunNet.Logic
                 new Dictionary<EntityId, IRailEntity>(
                     EntityId.CreateEqualityComparer());
             Tick = Tick.INVALID;
-
-            ToUpdate = new List<RailEntity>();
-            ToRemove = new List<RailEntity>();
         }
 
         protected RailResource Resource { get; }
-        protected List<RailEntity> ToRemove { get; } // Pre-allocated removal list
-        protected List<RailEntity> ToUpdate { get; } // Pre-allocated update list
 
         public object UserData { get; set; }
 
@@ -79,12 +74,17 @@ namespace RailgunNet.Logic
         protected virtual void HandleRemovedEntity(EntityId entityId)
         {
         }
-
-        public bool TryGet(EntityId id, out IRailEntity value)
+        public bool TryGet<T>(EntityId id, out T value) where T : class, IRailEntity
         {
-            return entities.TryGetValue(id, out value);
-        }
+            if (entities.TryGetValue(id, out IRailEntity entity))
+            {
+                value = entity as T;
+                return true;
+            }
 
+            value = null;
+            return false;
+        }
         public void Initialize(Tick tick)
         {
             Tick = tick;
@@ -100,13 +100,15 @@ namespace RailgunNet.Logic
             PostRoomUpdate?.Invoke(tick);
         }
 
-        protected IEnumerable<RailEntity> GetAllEntities()
+        protected IEnumerable<T> GetAllEntities<T>() where T : RailEntity
         {
             // TODO: This makes multiple full passes, could probably optimize
             foreach (RailConfig.RailUpdateOrder order in RailConfig.Orders)
-            foreach (RailEntity entity in entities.Values)
-                if (entity.UpdateOrder == order)
-                    yield return entity;
+            {
+                foreach (RailEntity entity in entities.Values)
+                    if (entity.UpdateOrder == order)
+                        yield return (T)entity;
+            }
         }
 
         protected void RegisterEntity(RailEntity entity)

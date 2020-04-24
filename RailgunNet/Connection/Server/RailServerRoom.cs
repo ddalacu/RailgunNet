@@ -46,9 +46,14 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         private EntityId nextEntityId = EntityId.START;
 
+        private List<RailEntityServer> ToRemove { get; } // Pre-allocated removal list
+        private List<RailEntityServer> ToUpdate { get; } // Pre-allocated update list
         public RailServerRoom(RailResource resource, RailServer server)
             : base(resource, server)
         {
+            ToUpdate = new List<RailEntityServer>();
+            ToRemove = new List<RailEntityServer>();
+
             clients = new HashSet<RailController>();
             this.server = server;
         }
@@ -69,7 +74,7 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
-        public T AddNewEntity<T>() where T : RailEntity
+        public T AddNewEntity<T>() where T : RailEntityServer
         {
             T entity = CreateEntity<T>();
             RegisterEntity(entity);
@@ -84,8 +89,13 @@ namespace RailgunNet.Connection.Server
         {
             if (entity.IsRemoving == false)
             {
-                entity.AsBase.MarkForRemoval();
-                server.LogRemovedEntity(entity);
+                RailEntityServer serverEntity = entity as RailEntityServer;
+                if (serverEntity == null)
+                {
+                    throw new ArgumentNullException(nameof(entity), $"unexpected type of entity to remove: {entity}");
+                }
+                serverEntity.MarkForRemoval();
+                server.LogRemovedEntity(serverEntity);
             }
         }
 
@@ -122,7 +132,7 @@ namespace RailgunNet.Connection.Server
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntity entity in GetAllEntities())
+            foreach (RailEntityServer entity in GetAllEntities<RailEntityServer>())
                 if (entity.ShouldRemove)
                     ToRemove.Add(entity);
                 else
@@ -132,7 +142,7 @@ namespace RailgunNet.Connection.Server
             ToRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            ToUpdate.ForEach(e => e.Startup());
+            ToUpdate.ForEach(e => e.PreUpdate());
 
             // Wave 2: Update all entities
             ToUpdate.ForEach(e => e.ServerUpdate());
@@ -147,13 +157,13 @@ namespace RailgunNet.Connection.Server
 
         public void StoreStates()
         {
-            foreach (RailEntity entity in Entities)
+            foreach (RailEntityServer entity in Entities)
                 entity.StoreRecord(Resource);
         }
 
-        private T CreateEntity<T>() where T : RailEntity
+        private T CreateEntity<T>() where T : RailEntityServer
         {
-            T entity = RailEntity.Create<T>(Resource);
+            T entity = RailEntityServer.Create<T>(Resource);
             entity.AssignId(nextEntityId);
             nextEntityId = nextEntityId.GetNext();
             return entity;
@@ -168,5 +178,14 @@ namespace RailgunNet.Connection.Server
         {
             ClientLeft?.Invoke(client);
         }
+#if false
+        public static T Create<T>(
+            RailResource resource)
+            where T : RailEntity
+        {
+            int factoryType = resource.GetEntityFactoryType<T>();
+            return (T)Create(resource, factoryType);
+        }
+#endif
     }
 }

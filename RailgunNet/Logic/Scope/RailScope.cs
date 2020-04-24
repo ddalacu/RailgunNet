@@ -59,12 +59,12 @@ namespace RailgunNet.Logic.Scope
         {
             return Evaluator.Evaluate(evnt);
         }
-
+        [OnlyIn(Component.Server)]
         public void PopulateDeltas(
             Tick serverTick,
             RailPacketToClient packetToClient,
-            IEnumerable<IRailEntity> activeEntities,
-            IEnumerable<IRailEntity> removedEntities)
+            IEnumerable<RailEntityServer> activeEntities,
+            IEnumerable<RailEntityServer> removedEntities)
         {
             ProduceScoped(serverTick, activeEntities);
             ProduceRemoved(owner, removedEntities);
@@ -117,13 +117,15 @@ namespace RailgunNet.Logic.Scope
         ///     Otherwise, if an entity is in scope we will add it to the sorted
         ///     active delta list.
         /// </summary>
+        [OnlyIn(Component.Server)]
         private void ProduceScoped(
             Tick serverTick,
-            IEnumerable<IRailEntity> activeEntities)
+            IEnumerable<RailEntityServer> activeEntities)
         {
+            // TODO: should be doable without the copy using a LINQ expression.
             entryList.Clear();
 
-            foreach (IRailEntity entity in activeEntities)
+            foreach (RailEntityServer entity in activeEntities)
             {
                 if (entity.IsRemoving)
                 {
@@ -156,6 +158,7 @@ namespace RailgunNet.Logic.Scope
             foreach (KeyValuePair<float, IRailEntity> entry in entryList)
             {
                 RailViewEntry latest = ackedByClient.GetLatest(entry.Value.Id);
+                RailEntityServer entity = entry.Value as RailEntityServer;
 
                 // Force a complete update if the entity is frozen so it unfreezes
                 // TODO: Currently if we're unfreezing we force the server to send a
@@ -165,7 +168,7 @@ namespace RailgunNet.Logic.Scope
                 //       However, this would cause some tedious tick comparison.
                 //       Should investigate a smarter way to handle this later.
                 RailStateDelta delta =
-                    entry.Value.AsBase.ProduceDelta(
+                    entity.ProduceDelta(
                         stateCreator,
                         latest.LastReceivedTick,
                         owner,
@@ -179,18 +182,19 @@ namespace RailgunNet.Logic.Scope
         /// <summary>
         ///     Produces deltas for all non-acked removed entities.
         /// </summary>
+        [OnlyIn(Component.Server)]
         private void ProduceRemoved(
             RailController target,
-            IEnumerable<IRailEntity> removedEntities)
+            IEnumerable<RailEntityServer> removedEntities)
         {
-            foreach (IRailEntity entity in removedEntities)
+            foreach (RailEntityServer entity in removedEntities)
             {
                 RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
 
                 // Note: Because the removed tick is valid, this should force-create
-                if (latest.IsValid && latest.LastReceivedTick < entity.AsBase.RemovedTick)
+                if (latest.IsValid && latest.LastReceivedTick < entity.RemovedTick)
                     removedList.Add(
-                        entity.AsBase.ProduceDelta(
+                        entity.ProduceDelta(
                             stateCreator,
                             latest.LastReceivedTick,
                             target,

@@ -48,7 +48,7 @@ namespace RailgunNet.Logic.Wrappers
                     BUFFER_CAPACITY);
         }
 
-        [OnlyIn(Component.Client)] [CanBeNull] public IRailEntity Entity { get; set; }
+        [OnlyIn(Component.Client)] [CanBeNull] public RailEntityClient Entity { get; set; }
 
         public EntityId EntityId { get; private set; }
 
@@ -56,11 +56,12 @@ namespace RailgunNet.Logic.Wrappers
 
         public static RailCommandUpdate Create(
             IRailCommandConstruction commandCreator,
-            EntityId entityId,
+            RailEntityClient entity,
             IEnumerable<RailCommand> commands)
         {
             RailCommandUpdate update = commandCreator.CreateCommandUpdate();
-            update.Initialize(entityId, commands);
+            update.Initialize(entity.Id, commands);
+            update.Entity = entity;
             return update;
         }
 

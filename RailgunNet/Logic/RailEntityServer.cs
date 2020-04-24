@@ -1,0 +1,174 @@
+﻿using RailgunNet.Factory;
+using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Buffer;
+using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
+using RailgunNet.Util.Pooling;
+
+namespace RailgunNet.Logic
+{
+    public abstract class RailEntityServer : RailEntity
+    {
+        private readonly RailDejitterBuffer<RailCommand> incomingCommands;
+        private readonly RailQueueBuffer<RailStateRecord> outgoingStates;
+
+        // The remote (client) tick of the last command we processed
+        private Tick commandAck;
+
+        // The controller at the time of entity removal
+        private RailController priorController;
+
+        public RailEntityServer()
+        {
+            // We use no divisor for storing commands because commands are sent in
+            // batches that we can use to fill in the holes between send ticks
+            incomingCommands =
+                new RailDejitterBuffer<RailCommand>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
+            outgoingStates =
+                new RailQueueBuffer<RailStateRecord>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH);
+            Reset();
+        }
+
+        public void MarkForRemoval()
+        {
+            // We'll remove on the next tick since we're probably 
+            // already mid-way through evaluating this tick
+            RemovedTick = Room.Tick + 1;
+
+            // Notify our inheritors that we are being removed next tick
+            OnSunset();
+        }
+        public void ServerUpdate()
+        {
+            UpdateAuth();
+
+            RailCommand latest = GetLatestCommand();
+            if (latest != null)
+            {
+                ApplyControlGeneric(latest);
+                latest.IsNewCommand = false;
+
+                // Use the remote tick rather than the last applied tick
+                // because we might be skipping some commands to keep up
+                UpdateCommandAck(Controller.EstimatedRemoteTick);
+            }
+            else if (Controller != null)
+            {
+                // We have no command to work from but might still want to
+                // do an update in the command sequence (if we have a controller)
+                CommandMissing();
+            }
+        }
+        public static T Create<T>(
+            RailResource resource)
+            where T : RailEntity
+        {
+            int factoryType = resource.GetEntityFactoryType<T>();
+            return (T)Create(resource, factoryType);
+        }
+        public void StoreRecord(IRailStateConstruction stateCreator)
+        {
+            RailStateRecord record =
+                RailState.CreateRecord(
+                    stateCreator,
+                    Room.Tick,
+                    StateBase,
+                    outgoingStates.Latest);
+            if (record != null)
+                outgoingStates.Store(record);
+        }
+
+        public RailStateDelta ProduceDelta(
+            IRailStateConstruction stateCreator,
+            Tick basisTick,
+            RailController destination,
+            bool forceAllMutable)
+        {
+            // Flags for special data modes
+            bool includeControllerData =
+                destination == Controller ||
+                destination == priorController;
+            bool includeImmutableData = basisTick.IsValid == false;
+
+            return RailState.CreateDelta(
+                stateCreator,
+                Id,
+                StateBase,
+                outgoingStates.LatestFrom(basisTick),
+                includeControllerData,
+                includeImmutableData,
+                commandAck,
+                RemovedTick,
+                forceAllMutable);
+        }
+        #region Lifecycle and Loop
+        public override void Shutdown()
+        {
+            RailDebug.Assert(HasStarted);
+
+            // Automatically revoke control but keep a history for 
+            // sending the final controller data to the client.
+            if (Controller != null)
+            {
+                priorController = Controller;
+                Controller.RevokeControlInternal(this);
+                NotifyControllerChanged();
+            }
+
+            base.Shutdown();
+        }
+
+        #endregion
+        protected override void Reset()
+        {
+            base.Reset();
+            outgoingStates.Clear();
+            incomingCommands.Clear();
+
+            ResetStates();
+            OnReset();
+        }
+        private void ResetStates()
+        {
+            if (StateBase != null)
+                RailPool.Free(StateBase);
+
+            StateBase = null;
+        }
+        protected override void ClearCommands()
+        {
+            incomingCommands.Clear();
+            commandAck = Tick.INVALID;
+        }
+
+        public void ReceiveCommand(RailCommand command)
+        {
+            if (incomingCommands.Store(command))
+                command.IsNewCommand = true;
+            else
+                RailPool.Free(command);
+        }
+
+        private RailCommand GetLatestCommand()
+        {
+            if (Controller != null)
+                return
+                    incomingCommands.GetLatestAt(
+                        Controller.EstimatedRemoteTick);
+            return null;
+        }
+
+        private void UpdateCommandAck(Tick latestCommandTick)
+        {
+            bool shouldAck =
+                commandAck.IsValid == false ||
+                latestCommandTick > commandAck;
+            if (shouldAck)
+                commandAck = latestCommandTick;
+        }
+    }
+
+    
+}

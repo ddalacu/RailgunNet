@@ -107,7 +107,7 @@ namespace RailgunNet.Factory
                 IRailMemoryPool<RailState> statePool =
                     new RailMemoryPool<RailState>(new RailFactory<RailState>(stateType));
                 IRailMemoryPool<RailEntity> entityPool =
-                    new RailMemoryPool<RailEntity>(new RailFactory<RailEntity>(entityType));
+                    new RailMemoryPool<RailEntity>(new RailFactoryEntity(registry.Component, entityType));
 
                 int typeKey = statePools.Count + 1; // 0 is an invalid type
                 statePools.Add(typeKey, statePool);
@@ -152,6 +152,21 @@ namespace RailgunNet.Factory
         public RailStateRecord CreateRecord()
         {
             return recordPool?.Allocate();
+        }
+
+        private class RailFactoryEntity : RailFactory<RailEntity>
+        {
+            private readonly Component component;
+            public RailFactoryEntity(Component eComponent, Type typeToCreate) : base(typeToCreate)
+            {
+                component = eComponent;
+            }
+            public override RailEntity Create()
+            {
+                RailEntity entity = base.Create();
+                // entity.Init(component);
+                return entity;
+            }
         }
 
         #region Typed

@@ -19,6 +19,7 @@
  */
 
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
@@ -46,15 +47,15 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Entities that have been removed or are about to be.
         /// </summary>
-        private readonly Dictionary<EntityId, IRailEntity> removedEntities;
+        private readonly Dictionary<EntityId, RailEntityServer> removedEntities;
 
-        private readonly List<IRailEntity> toRemove; // Pre-allocated list for reuse
+        private readonly List<RailEntityServer> toRemove; // Pre-allocated list for reuse
 
         public RailServer(RailRegistry registry) : base(registry)
         {
             clients = new Dictionary<IRailNetPeer, RailServerPeer>();
-            removedEntities = new Dictionary<EntityId, IRailEntity>();
-            toRemove = new List<IRailEntity>();
+            removedEntities = new Dictionary<EntityId, RailEntityServer>();
+            toRemove = new List<RailEntityServer>();
         }
 
         /// <summary>
@@ -136,7 +137,7 @@ namespace RailgunNet.Connection.Server
             CleanRemovedEntities();
         }
 
-        public void LogRemovedEntity(IRailEntity entity)
+        public void LogRemovedEntity(RailEntityServer entity)
         {
             removedEntities.Add(entity.Id, entity);
         }
@@ -149,11 +150,11 @@ namespace RailgunNet.Connection.Server
         {
             // TODO: Retire the Id in all of the views as well?
 
-            foreach (KeyValuePair<EntityId, IRailEntity> kvp in removedEntities)
+            foreach (KeyValuePair<EntityId, RailEntityServer> kvp in removedEntities)
             {
                 bool canRemove = true;
                 EntityId id = kvp.Key;
-                IRailEntity entity = kvp.Value;
+                RailEntityServer entity = kvp.Value;
 
                 foreach (RailServerPeer peer in clients.Values)
                 {
@@ -162,7 +163,7 @@ namespace RailgunNet.Connection.Server
                         continue; // Was never sent in the first place
 
                     Tick lastAcked = peer.Scope.GetLastAckedByClient(id);
-                    if (lastAcked.IsValid && lastAcked >= entity.AsBase.RemovedTick)
+                    if (lastAcked.IsValid && lastAcked >= entity.RemovedTick)
                         continue; // Remove tick was acked by the client
 
                     // Otherwise, not safe to remove
@@ -174,7 +175,7 @@ namespace RailgunNet.Connection.Server
                     toRemove.Add(entity);
             }
 
-            foreach (IRailEntity entityToRemove in toRemove) removedEntities.Remove(entityToRemove.Id);
+            toRemove.ForEach(entityToRemove => removedEntities.Remove(entityToRemove.Id));
             toRemove.Clear();
         }
 
@@ -186,7 +187,7 @@ namespace RailgunNet.Connection.Server
             foreach (RailServerPeer clientPeer in clients.Values)
                 clientPeer.SendPacket(
                     Room.Tick,
-                    Room.Entities,
+                    Room.Entities.Select(e => e as RailEntityServer),
                     removedEntities.Values);
         }
 
@@ -204,14 +205,14 @@ namespace RailgunNet.Connection.Server
             RailServerPeer peer,
             RailCommandUpdate update)
         {
-            if (Room.TryGet(update.EntityId, out IRailEntity entity))
+            if (Room.TryGet(update.EntityId, out RailEntityServer entity))
             {
                 bool canReceive =
                     entity.Controller == peer && entity.IsRemoving == false;
 
                 if (canReceive)
                     foreach (RailCommand command in update.Commands)
-                        entity.AsBase.ReceiveCommand(command);
+                        entity.ReceiveCommand(command);
                 else // Can't send commands to that entity, so dump them
                     foreach (RailCommand command in update.Commands)
                         RailPool.Free(command);

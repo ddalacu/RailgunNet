@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -40,7 +41,7 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     All known entities, either in-world or pending.
         /// </summary>
-        private readonly Dictionary<EntityId, RailEntity> knownEntities;
+        private readonly Dictionary<EntityId, RailEntityClient> knownEntities;
 
         /// <summary>
         ///     The local controller for predicting control and authority.
@@ -51,18 +52,24 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Entities that are waiting to be added to the world.
         /// </summary>
-        private readonly Dictionary<EntityId, RailEntity> pendingEntities;
+        private readonly Dictionary<EntityId, RailEntityClient> pendingEntities;
+
+        private List<RailEntityClient> ToRemove { get; } // Pre-allocated removal list
+        private List<RailEntityClient> ToUpdate { get; } // Pre-allocated update list
 
         public RailClientRoom(RailResource resource, RailClient client)
             : base(resource, client)
         {
+            ToUpdate = new List<RailEntityClient>();
+            ToRemove = new List<RailEntityClient>();
+
             IEqualityComparer<EntityId> entityIdComparer =
                 EntityId.CreateEqualityComparer();
 
             pendingEntities =
-                new Dictionary<EntityId, RailEntity>(entityIdComparer);
+                new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
             knownEntities =
-                new Dictionary<EntityId, RailEntity>(entityIdComparer);
+                new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
             localPeer = new RailController(resource, ExternalEntityVisibility.All, null);
             this.client = client;
         }
@@ -101,7 +108,7 @@ namespace RailgunNet.Connection.Client
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntity entity in GetAllEntities())
+            foreach (RailEntityClient entity in GetAllEntities<RailEntityClient>())
                 if (entity.ShouldRemove)
                     ToRemove.Add(entity);
                 else
@@ -111,7 +118,7 @@ namespace RailgunNet.Connection.Client
             ToRemove.ForEach(RemoveEntity);
 
             // Wave 1: Start/initialize all entities
-            ToUpdate.ForEach(e => e.Startup());
+            ToUpdate.ForEach(e => e.PreUpdate());
 
             // Wave 2: Update all entities
             ToUpdate.ForEach(e => e.ClientUpdate(localTick));
@@ -129,13 +136,17 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         public bool ProcessDelta(RailStateDelta delta)
         {
-            if (knownEntities.TryGetValue(delta.EntityId, out RailEntity entity) == false)
+            if (knownEntities.TryGetValue(delta.EntityId, out RailEntityClient entity) == false)
             {
                 RailDebug.Assert(delta.IsFrozen == false, "Frozen unknown entity");
                 if (delta.IsFrozen || delta.IsRemoving)
                     return false;
 
-                entity = delta.ProduceEntity(Resource);
+                entity = delta.ProduceEntity(Resource) as RailEntityClient;
+                if (entity == null)
+                {
+                    throw new TypeAccessException("Got unexpected instance from RailResource. Internal error in type RailRegistry and/or RailResource.");
+                }
                 entity.AssignId(delta.EntityId);
                 entity.PrimeState(delta);
                 pendingEntities.Add(entity.Id, entity);
@@ -155,7 +166,7 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private void UpdatePendingEntities(Tick serverTick)
         {
-            foreach (RailEntity entity in pendingEntities.Values)
+            foreach (RailEntityClient entity in pendingEntities.Values)
             {
                 if (!entity.HasReadyState(serverTick)) continue;
 
@@ -170,7 +181,7 @@ namespace RailgunNet.Connection.Client
                     RegisterEntity(entity);
             }
 
-            foreach (RailEntity entity in ToRemove)
+            foreach (RailEntityClient entity in ToRemove)
                 pendingEntities.Remove(entity.Id);
             ToRemove.Clear();
         }

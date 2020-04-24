@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
+using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
 using RailgunNet.Util;
@@ -57,8 +58,8 @@ namespace RailgunNet.Connection.Server
 
         public void SendPacket(
             Tick localTick,
-            IEnumerable<IRailEntity> active,
-            IEnumerable<IRailEntity> removed)
+            IEnumerable<RailEntityServer> active,
+            IEnumerable<RailEntityServer> removed)
         {
             RailPacketToClient packetToClient = PrepareSend<RailPacketToClient>(localTick);
             Scope.PopulateDeltas(
