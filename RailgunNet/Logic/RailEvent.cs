@@ -22,19 +22,15 @@ using RailgunNet.Factory;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
     public enum RailPolicy
     {
-        All,
-#if SERVER
-        NoProxy,
-#endif
-#if CLIENT
-        NoFrozen,
-#endif
+        [OnlyIn(Component.Server)] NoProxy,
+        [OnlyIn(Component.Client)] NoFrozen
     }
 
     /// <summary>
@@ -80,28 +76,26 @@ namespace RailgunNet.Logic
 
         public TEntity Find<TEntity>(
             EntityId id,
-            RailPolicy policy = RailPolicy.All)
+            RailPolicy policy)
             where TEntity : class, IRailEntity
         {
             if (Room == null)
                 return null;
             if (id.IsValid == false)
                 return null;
-#if SERVER
+
             if (policy == RailPolicy.NoProxy && Sender == null)
                 return null;
-#endif
 
             if (Room.TryGet(id, out IRailEntity entity) == false)
                 return null;
-#if CLIENT
+
             if (policy == RailPolicy.NoFrozen && entity.IsFrozen)
                 return null;
-#endif
-#if SERVER
+
             if (policy == RailPolicy.NoProxy && entity.Controller != Sender)
                 return null;
-#endif
+
             if (entity is TEntity cast)
                 return cast;
             return null;

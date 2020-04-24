@@ -18,6 +18,8 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using RailgunNet.Util;
+
 namespace RailgunNet
 {
     public enum Component
@@ -28,7 +30,7 @@ namespace RailgunNet
     public enum ExternalEntityVisibility
     {
         All,    // All entities are sent. 
-        Scoped  // Only the entities within scope are sent.
+        [OnlyIn(Component.Server)] Scoped  // Only the entities within scope are sent.
     }
     public static class RailConfig
     {
