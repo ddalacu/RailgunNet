@@ -56,11 +56,12 @@ namespace RailgunNet.Connection
         protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
+            ExternalEntityVisibility visibility,
             int remoteSendRate,
             RailInterpreter interpreter,
             RailPacketIncoming reusableIncoming,
             RailPacketOutgoing reusableOutgoing)
-            : base(resource, netPeer)
+            : base(resource, visibility, netPeer)
         {
             Resource = resource;
             remoteClock = new RailClock(remoteSendRate);
@@ -301,11 +302,13 @@ namespace RailgunNet.Connection
         protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
+            ExternalEntityVisibility visibility,
             int remoteSendRate,
             RailInterpreter interpreter)
             : base(
                 resource,
                 netPeer,
+                visibility,
                 remoteSendRate,
                 interpreter,
                 new TIncoming(),

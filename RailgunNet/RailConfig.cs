@@ -20,6 +20,16 @@
 
 namespace RailgunNet
 {
+    public enum Component
+    {
+        Client,
+        Server
+    }
+    public enum ExternalEntityVisibility
+    {
+        All,    // All entities are sent. 
+        Scoped  // Only the entities within scope are sent.
+    }
     public static class RailConfig
     {
         public enum RailApplication

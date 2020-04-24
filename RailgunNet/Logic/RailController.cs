@@ -25,6 +25,7 @@ using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Scope;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 
 namespace RailgunNet.Logic
@@ -35,26 +36,21 @@ namespace RailgunNet.Logic
         ///     The entities controlled by this controller.
         /// </summary>
         private readonly HashSet<IRailEntity> controlledEntities;
-
         public RailController(
             IRailStateConstruction stateCreator,
-            IRailNetPeer netPeer = null)
+            ExternalEntityVisibility eVisibility,
+            [CanBeNull] IRailNetPeer netPeer)
         {
             controlledEntities = new HashSet<IRailEntity>();
             NetPeer = netPeer;
-
-#if SERVER
-            Scope = new RailScope(this, stateCreator);
-#endif
-
+            Scope = eVisibility == ExternalEntityVisibility.Scoped ? new RailScope(this, stateCreator) : null;
             netPeer?.BindController(this);
         }
 
         /// <summary>
         ///     The network I/O peer for sending/receiving data.
         /// </summary>
-        [CanBeNull]
-        protected IRailNetPeer NetPeer { get; }
+        [CanBeNull] protected IRailNetPeer NetPeer { get; }
 
         public object UserData { get; set; }
 
@@ -87,33 +83,10 @@ namespace RailgunNet.Logic
                 "Cannot send event to local controller");
         }
 
-#if SERVER
-        /// <summary>
-        ///     Used for setting the scope evaluator heuristics.
-        /// </summary>
-        public RailScopeEvaluator ScopeEvaluator
-        {
-            set => Scope.Evaluator = value;
-        }
-
         /// <summary>
         ///     Used for determining which entity updates to send.
         /// </summary>
-        public RailScope Scope { get; }
-
-#endif
-
-#if SERVER
-        public void GrantControl(IRailEntity entity)
-        {
-            GrantControlInternal(entity);
-        }
-
-        public void RevokeControl(IRailEntity entity)
-        {
-            RevokeControlInternal(entity);
-        }
-#endif
+        [CanBeNull][OnlyIn(Component.Server)] public RailScope Scope { get; }
 
         #region Controller
 
@@ -132,12 +105,6 @@ namespace RailgunNet.Logic
         /// </summary>
         public void GrantControlInternal(IRailEntity entity)
         {
-#if SERVER
-            // This could happen on the client as a race condition,
-            // in which case we should be able to handle it alright
-            RailDebug.Assert(entity.IsRemoving == false);
-#endif
-
             if (entity.Controller == this)
                 return;
             RailDebug.Assert(entity.Controller == null);

@@ -42,6 +42,7 @@ namespace RailgunNet.Connection.Server
             : base(
                 resource,
                 netPeer,
+                ExternalEntityVisibility.Scoped,
                 RailConfig.CLIENT_SEND_RATE,
                 interpreter)
         {

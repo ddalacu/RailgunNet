@@ -21,6 +21,7 @@
 using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.Logic.Scope;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
 using RailgunNet.Util;
@@ -62,7 +63,7 @@ namespace RailgunNet.Connection.Client
                 new Dictionary<EntityId, RailEntity>(entityIdComparer);
             knownEntities =
                 new Dictionary<EntityId, RailEntity>(entityIdComparer);
-            localPeer = new RailController(resource);
+            localPeer = new RailController(resource, ExternalEntityVisibility.All, null);
             this.client = client;
         }
 
