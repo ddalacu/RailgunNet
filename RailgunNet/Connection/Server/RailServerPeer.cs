@@ -33,19 +33,17 @@ namespace RailgunNet.Connection.Server
     ///     A peer created by the server representing a connected client.
     /// </summary>
     [OnlyIn(Component.Server)]
-    public class RailServerPeer
-        : RailPeer<RailPacketFromClient, RailPacketToClient>
+    public class RailServerPeer : RailPeer<RailPacketFromClient, RailPacketToClient>
     {
         public RailServerPeer(
             RailResource resource,
             IRailNetPeer netPeer,
-            RailInterpreter interpreter)
-            : base(
-                resource,
-                netPeer,
-                ExternalEntityVisibility.Scoped,
-                RailConfig.CLIENT_SEND_RATE,
-                interpreter)
+            RailInterpreter interpreter) : base(
+            resource,
+            netPeer,
+            ExternalEntityVisibility.Scoped,
+            RailConfig.CLIENT_SEND_RATE,
+            interpreter)
         {
         }
 
@@ -62,18 +60,13 @@ namespace RailgunNet.Connection.Server
             IEnumerable<RailEntityServer> removed)
         {
             RailPacketToClient packetToClient = PrepareSend<RailPacketToClient>(localTick);
-            Scope.PopulateDeltas(
-                localTick,
-                packetToClient,
-                active,
-                removed);
+            Scope.PopulateDeltas(localTick, packetToClient, active, removed);
             base.SendPacket(packetToClient);
 
             foreach (RailStateDelta delta in packetToClient.Sent)
-                Scope.RegisterSent(
-                    delta.EntityId,
-                    localTick,
-                    delta.IsFrozen);
+            {
+                Scope.RegisterSent(delta.EntityId, localTick, delta.IsFrozen);
+            }
         }
 
         protected override void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)

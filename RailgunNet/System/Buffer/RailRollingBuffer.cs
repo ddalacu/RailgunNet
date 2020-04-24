@@ -37,8 +37,7 @@ namespace RailgunNet.System.Buffer
 
         public RailRollingBuffer(int capacity)
         {
-            if (capacity <= 0)
-                throw new ArgumentOutOfRangeException(nameof(capacity));
+            if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
 
             this.capacity = capacity;
 
@@ -78,7 +77,9 @@ namespace RailgunNet.System.Buffer
         public IEnumerable<T> GetValues()
         {
             for (int i = 0; i < Count; i++)
+            {
                 yield return data[i];
+            }
         }
 
         private void IncrementStart()

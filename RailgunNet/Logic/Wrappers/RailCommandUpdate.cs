@@ -29,23 +29,18 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic.Wrappers
 {
-    public class RailCommandUpdate
-        : IRailPoolable<RailCommandUpdate>
+    public class RailCommandUpdate : IRailPoolable<RailCommandUpdate>
     {
-        private const int BUFFER_CAPACITY =
-            RailConfig.COMMAND_SEND_COUNT;
+        private const int BUFFER_CAPACITY = RailConfig.COMMAND_SEND_COUNT;
 
-        private static readonly int BUFFER_COUNT_BITS =
-            RailUtil.Log2(BUFFER_CAPACITY) + 1;
+        private static readonly int BUFFER_COUNT_BITS = RailUtil.Log2(BUFFER_CAPACITY) + 1;
 
         private readonly RailRollingBuffer<RailCommand> commands;
 
         public RailCommandUpdate()
         {
             EntityId = EntityId.INVALID;
-            commands =
-                new RailRollingBuffer<RailCommand>(
-                    BUFFER_CAPACITY);
+            commands = new RailRollingBuffer<RailCommand>(BUFFER_CAPACITY);
         }
 
         [OnlyIn(Component.Client)] [CanBeNull] public RailEntityClient Entity { get; private set; }
@@ -65,13 +60,13 @@ namespace RailgunNet.Logic.Wrappers
             return update;
         }
 
-        private void Initialize(
-            EntityId entityId,
-            IEnumerable<RailCommand> outgoingCommands)
+        private void Initialize(EntityId entityId, IEnumerable<RailCommand> outgoingCommands)
         {
             EntityId = entityId;
             foreach (RailCommand command in outgoingCommands)
+            {
                 commands.Store(command);
+            }
         }
 
         private void Reset()
@@ -91,7 +86,9 @@ namespace RailgunNet.Logic.Wrappers
 
             // Write: [Commands]
             foreach (RailCommand command in commands.GetValues())
+            {
                 command.Encode(buffer);
+            }
         }
 
         [OnlyIn(Component.Server)]
@@ -109,20 +106,20 @@ namespace RailgunNet.Logic.Wrappers
 
             // Read: [Commands]
             for (int i = 0; i < count; i++)
+            {
                 update.commands.Store(RailCommand.Decode(commandCreator, buffer));
+            }
 
             return update;
         }
 
         #region Pooling
-
         IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
 
         void IRailPoolable<RailCommandUpdate>.Reset()
         {
             Reset();
         }
-
         #endregion
     }
 }

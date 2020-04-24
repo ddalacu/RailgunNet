@@ -37,10 +37,7 @@ namespace RailgunNet
 
         private bool shouldUpdateEstimate;
 
-        public RailClock(
-            int remoteSendRate,
-            int delayMin = DELAY_MIN,
-            int delayMax = DELAY_MAX)
+        public RailClock(int remoteSendRate, int delayMin = DELAY_MIN, int delayMax = DELAY_MAX)
         {
             remoteRate = remoteSendRate;
             EstimatedRemote = Tick.INVALID;
@@ -60,10 +57,11 @@ namespace RailgunNet
 
         public void UpdateLatest(Tick latestTick)
         {
-            if (LatestRemote.IsValid == false)
-                LatestRemote = latestTick;
+            if (LatestRemote.IsValid == false) LatestRemote = latestTick;
             if (EstimatedRemote.IsValid == false)
+            {
                 EstimatedRemote = Tick.Subtract(LatestRemote, delayDesired);
+            }
 
             if (latestTick > LatestRemote)
             {
@@ -76,12 +74,10 @@ namespace RailgunNet
         // See http://www.gamedev.net/topic/652186-de-jitter-buffer-on-both-the-client-and-server/
         public void Update()
         {
-            if (ShouldTick == false)
-                return; // 0;
+            if (ShouldTick == false) return; // 0;
 
             EstimatedRemote = EstimatedRemote + 1;
-            if (shouldUpdateEstimate == false)
-                return; // 1;
+            if (shouldUpdateEstimate == false) return; // 1;
 
             int delta = LatestRemote - EstimatedRemote;
 
@@ -111,10 +107,8 @@ namespace RailgunNet
 
         private bool ShouldSnapTick(float delta)
         {
-            if (delta < delayMin - remoteRate)
-                return true;
-            if (delta > delayMax + remoteRate)
-                return true;
+            if (delta < delayMin - remoteRate) return true;
+            if (delta > delayMax + remoteRate) return true;
             return false;
         }
     }

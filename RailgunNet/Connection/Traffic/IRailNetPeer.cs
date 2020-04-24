@@ -22,10 +22,7 @@ using RailgunNet.Logic;
 
 namespace RailgunNet.Connection.Traffic
 {
-    public delegate void RailNetPeerEvent(
-        IRailNetPeer peer,
-        byte[] data,
-        int length);
+    public delegate void RailNetPeerEvent(IRailNetPeer peer, byte[] data, int length);
 
     public interface IRailNetPeer
     {

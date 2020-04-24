@@ -27,11 +27,13 @@ namespace RailgunNet
         Client,
         Server
     }
+
     public enum ExternalEntityVisibility
     {
-        All,    // All entities are sent. 
-        [OnlyIn(Component.Server)] Scoped  // Only the entities within scope are sent.
+        All, // All entities are sent. 
+        [OnlyIn(Component.Server)] Scoped // Only the entities within scope are sent.
     }
+
     public static class RailConfig
     {
         public enum RailApplication
@@ -98,7 +100,6 @@ namespace RailgunNet
         };
 
         #region Message Sizes
-
         /// <summary>
         ///     Data buffer size used for packet I/O.
         ///     Don't change this without a good reason.
@@ -146,7 +147,6 @@ namespace RailgunNet
         ///     Maximum size for an encoded string.
         /// </summary>
         public const int STRING_LENGTH_MAX = 63;
-
         #endregion
     }
 }

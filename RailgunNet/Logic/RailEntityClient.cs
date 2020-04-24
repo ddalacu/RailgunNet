@@ -12,7 +12,6 @@ namespace RailgunNet.Logic
 {
     public interface IRailEntityClient
     {
-        float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
         bool IsControlled { get; }
 
         /// <summary>
@@ -30,6 +29,8 @@ namespace RailgunNet.Logic
         ///     Note that this does not take client-side prediction into account.
         /// </summary>
         int TicksAhead { get; }
+
+        float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
     }
 
     /// <summary>
@@ -45,6 +46,34 @@ namespace RailgunNet.Logic
 
     public abstract class RailEntityClient : RailEntity, IRailEntityClient
     {
+        private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
+        private readonly Queue<RailCommand> outgoingCommands;
+
+        private Tick authTick;
+        private Tick nextTick;
+        private bool shouldBeFrozen;
+
+        protected RailEntityClient()
+        {
+            incomingStates = new RailDejitterBuffer<RailStateDelta>(
+                RailConfig.DEJITTER_BUFFER_LENGTH,
+                RailConfig.SERVER_SEND_RATE);
+            outgoingCommands = new Queue<RailCommand>();
+
+            Reset();
+        }
+
+        protected abstract RailState AuthStateBase { get; set; }
+        protected abstract RailState NextStateBase { get; set; }
+        public IEnumerable<RailCommand> OutgoingCommands => outgoingCommands;
+
+        public Tick
+            LastSentCommandTick
+        {
+            get;
+            set;
+        } // The last local tick we sent our commands to the server
+
         public bool IsControlled => Controller != null;
 
         /// <summary>
@@ -63,27 +92,21 @@ namespace RailgunNet.Logic
         /// </summary>
         public int TicksAhead => Room.Tick - authTick;
 
-        protected abstract RailState AuthStateBase { get; set; }
-        protected abstract RailState NextStateBase { get; set; }
-        public IEnumerable<RailCommand> OutgoingCommands => outgoingCommands;
-        public Tick LastSentCommandTick { get; set; } // The last local tick we sent our commands to the server
-
-        private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
-        private readonly Queue<RailCommand> outgoingCommands;
-
-        private Tick authTick;
-        private Tick nextTick;
-        private bool shouldBeFrozen;
-        protected RailEntityClient()
+        public float ComputeInterpolation(float tickDeltaTime, float timeSinceTick)
         {
-            incomingStates =
-                new RailDejitterBuffer<RailStateDelta>(
-                    RailConfig.DEJITTER_BUFFER_LENGTH,
-                    RailConfig.SERVER_SEND_RATE);
-            outgoingCommands =
-                new Queue<RailCommand>();
+            if (nextTick == Tick.INVALID)
+            {
+                throw new InvalidOperationException("Next state is invalid");
+            }
 
-            Reset();
+            float curTime = authTick.ToTime(tickDeltaTime);
+            float nextTime = nextTick.ToTime(tickDeltaTime);
+            float showTime = Room.Tick.ToTime(tickDeltaTime) + timeSinceTick;
+
+            float progress = showTime - curTime;
+            float span = nextTime - curTime;
+            if (span <= 0.0f) return 0.0f;
+            return progress / span;
         }
 
         public void ClientUpdate(Tick localTick)
@@ -106,24 +129,6 @@ namespace RailgunNet.Logic
                     UpdatePredicted();
                 }
             }
-        }
-
-        public float ComputeInterpolation(
-            float tickDeltaTime,
-            float timeSinceTick)
-        {
-            if (nextTick == Tick.INVALID)
-                throw new InvalidOperationException("Next state is invalid");
-
-            float curTime = authTick.ToTime(tickDeltaTime);
-            float nextTime = nextTick.ToTime(tickDeltaTime);
-            float showTime = Room.Tick.ToTime(tickDeltaTime) + timeSinceTick;
-
-            float progress = showTime - curTime;
-            float span = nextTime - curTime;
-            if (span <= 0.0f)
-                return 0.0f;
-            return progress / span;
         }
 
         public bool HasReadyState(Tick tick)
@@ -156,8 +161,7 @@ namespace RailgunNet.Logic
             }
             else
             {
-                if (delta.IsRemoving)
-                    RemovedTick = delta.RemovedTick;
+                if (delta.IsRemoving) RemovedTick = delta.RemovedTick;
                 stored = incomingStates.Store(delta);
             }
 
@@ -166,14 +170,12 @@ namespace RailgunNet.Logic
 
         private void CleanCommands(Tick ackTick)
         {
-            if (ackTick.IsValid == false)
-                return;
+            if (ackTick.IsValid == false) return;
 
             while (outgoingCommands.Count > 0)
             {
                 RailCommand command = outgoingCommands.Peek();
-                if (command.ClientTick > ackTick)
-                    break;
+                if (command.ClientTick > ackTick) break;
                 RailPool.Free(outgoingCommands.Dequeue());
             }
         }
@@ -183,7 +185,7 @@ namespace RailgunNet.Logic
             RailDebug.Assert(Controller != null);
             if (outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
             {
-                RailCommand command = commandCreator.CreateCommand();
+                RailCommand command = CommandCreator.CreateCommand();
 
                 command.ClientTick = localTick;
                 command.IsNewCommand = true;
@@ -192,40 +194,16 @@ namespace RailgunNet.Logic
                 outgoingCommands.Enqueue(command);
             }
         }
-        #region Lifecycle and Loop
 
-        public override void PreUpdate()
-        {
-            UpdateAuthState();
-            StateBase.OverwriteFrom(AuthStateBase);
-            base.PreUpdate();
-        }
-
-        public override void PostUpdate()
-        {
-            if (IsFrozen == false)
-                base.PostUpdate();
-        }
-
-        public override void Shutdown()
-        {
-            RailDebug.Assert(HasStarted);
-
-            // Set the final auth state before removing
-            UpdateAuthState();
-            StateBase.OverwriteFrom(AuthStateBase);
-
-            base.Shutdown();
-        }
-
-        #endregion
-
-        protected sealed override void InitState(IRailStateConstruction creator, RailState initialState)
+        protected sealed override void InitState(
+            IRailStateConstruction creator,
+            RailState initialState)
         {
             base.InitState(creator, initialState);
             AuthStateBase = StateBase.Clone(creator);
             NextStateBase = StateBase.Clone(creator);
         }
+
         protected sealed override void Reset()
         {
             base.Reset();
@@ -246,12 +224,9 @@ namespace RailgunNet.Logic
 
         private void ResetStates()
         {
-            if (StateBase != null)
-                RailPool.Free(StateBase);
-            if (AuthStateBase != null)
-                RailPool.Free(AuthStateBase);
-            if (NextStateBase != null)
-                RailPool.Free(NextStateBase);
+            if (StateBase != null) RailPool.Free(StateBase);
+            if (AuthStateBase != null) RailPool.Free(AuthStateBase);
+            if (NextStateBase != null) RailPool.Free(NextStateBase);
 
             StateBase = null;
             AuthStateBase = null;
@@ -267,17 +242,15 @@ namespace RailgunNet.Logic
         private void UpdateAuthState()
         {
             // Apply all un-applied deltas to the auth state
-            IEnumerable<RailStateDelta> toApply =
-                incomingStates.GetRangeAndNext(
-                    authTick,
-                    Room.Tick,
-                    out RailStateDelta next);
+            IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
+                authTick,
+                Room.Tick,
+                out RailStateDelta next);
 
             RailStateDelta lastDelta = null;
             foreach (RailStateDelta delta in toApply)
             {
-                if (delta.IsFrozen == false)
-                    AuthStateBase.ApplyDelta(delta);
+                if (delta.IsFrozen == false) AuthStateBase.ApplyDelta(delta);
                 shouldBeFrozen = delta.IsFrozen;
                 authTick = delta.Tick;
                 lastDelta = delta;
@@ -285,7 +258,9 @@ namespace RailgunNet.Logic
 
             if (lastDelta != null)
                 // Update the control status based on the most recent delta
+            {
                 (Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
+            }
 
             // If there was a next state, update the next state
             bool canGetNext = shouldBeFrozen == false;
@@ -304,24 +279,20 @@ namespace RailgunNet.Logic
         private void UpdatePredicted()
         {
             // Bring the main state up to the latest (apply all deltas)
-            IList<RailStateDelta> deltas =
-                incomingStates.GetRange(authTick);
+            IList<RailStateDelta> deltas = incomingStates.GetRange(authTick);
 
             RailStateDelta lastDelta = null;
             foreach (RailStateDelta delta in deltas)
             {
                 // It's possible the state is null if we lost control
                 // and then immediately went out of scope of the entity
-                if (delta.State == null)
-                    break;
-                if (delta.HasControllerData == false)
-                    break;
+                if (delta.State == null) break;
+                if (delta.HasControllerData == false) break;
                 StateBase.ApplyDelta(delta);
                 lastDelta = delta;
             }
 
-            if (lastDelta != null)
-                CleanCommands(lastDelta.CommandAck);
+            if (lastDelta != null) CleanCommands(lastDelta.CommandAck);
             Revert();
 
             // Forward-simulate
@@ -335,10 +306,37 @@ namespace RailgunNet.Logic
         private void SetFreeze(bool isFrozen)
         {
             if (IsFrozen == false && isFrozen)
+            {
                 OnFrozen();
-            else if (IsFrozen && isFrozen == false)
-                OnUnfrozen();
+            }
+            else if (IsFrozen && isFrozen == false) OnUnfrozen();
+
             IsFrozen = isFrozen;
         }
+
+        #region Lifecycle and Loop
+        public override void PreUpdate()
+        {
+            UpdateAuthState();
+            StateBase.OverwriteFrom(AuthStateBase);
+            base.PreUpdate();
+        }
+
+        public override void PostUpdate()
+        {
+            if (IsFrozen == false) base.PostUpdate();
+        }
+
+        public override void Shutdown()
+        {
+            RailDebug.Assert(HasStarted);
+
+            // Set the final auth state before removing
+            UpdateAuthState();
+            StateBase.OverwriteFrom(AuthStateBase);
+
+            base.Shutdown();
+        }
+        #endregion
     }
 }

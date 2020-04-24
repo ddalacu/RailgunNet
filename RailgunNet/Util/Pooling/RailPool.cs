@@ -35,8 +35,7 @@ namespace RailgunNet.Util.Pooling
         public static void SafeReplace<T>(ref T destination, T instance)
             where T : IRailPoolable<T>
         {
-            if (destination != null)
-                Free(destination);
+            if (destination != null) Free(destination);
             destination = instance;
         }
 
@@ -44,7 +43,9 @@ namespace RailgunNet.Util.Pooling
             where T : IRailPoolable<T>
         {
             while (queue.Count > 0)
+            {
                 Free(queue.Dequeue());
+            }
         }
     }
 

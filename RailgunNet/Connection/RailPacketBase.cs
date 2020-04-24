@@ -44,8 +44,7 @@ namespace RailgunNet.Connection
             RailBitBuffer buffer);
     }
 
-    public abstract class RailPacketBase
-        : IRailPoolable<RailPacketBase>
+    public abstract class RailPacketBase : IRailPoolable<RailPacketBase>
     {
         private readonly List<RailEvent> pendingEvents;
 
@@ -108,24 +107,22 @@ namespace RailgunNet.Connection
         }
 
         #region Encoding/Decoding
-
         public IEnumerable<RailEvent> GetNextEvents()
         {
             for (int i = EventsWritten; i < pendingEvents.Count; i++)
+            {
                 yield return pendingEvents[i];
+            }
         }
-
         #endregion
 
         #region Pooling
-
         IRailMemoryPool<RailPacketBase> IRailPoolable<RailPacketBase>.Pool { get; set; }
 
         void IRailPoolable<RailPacketBase>.Reset()
         {
             Reset();
         }
-
         #endregion
     }
 }

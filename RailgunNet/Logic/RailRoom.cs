@@ -35,9 +35,7 @@ namespace RailgunNet.Logic
         {
             Resource = resource;
             this.connection = connection;
-            entities =
-                new Dictionary<EntityId, IRailEntity>(
-                    EntityId.CreateEqualityComparer());
+            entities = new Dictionary<EntityId, IRailEntity>(EntityId.CreateEqualityComparer());
             Tick = Tick.INVALID;
         }
 
@@ -74,7 +72,9 @@ namespace RailgunNet.Logic
         protected virtual void HandleRemovedEntity(EntityId entityId)
         {
         }
-        public bool TryGet<T>(EntityId id, out T value) where T : class, IRailEntity
+
+        public bool TryGet<T>(EntityId id, out T value)
+            where T : class, IRailEntity
         {
             if (entities.TryGetValue(id, out IRailEntity entity))
             {
@@ -85,6 +85,7 @@ namespace RailgunNet.Logic
             value = null;
             return false;
         }
+
         public void Initialize(Tick tick)
         {
             Tick = tick;
@@ -100,14 +101,19 @@ namespace RailgunNet.Logic
             PostRoomUpdate?.Invoke(tick);
         }
 
-        protected IEnumerable<T> GetAllEntities<T>() where T : RailEntity
+        protected IEnumerable<T> GetAllEntities<T>()
+            where T : RailEntity
         {
             // TODO: This makes multiple full passes, could probably optimize
             foreach (RailConfig.RailUpdateOrder order in RailConfig.Orders)
             {
                 foreach (RailEntity entity in entities.Values)
+                {
                     if (entity.UpdateOrder == order)
+                    {
                         yield return entity as T;
+                    }
+                }
             }
         }
 

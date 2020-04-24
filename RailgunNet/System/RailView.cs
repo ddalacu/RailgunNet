@@ -27,8 +27,10 @@ namespace RailgunNet.System
     public readonly struct RailViewEntry
 #pragma warning restore CA1815 // Override equals and operator equals on value types
     {
-        public static readonly RailViewEntry INVALID =
-            new RailViewEntry(Tick.INVALID, Tick.INVALID, true);
+        public static readonly RailViewEntry INVALID = new RailViewEntry(
+            Tick.INVALID,
+            Tick.INVALID,
+            true);
 
         public bool IsValid => lastReceivedTick.IsValid;
         public Tick LastReceivedTick => lastReceivedTick;
@@ -38,10 +40,7 @@ namespace RailgunNet.System
 
         private readonly Tick lastReceivedTick;
 
-        public RailViewEntry(
-            Tick lastReceivedTick,
-            Tick localUpdateTick,
-            bool isFrozen)
+        public RailViewEntry(Tick lastReceivedTick, Tick localUpdateTick, bool isFrozen)
         {
             this.lastReceivedTick = lastReceivedTick;
             LocalUpdateTick = localUpdateTick;
@@ -68,8 +67,7 @@ namespace RailgunNet.System
         /// </summary>
         public RailViewEntry GetLatest(EntityId id)
         {
-            if (latestUpdates.TryGetValue(id, out RailViewEntry result))
-                return result;
+            if (latestUpdates.TryGetValue(id, out RailViewEntry result)) return result;
             return RailViewEntry.INVALID;
         }
 
@@ -87,21 +85,21 @@ namespace RailgunNet.System
             Tick localTick,
             bool isFrozen)
         {
-            RecordUpdate(
-                entityId,
-                new RailViewEntry(receivedTick, localTick, isFrozen));
+            RecordUpdate(entityId, new RailViewEntry(receivedTick, localTick, isFrozen));
         }
 
         /// <summary>
         ///     Records an acked status from the peer for a given entity ID.
         /// </summary>
-        public void RecordUpdate(
-            EntityId entityId,
-            RailViewEntry entry)
+        public void RecordUpdate(EntityId entityId, RailViewEntry entry)
         {
             if (latestUpdates.TryGetValue(entityId, out RailViewEntry currentEntry))
+            {
                 if (currentEntry.LastReceivedTick > entry.LastReceivedTick)
+                {
                     return;
+                }
+            }
 
             latestUpdates[entityId] = entry;
         }
@@ -109,7 +107,9 @@ namespace RailgunNet.System
         public void Integrate(RailView other)
         {
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in other.latestUpdates)
+            {
                 RecordUpdate(pair.Key, pair.Value);
+            }
         }
 
         /// <summary>
@@ -117,23 +117,25 @@ namespace RailgunNet.System
         ///     we send the most recent updated entities since they're the most likely
         ///     to actually matter to the server/client scope.
         /// </summary>
-        public IEnumerable<KeyValuePair<EntityId, RailViewEntry>> GetOrdered(
-            Tick localTick)
+        public IEnumerable<KeyValuePair<EntityId, RailViewEntry>> GetOrdered(Tick localTick)
         {
             sortList.Clear();
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in latestUpdates)
                 // If we haven't received an update on an entity for too long, don't
                 // bother sending a view for it (the server will update us eventually)
+            {
                 if (localTick - pair.Value.LocalUpdateTick < RailConfig.VIEW_TICKS)
+                {
                     sortList.Add(pair);
+                }
+            }
 
             sortList.Sort(viewComparer);
             sortList.Reverse();
             return sortList;
         }
 
-        private class ViewComparer :
-            Comparer<KeyValuePair<EntityId, RailViewEntry>>
+        private class ViewComparer : Comparer<KeyValuePair<EntityId, RailViewEntry>>
         {
             private readonly Comparer<Tick> comparer;
 
@@ -146,9 +148,7 @@ namespace RailgunNet.System
                 KeyValuePair<EntityId, RailViewEntry> x,
                 KeyValuePair<EntityId, RailViewEntry> y)
             {
-                return comparer.Compare(
-                    x.Value.LastReceivedTick,
-                    y.Value.LastReceivedTick);
+                return comparer.Compare(x.Value.LastReceivedTick, y.Value.LastReceivedTick);
             }
         }
     }

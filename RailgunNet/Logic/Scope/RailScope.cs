@@ -19,7 +19,6 @@
  */
 
 using System.Collections.Generic;
-using System.Linq;
 using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
@@ -36,7 +35,9 @@ namespace RailgunNet.Logic.Scope
         private readonly List<RailStateDelta> activeList = new List<RailStateDelta>();
 
         // Pre-allocated reusable fill lists
-        private readonly List<KeyValuePair<float, IRailEntity>> entryList = new List<KeyValuePair<float, IRailEntity>>();
+        private readonly List<KeyValuePair<float, IRailEntity>> entryList =
+            new List<KeyValuePair<float, IRailEntity>>();
+
         private readonly List<RailStateDelta> frozenList = new List<RailStateDelta>();
         private readonly RailView lastSent = new RailView();
 
@@ -54,11 +55,11 @@ namespace RailgunNet.Logic.Scope
 
         private RailScopeEvaluator Evaluator { get; }
 
-        public bool Includes(
-            RailEvent evnt)
+        public bool Includes(RailEvent evnt)
         {
             return Evaluator.Evaluate(evnt);
         }
+
         [OnlyIn(Component.Server)]
         public void PopulateDeltas(
             Tick serverTick,
@@ -87,10 +88,7 @@ namespace RailgunNet.Logic.Scope
             lastSent.RecordUpdate(entityId, tick, Tick.INVALID, isFrozen);
         }
 
-        private bool GetPriority(
-            IRailEntity entity,
-            Tick current,
-            out float priority)
+        private bool GetPriority(IRailEntity entity, Tick current, out float priority)
         {
             RailViewEntry lastSent = this.lastSent.GetLatest(entity.Id);
             RailViewEntry lastAcked = ackedByClient.GetLatest(entity.Id);
@@ -98,16 +96,10 @@ namespace RailgunNet.Logic.Scope
             int ticksSinceSend = int.MaxValue;
             int ticksSinceAck = int.MaxValue;
 
-            if (lastSent.IsValid)
-                ticksSinceSend = current - lastSent.LastReceivedTick;
-            if (lastAcked.IsValid)
-                ticksSinceAck = current - lastAcked.LastReceivedTick;
+            if (lastSent.IsValid) ticksSinceSend = current - lastSent.LastReceivedTick;
+            if (lastAcked.IsValid) ticksSinceAck = current - lastAcked.LastReceivedTick;
 
-            return EvaluateEntity(
-                entity,
-                ticksSinceSend,
-                ticksSinceAck,
-                out priority);
+            return EvaluateEntity(entity, ticksSinceSend, ticksSinceAck, out priority);
         }
 
         /// <summary>
@@ -118,9 +110,7 @@ namespace RailgunNet.Logic.Scope
         ///     active delta list.
         /// </summary>
         [OnlyIn(Component.Server)]
-        private void ProduceScoped(
-            Tick serverTick,
-            IEnumerable<RailEntityServer> activeEntities)
+        private void ProduceScoped(Tick serverTick, IEnumerable<RailEntityServer> activeEntities)
         {
             // TODO: should be doable without the copy using a LINQ expression.
             entryList.Clear();
@@ -133,24 +123,21 @@ namespace RailgunNet.Logic.Scope
                 // Controlled entities are always in scope to their controller
                 else if (entity.Controller == owner)
                 {
-                    entryList.Add(
-                        new KeyValuePair<float, IRailEntity>(float.MinValue, entity));
+                    entryList.Add(new KeyValuePair<float, IRailEntity>(float.MinValue, entity));
                 }
                 else if (GetPriority(entity, serverTick, out float priority))
                 {
-                    entryList.Add(
-                        new KeyValuePair<float, IRailEntity>(priority, entity));
+                    entryList.Add(new KeyValuePair<float, IRailEntity>(priority, entity));
                 }
                 else if (entity.CanFreeze)
                 {
                     // We only want to send a freeze state if we aren't already frozen
                     RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
                     if (latest.IsFrozen == false)
+                    {
                         frozenList.Add(
-                            RailStateDelta.CreateFrozen(
-                                stateCreator,
-                                serverTick,
-                                entity.Id));
+                            RailStateDelta.CreateFrozen(stateCreator, serverTick, entity.Id));
+                    }
                 }
             }
 
@@ -167,15 +154,13 @@ namespace RailgunNet.Logic.Scope
                 //       what tick they last received a non-frozen packetToClient on.
                 //       However, this would cause some tedious tick comparison.
                 //       Should investigate a smarter way to handle this later.
-                RailStateDelta delta =
-                    entity.ProduceDelta(
-                        stateCreator,
-                        latest.LastReceivedTick,
-                        owner,
-                        latest.IsFrozen);
+                RailStateDelta delta = entity.ProduceDelta(
+                    stateCreator,
+                    latest.LastReceivedTick,
+                    owner,
+                    latest.IsFrozen);
 
-                if (delta != null)
-                    activeList.Add(delta);
+                if (delta != null) activeList.Add(delta);
             }
         }
 
@@ -193,12 +178,10 @@ namespace RailgunNet.Logic.Scope
 
                 // Note: Because the removed tick is valid, this should force-create
                 if (latest.IsValid && latest.LastReceivedTick < entity.RemovedTick)
+                {
                     removedList.Add(
-                        entity.ProduceDelta(
-                            stateCreator,
-                            latest.LastReceivedTick,
-                            target,
-                            false));
+                        entity.ProduceDelta(stateCreator, latest.LastReceivedTick, target, false));
+                }
             }
         }
 
@@ -208,16 +191,26 @@ namespace RailgunNet.Logic.Scope
             int ticksSinceAck,
             out float priority)
         {
-            return
-                Evaluator.Evaluate(
-                    entity,
-                    ticksSinceSend,
-                    ticksSinceAck,
-                    out priority);
+            return Evaluator.Evaluate(entity, ticksSinceSend, ticksSinceAck, out priority);
         }
 
-        private class EntityPriorityComparer :
-            Comparer<KeyValuePair<float, IRailEntity>>
+        public Tick GetLastSent(EntityId entityId)
+        {
+            return lastSent.GetLatest(entityId).LastReceivedTick;
+        }
+
+        public Tick GetLastAckedByClient(EntityId entityId)
+        {
+            if (entityId == EntityId.INVALID) return Tick.INVALID;
+            return ackedByClient.GetLatest(entityId).LastReceivedTick;
+        }
+
+        public bool IsPresentOnClient(EntityId entityId)
+        {
+            return GetLastAckedByClient(entityId).IsValid;
+        }
+
+        private class EntityPriorityComparer : Comparer<KeyValuePair<float, IRailEntity>>
         {
             private readonly Comparer<float> floatComparer;
 
@@ -232,23 +225,6 @@ namespace RailgunNet.Logic.Scope
             {
                 return floatComparer.Compare(x.Key, y.Key);
             }
-        }
-
-        public Tick GetLastSent(EntityId entityId)
-        {
-            return lastSent.GetLatest(entityId).LastReceivedTick;
-        }
-
-        public Tick GetLastAckedByClient(EntityId entityId)
-        {
-            if (entityId == EntityId.INVALID)
-                return Tick.INVALID;
-            return ackedByClient.GetLatest(entityId).LastReceivedTick;
-        }
-
-        public bool IsPresentOnClient(EntityId entityId)
-        {
-            return GetLastAckedByClient(entityId).IsValid;
         }
     }
 }

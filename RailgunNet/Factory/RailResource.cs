@@ -29,10 +29,8 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Factory
 {
-    public class RailResource :
-        IRailCommandConstruction,
-        IRailEventConstruction,
-        IRailStateConstruction
+    public class RailResource
+        : IRailCommandConstruction, IRailEventConstruction, IRailStateConstruction
     {
         private readonly IRailMemoryPool<RailCommand> commandPool;
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
@@ -44,7 +42,9 @@ namespace RailgunNet.Factory
         private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
         private readonly Dictionary<Type, int> eventTypeToKey;
 
-        [OnlyIn(Component.Server)] [CanBeNull] private readonly IRailMemoryPool<RailStateRecord> recordPool;
+        [OnlyIn(Component.Server)]
+        [CanBeNull]
+        private readonly IRailMemoryPool<RailStateRecord> recordPool;
 
         private readonly Dictionary<int, IRailMemoryPool<RailState>> statePools;
 
@@ -61,29 +61,30 @@ namespace RailgunNet.Factory
             RegisterEvents(registry);
             RegisterEntities(registry);
 
-            EventTypeCompressor =
-                new RailIntCompressor(0, eventPools.Count + 1);
-            EntityTypeCompressor =
-                new RailIntCompressor(0, entityPools.Count + 1);
+            EventTypeCompressor = new RailIntCompressor(0, eventPools.Count + 1);
+            EntityTypeCompressor = new RailIntCompressor(0, entityPools.Count + 1);
 
             deltaPool = new RailMemoryPool<RailStateDelta>(new RailFactory<RailStateDelta>());
-            commandUpdatePool = new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
+            commandUpdatePool =
+                new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 
             if (registry.Component == Component.Server)
-                recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
+            {
+                recordPool =
+                    new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
+            }
         }
 
         public RailIntCompressor EventTypeCompressor { get; }
         public RailIntCompressor EntityTypeCompressor { get; }
 
-        private IRailMemoryPool<RailCommand> CreateCommandPool(
-            RailRegistry registry)
+        private IRailMemoryPool<RailCommand> CreateCommandPool(RailRegistry registry)
         {
-            return new RailMemoryPool<RailCommand>(new RailFactory<RailCommand>(registry.CommandType));
+            return new RailMemoryPool<RailCommand>(
+                new RailFactory<RailCommand>(registry.CommandType));
         }
 
-        private void RegisterEvents(
-            RailRegistry registry)
+        private void RegisterEvents(RailRegistry registry)
         {
             foreach (Type eventType in registry.EventTypes)
             {
@@ -96,8 +97,7 @@ namespace RailgunNet.Factory
             }
         }
 
-        private void RegisterEntities(
-            RailRegistry registry)
+        private void RegisterEntities(RailRegistry registry)
         {
             foreach (KeyValuePair<Type, Type> pair in registry.EntityTypes)
             {
@@ -107,7 +107,8 @@ namespace RailgunNet.Factory
                 IRailMemoryPool<RailState> statePool =
                     new RailMemoryPool<RailState>(new RailFactory<RailState>(stateType));
                 IRailMemoryPool<RailEntity> entityPool =
-                    new RailMemoryPool<RailEntity>(new RailFactoryEntity(registry.Component, entityType));
+                    new RailMemoryPool<RailEntity>(
+                        new RailFactoryEntity(registry.Component, entityType));
 
                 int typeKey = statePools.Count + 1; // 0 is an invalid type
                 statePools.Add(typeKey, statePool);
@@ -117,7 +118,6 @@ namespace RailgunNet.Factory
         }
 
         #region Allocation
-
         public RailCommand CreateCommand()
         {
             return commandPool.Allocate();
@@ -157,10 +157,12 @@ namespace RailgunNet.Factory
         private class RailFactoryEntity : RailFactory<RailEntity>
         {
             private readonly Component component;
+
             public RailFactoryEntity(Component eComponent, Type typeToCreate) : base(typeToCreate)
             {
                 component = eComponent;
             }
+
             public override RailEntity Create()
             {
                 RailEntity entity = base.Create();
@@ -170,7 +172,6 @@ namespace RailgunNet.Factory
         }
 
         #region Typed
-
         public int GetEntityFactoryType<T>()
             where T : RailEntity
         {
@@ -182,9 +183,7 @@ namespace RailgunNet.Factory
         {
             return eventTypeToKey[typeof(T)];
         }
-
         #endregion
-
         #endregion
     }
 }

@@ -26,9 +26,7 @@ namespace RailgunNet.System.Types
 {
     public static class SequenceIdExtensions
     {
-        public static void WriteSequenceId(
-            this RailBitBuffer buffer,
-            SequenceId sequenceId)
+        public static void WriteSequenceId(this RailBitBuffer buffer, SequenceId sequenceId)
         {
             sequenceId.Write(buffer);
         }
@@ -52,7 +50,6 @@ namespace RailgunNet.System.Types
     public readonly struct SequenceId
     {
         #region Encoding/Decoding
-
         public void Write(RailBitBuffer buffer)
         {
             buffer.Write(BITS_USED, rawValue);
@@ -67,7 +64,6 @@ namespace RailgunNet.System.Types
         {
             return new SequenceId(buffer.Peek(BITS_USED));
         }
-
         #endregion
 
         private class SequenceIdComparer : IEqualityComparer<SequenceId>
@@ -96,25 +92,20 @@ namespace RailgunNet.System.Types
         public static readonly SequenceId Start = new SequenceId(1);
 
         #region Operators
-
         private static int GetDifference(SequenceId a, SequenceId b)
         {
             RailDebug.Assert(a.IsValid);
             RailDebug.Assert(b.IsValid);
 
-            int difference =
-                (int) ((a.rawValue << BIT_SHIFT) -
-                       (b.rawValue << BIT_SHIFT));
+            int difference = (int) ((a.rawValue << BIT_SHIFT) - (b.rawValue << BIT_SHIFT));
             return difference;
         }
 
         private static int WrapValue(int rawValue)
         {
             // We need to skip 0 since it's not a valid number
-            if (rawValue > MAX_VALUE)
-                return rawValue % MAX_VALUE;
-            if (rawValue < 1)
-                return rawValue % MAX_VALUE + MAX_VALUE;
+            if (rawValue > MAX_VALUE) return rawValue % MAX_VALUE;
+            if (rawValue < 1) return rawValue % MAX_VALUE + MAX_VALUE;
             return rawValue;
         }
 
@@ -137,13 +128,11 @@ namespace RailgunNet.System.Types
             // We need to skip 0 since it's not a valid number
             if (a.rawValue < b.rawValue)
             {
-                if (difference > 0)
-                    difference--;
+                if (difference > 0) difference--;
             }
             else
             {
-                if (difference < 0)
-                    difference++;
+                if (difference < 0) difference++;
             }
 
             return difference;
@@ -195,7 +184,6 @@ namespace RailgunNet.System.Types
 
             return a.rawValue != b.rawValue;
         }
-
         #endregion
 
         public SequenceId Next
@@ -205,8 +193,7 @@ namespace RailgunNet.System.Types
                 RailDebug.Assert(IsValid);
 
                 uint nextValue = rawValue + 1;
-                if (nextValue > MAX_VALUE)
-                    nextValue = 1;
+                if (nextValue > MAX_VALUE) nextValue = 1;
                 return new SequenceId(nextValue);
             }
         }
@@ -227,15 +214,13 @@ namespace RailgunNet.System.Types
 
         public override bool Equals(object obj)
         {
-            if (obj is SequenceId)
-                return ((SequenceId) obj).rawValue == rawValue;
+            if (obj is SequenceId) return ((SequenceId) obj).rawValue == rawValue;
             return false;
         }
 
         public override string ToString()
         {
-            if (IsValid)
-                return "SequenceId:" + (rawValue - 1);
+            if (IsValid) return "SequenceId:" + (rawValue - 1);
             return "SequenceId:Invalid";
         }
     }

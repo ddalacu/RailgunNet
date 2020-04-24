@@ -23,11 +23,9 @@ namespace RailgunNet.Logic
             // We use no divisor for storing commands because commands are sent in
             // batches that we can use to fill in the holes between send ticks
             incomingCommands =
-                new RailDejitterBuffer<RailCommand>(
-                    RailConfig.DEJITTER_BUFFER_LENGTH);
+                new RailDejitterBuffer<RailCommand>(RailConfig.DEJITTER_BUFFER_LENGTH);
             outgoingStates =
-                new RailQueueBuffer<RailStateRecord>(
-                    RailConfig.DEJITTER_BUFFER_LENGTH);
+                new RailQueueBuffer<RailStateRecord>(RailConfig.DEJITTER_BUFFER_LENGTH);
             Reset();
         }
 
@@ -40,6 +38,7 @@ namespace RailgunNet.Logic
             // Notify our inheritors that we are being removed next tick
             OnSunset();
         }
+
         public void ServerUpdate()
         {
             UpdateAuth();
@@ -61,23 +60,22 @@ namespace RailgunNet.Logic
                 CommandMissing();
             }
         }
-        public static T Create<T>(
-            RailResource resource)
+
+        public static T Create<T>(RailResource resource)
             where T : RailEntityServer
         {
             int factoryType = resource.GetEntityFactoryType<T>();
-            return (T)Create(resource, factoryType);
+            return (T) Create(resource, factoryType);
         }
+
         public void StoreRecord(IRailStateConstruction stateCreator)
         {
-            RailStateRecord record =
-                RailState.CreateRecord(
-                    stateCreator,
-                    Room.Tick,
-                    StateBase,
-                    outgoingStates.Latest);
-            if (record != null)
-                outgoingStates.Store(record);
+            RailStateRecord record = RailState.CreateRecord(
+                stateCreator,
+                Room.Tick,
+                StateBase,
+                outgoingStates.Latest);
+            if (record != null) outgoingStates.Store(record);
         }
 
         public RailStateDelta ProduceDelta(
@@ -88,8 +86,7 @@ namespace RailgunNet.Logic
         {
             // Flags for special data modes
             bool includeControllerData =
-                destination == Controller ||
-                destination == priorController;
+                destination == Controller || destination == priorController;
             bool includeImmutableData = basisTick.IsValid == false;
 
             return RailState.CreateDelta(
@@ -103,6 +100,7 @@ namespace RailgunNet.Logic
                 RemovedTick,
                 forceAllMutable);
         }
+
         #region Lifecycle and Loop
         public override void Shutdown()
         {
@@ -119,8 +117,8 @@ namespace RailgunNet.Logic
 
             base.Shutdown();
         }
-
         #endregion
+
         protected sealed override void Reset()
         {
             base.Reset();
@@ -130,13 +128,14 @@ namespace RailgunNet.Logic
             ResetStates();
             OnReset();
         }
+
         private void ResetStates()
         {
-            if (StateBase != null)
-                RailPool.Free(StateBase);
+            if (StateBase != null) RailPool.Free(StateBase);
 
             StateBase = null;
         }
+
         protected override void ClearCommands()
         {
             incomingCommands.Clear();
@@ -146,29 +145,29 @@ namespace RailgunNet.Logic
         public void ReceiveCommand(RailCommand command)
         {
             if (incomingCommands.Store(command))
+            {
                 command.IsNewCommand = true;
+            }
             else
+            {
                 RailPool.Free(command);
+            }
         }
 
         private RailCommand GetLatestCommand()
         {
             if (Controller != null)
-                return
-                    incomingCommands.GetLatestAt(
-                        Controller.EstimatedRemoteTick);
+            {
+                return incomingCommands.GetLatestAt(Controller.EstimatedRemoteTick);
+            }
+
             return null;
         }
 
         private void UpdateCommandAck(Tick latestCommandTick)
         {
-            bool shouldAck =
-                commandAck.IsValid == false ||
-                latestCommandTick > commandAck;
-            if (shouldAck)
-                commandAck = latestCommandTick;
+            bool shouldAck = commandAck.IsValid == false || latestCommandTick > commandAck;
+            if (shouldAck) commandAck = latestCommandTick;
         }
     }
-
-    
 }

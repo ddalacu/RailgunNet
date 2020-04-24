@@ -49,8 +49,7 @@ namespace RailgunNet.Connection
 
         protected RailInterpreter Interpreter { get; }
 
-        [PublicAPI]
-        public event Action Started;
+        [PublicAPI] public event Action Started;
 
         public abstract void Update();
 
@@ -67,8 +66,7 @@ namespace RailgunNet.Connection
 
         protected void DoStart()
         {
-            if (hasStarted == false)
-                Started?.Invoke();
+            if (hasStarted == false) Started?.Invoke();
             hasStarted = true;
         }
     }

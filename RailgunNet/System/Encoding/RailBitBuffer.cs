@@ -72,10 +72,7 @@ namespace RailgunNet.System.Encoding
         /// </summary>
         public bool IsFinished => writePos == readPos;
 
-        public static int PutBytes(
-            uint value,
-            byte[] buffer,
-            int start)
+        public static int PutBytes(uint value, byte[] buffer, int start)
         {
             int first = start;
 
@@ -90,9 +87,7 @@ namespace RailgunNet.System.Encoding
             return start - first + 1;
         }
 
-        public static uint ReadBytes(
-            byte[] buffer,
-            ref int position)
+        public static uint ReadBytes(byte[] buffer, ref int position)
         {
             byte dataByte;
             uint value = 0;
@@ -103,7 +98,8 @@ namespace RailgunNet.System.Encoding
                 dataByte = buffer[position];
                 value |= dataByte & 0x7Fu;
                 position++;
-            } while ((dataByte & 0x80u) != 0);
+            }
+            while ((dataByte & 0x80u) != 0);
 
             return value;
         }
@@ -158,15 +154,19 @@ namespace RailgunNet.System.Encoding
         public void Write(int numBits, uint value)
         {
             if (numBits < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
+            }
+
             if (numBits > 32)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
+            }
 
             int index = writePos >> 5;
             int used = writePos & 0x0000001F;
 
-            if (index + 1 >= chunks.Length)
-                ExpandArray();
+            if (index + 1 >= chunks.Length) ExpandArray();
 
             ulong chunkMask = (1UL << used) - 1;
             ulong scratch = chunks[index] & chunkMask;
@@ -194,17 +194,21 @@ namespace RailgunNet.System.Encoding
         public uint Peek(int numBits)
         {
             if (numBits < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
+            }
+
             if (numBits > 32)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
+            }
 
             int index = readPos >> 5;
             int used = readPos & 0x0000001F;
 
             ulong chunkMask = ((1UL << numBits) - 1) << used;
             ulong scratch = chunks[index];
-            if (index + 1 < chunks.Length)
-                scratch |= (ulong) chunks[index + 1] << 32;
+            if (index + 1 < chunks.Length) scratch |= (ulong) chunks[index + 1] << 32;
             ulong result = (scratch & chunkMask) >> used;
 
             return (uint) result;
@@ -240,17 +244,15 @@ namespace RailgunNet.System.Encoding
         public void Load(byte[] data, int length)
         {
             int numChunks = length / 4 + 1;
-            if (chunks.Length < numChunks)
-                chunks = new uint[numChunks];
+            if (chunks.Length < numChunks) chunks = new uint[numChunks];
 
             for (int i = 0; i < numChunks; i++)
             {
                 int dataIdx = i * 4;
-                uint chunk =
-                    data[dataIdx] |
-                    ((uint) data[dataIdx + 1] << 8) |
-                    ((uint) data[dataIdx + 2] << 16) |
-                    ((uint) data[dataIdx + 3] << 24);
+                uint chunk = data[dataIdx] |
+                             ((uint) data[dataIdx + 1] << 8) |
+                             ((uint) data[dataIdx + 2] << 16) |
+                             ((uint) data[dataIdx + 3] << 24);
                 chunks[i] = chunk;
             }
 
@@ -268,18 +270,21 @@ namespace RailgunNet.System.Encoding
         private void Insert(int position, int numBits, uint value)
         {
             if (numBits < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing negative bits");
+            }
+
             if (numBits > 32)
+            {
                 throw new ArgumentOutOfRangeException(nameof(numBits), "Pushing too many bits");
+            }
 
             int index = position >> 5;
             int used = position & 0x0000001F;
 
             ulong valueMask = (1UL << numBits) - 1;
             ulong prepared = (value & valueMask) << used;
-            ulong scratch =
-                chunks[index] |
-                ((ulong) chunks[index + 1] << 32);
+            ulong scratch = chunks[index] | ((ulong) chunks[index + 1] << 32);
             ulong result = scratch | prepared;
 
             chunks[index] = (uint) result;
@@ -288,9 +293,7 @@ namespace RailgunNet.System.Encoding
 
         private void ExpandArray()
         {
-            int newCapacity =
-                chunks.Length * GROW_FACTOR +
-                MIN_GROW;
+            int newCapacity = chunks.Length * GROW_FACTOR + MIN_GROW;
 
             uint[] newChunks = new uint[newCapacity];
             Array.Copy(chunks, newChunks, chunks.Length);
@@ -301,28 +304,27 @@ namespace RailgunNet.System.Encoding
         {
             StringBuilder raw = new StringBuilder();
             for (int i = chunks.Length - 1; i >= 0; i--)
+            {
                 raw.Append(Convert.ToString(chunks[i], 2).PadLeft(32, '0'));
+            }
 
             StringBuilder spaced = new StringBuilder();
             for (int i = 0; i < raw.Length; i++)
             {
                 spaced.Append(raw[i]);
-                if ((i + 1) % 8 == 0)
-                    spaced.Append(" ");
+                if ((i + 1) % 8 == 0) spaced.Append(" ");
             }
 
             return spaced.ToString();
         }
 
         #region Enumerables
-
         /// <summary>
         ///     Packs all elements of an enumerable.
         ///     Max 255 elements.
         /// </summary>
-        public byte PackAll<T>(
-            IEnumerable<T> elements,
-            Action<T> encode) // TODO: Make this take a buffer!
+        public byte
+            PackAll<T>(IEnumerable<T> elements, Action<T> encode) // TODO: Make this take a buffer!
         {
             byte count = 0;
 
@@ -333,8 +335,7 @@ namespace RailgunNet.System.Encoding
             // Write: [Elements]
             foreach (T val in elements)
             {
-                if (count == 255)
-                    break;
+                if (count == 255) break;
 
                 encode.Invoke(val);
                 count++;
@@ -369,8 +370,7 @@ namespace RailgunNet.System.Encoding
             // Write: [Elements]
             foreach (T val in elements)
             {
-                if (count == MAX_SIZE)
-                    break;
+                if (count == MAX_SIZE) break;
                 int rollback = writePos;
                 int startByteSize = ByteSize;
 
@@ -381,8 +381,7 @@ namespace RailgunNet.System.Encoding
                 if (writeByteSize > maxIndividualBytes)
                 {
                     writePos = rollback;
-                    RailDebug.LogWarning(
-                        "Skipping " + val + " (" + writeByteSize + "B)");
+                    RailDebug.LogWarning("Skipping " + val + " (" + writeByteSize + "B)");
                 }
                 else if (endByteSize > maxTotalBytes)
                 {
@@ -405,23 +404,21 @@ namespace RailgunNet.System.Encoding
         ///     Decodes all packed items.
         ///     Max 255 elements.
         /// </summary>
-        public IEnumerable<T> UnpackAll<T>(
-            Func<RailBitBuffer, T> decode)
+        public IEnumerable<T> UnpackAll<T>(Func<RailBitBuffer, T> decode)
         {
             // Read: [Count]
             byte count = ReadByte();
 
             // Read: [Elements]
             for (uint i = 0; i < count; i++)
+            {
                 yield return decode.Invoke(this);
+            }
         }
-
         #endregion
 
         #region Encode/Decode
-
         #region Byte
-
         public void WriteByte(byte val)
         {
             Write(8, val);
@@ -436,11 +433,9 @@ namespace RailgunNet.System.Encoding
         {
             return (byte) Peek(8);
         }
-
         #endregion
 
         #region UInt
-
         /// <summary>
         ///     Writes using an elastic number of bytes based on number size:
         ///     Bits   Min Dec    Max Dec     Max Hex     Bytes Used
@@ -459,12 +454,12 @@ namespace RailgunNet.System.Encoding
                 val >>= 7;
 
                 // If there is more data, set the 8th bit to true
-                if (val > 0)
-                    buffer |= 0x80u;
+                if (val > 0) buffer |= 0x80u;
 
                 // Store the next byte
                 Write(8, buffer);
-            } while (val > 0);
+            }
+            while (val > 0);
         }
 
         public uint ReadUInt()
@@ -482,7 +477,8 @@ namespace RailgunNet.System.Encoding
                 s += 7;
 
                 // Continue if we're flagged for more
-            } while ((buffer & 0x80u) > 0);
+            }
+            while ((buffer & 0x80u) > 0);
 
             return val;
         }
@@ -494,11 +490,9 @@ namespace RailgunNet.System.Encoding
             readPos = tempPosition;
             return val;
         }
-
         #endregion
 
         #region Int
-
         public void WriteInt(int val)
         {
             uint zigzag = (uint) ((val << 1) ^ (val >> 31));
@@ -518,11 +512,9 @@ namespace RailgunNet.System.Encoding
             int zagzig = (int) ((val >> 1) ^ -(val & 1));
             return zagzig;
         }
-
         #endregion
 
         #region Bool
-
         public void WriteBool(bool value)
         {
             Write(1, value ? 1U : 0U);
@@ -537,11 +529,9 @@ namespace RailgunNet.System.Encoding
         {
             return Peek(1) > 0;
         }
-
         #endregion
 
         #region Bool
-
         public void WriteFull(ushort value)
         {
             Write(16, value);
@@ -551,30 +541,28 @@ namespace RailgunNet.System.Encoding
         {
             return (ushort) Read(16);
         }
-
         #endregion
 
         #region String
-
         // 7 bits for 0-127 on the simple ASCII table
         private const int ASCII_BITS = 7;
 
-        private static readonly int STRING_LENGTH_BITS =
-            RailUtil.Log2(RailConfig.STRING_LENGTH_MAX);
+        private static readonly int
+            STRING_LENGTH_BITS = RailUtil.Log2(RailConfig.STRING_LENGTH_MAX);
 
         public void WriteString(string value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            if (value == null) throw new ArgumentNullException(nameof(value));
 
             uint length = (uint) value.Length;
             RailDebug.Assert(length <= RailConfig.STRING_LENGTH_MAX, value);
-            if (value.Length > RailConfig.STRING_LENGTH_MAX)
-                length = RailConfig.STRING_LENGTH_MAX;
+            if (value.Length > RailConfig.STRING_LENGTH_MAX) length = RailConfig.STRING_LENGTH_MAX;
 
             Write(STRING_LENGTH_BITS, length);
             for (int i = 0; i < length; i++)
+            {
                 Write(ASCII_BITS, ToASCII(value[i]));
+            }
         }
 
         public string ReadString()
@@ -582,12 +570,13 @@ namespace RailgunNet.System.Encoding
             StringBuilder builder = new StringBuilder("");
             uint length = Read(STRING_LENGTH_BITS);
             for (int i = 0; i < length; i++)
+            {
                 builder.Append((char) Read(ASCII_BITS));
+            }
+
             return builder.ToString();
         }
-
         #endregion
-
         #endregion
     }
 }

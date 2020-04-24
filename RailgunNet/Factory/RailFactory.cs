@@ -14,14 +14,24 @@ namespace RailgunNet.Factory
         public RailFactory()
         {
             typeToCreate = typeof(T);
-            if (typeToCreate.IsAbstract) throw new ArgumentException("Cannot create a factory for an abstract type.");
+            if (typeToCreate.IsAbstract)
+            {
+                throw new ArgumentException("Cannot create a factory for an abstract type.");
+            }
         }
 
         public RailFactory(Type typeToCreate)
         {
             if (!typeToCreate.IsSubclassOf(typeof(T)))
+            {
                 throw new ArgumentException("type is not derived from base.", nameof(typeToCreate));
-            if (typeToCreate.IsAbstract) throw new ArgumentException("Cannot create a factory for an abstract type.");
+            }
+
+            if (typeToCreate.IsAbstract)
+            {
+                throw new ArgumentException("Cannot create a factory for an abstract type.");
+            }
+
             this.typeToCreate = typeToCreate;
         }
 

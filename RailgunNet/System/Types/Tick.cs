@@ -42,19 +42,21 @@ namespace RailgunNet.System.Types
         }
 
         #region Array
-
         public static void WriteTicks(this RailBitBuffer buffer, Tick[] ticks)
         {
             for (int i = 0; i < ticks.Length; i++)
+            {
                 ticks[i].Write(buffer);
+            }
         }
 
         public static void ReadTicks(this RailBitBuffer buffer, Tick[] toStore)
         {
             for (int i = 0; i < toStore.Length; i++)
+            {
                 toStore[i] = Tick.Read(buffer);
+            }
         }
-
         #endregion
     }
 
@@ -66,7 +68,6 @@ namespace RailgunNet.System.Types
     public readonly struct Tick
     {
         #region Encoding/Decoding
-
         public void Write(RailBitBuffer buffer)
         {
             buffer.WriteUInt(tickValue);
@@ -81,7 +82,6 @@ namespace RailgunNet.System.Types
         {
             return new Tick(buffer.PeekUInt());
         }
-
         #endregion
 
         private class TickComparer : Comparer<Tick>, IEqualityComparer<Tick>
@@ -130,8 +130,7 @@ namespace RailgunNet.System.Types
             long result = a.tickValue - b;
             if (result < 1)
             {
-                if (warnClamp)
-                    RailDebug.LogWarning("Clamping tick subtraction");
+                if (warnClamp) RailDebug.LogWarning("Clamping tick subtraction");
                 result = 1;
             }
 
@@ -142,7 +141,6 @@ namespace RailgunNet.System.Types
         public static readonly Tick START = new Tick(1);
 
         #region Operators
-
         // Can't find references on these, so just delete and build to find uses
 
         public static Tick operator ++(Tick a)
@@ -201,11 +199,9 @@ namespace RailgunNet.System.Types
         {
             return Subtract(a, b, true);
         }
-
         #endregion
 
         #region Properties
-
         public bool IsValid => tickValue > 0;
 
         public float ToTime(float tickDeltaTime)
@@ -213,7 +209,6 @@ namespace RailgunNet.System.Types
             RailDebug.Assert(IsValid);
             return (tickValue - 1) * tickDeltaTime;
         }
-
         #endregion
 
         /// <summary>
@@ -248,22 +243,19 @@ namespace RailgunNet.System.Types
 
         public override bool Equals(object obj)
         {
-            if (obj is Tick)
-                return ((Tick) obj).tickValue == tickValue;
+            if (obj is Tick) return ((Tick) obj).tickValue == tickValue;
             return false;
         }
 
         public override string ToString()
         {
-            if (tickValue == 0)
-                return "Tick:Invalid";
+            if (tickValue == 0) return "Tick:Invalid";
             return "Tick:" + (tickValue - 1);
         }
 
         public bool IsSendTick(int tickRate)
         {
-            if (IsValid)
-                return RawValue % tickRate == 0;
+            if (IsValid) return RawValue % tickRate == 0;
             return false;
         }
     }

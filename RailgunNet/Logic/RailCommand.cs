@@ -35,12 +35,10 @@ namespace RailgunNet.Logic
         where T : RailCommand<T>, new()
     {
         #region Casting Overrides
-
         protected override void SetDataFrom(RailCommand other)
         {
             CopyDataFrom((T) other);
         }
-
         #endregion
 
         protected abstract void CopyDataFrom(T other);
@@ -49,9 +47,7 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Commands contain input data from the client to be applied to entities.
     /// </summary>
-    public abstract class RailCommand :
-        IRailPoolable<RailCommand>,
-        IRailTimedValue
+    public abstract class RailCommand : IRailPoolable<RailCommand>, IRailTimedValue
     {
         /// <summary>
         ///     The client's local tick (not server predicted) at the time of sending.
@@ -61,13 +57,10 @@ namespace RailgunNet.Logic
         public bool IsNewCommand { get; set; }
 
         #region Implementation: IRailTimedValue
-
         Tick IRailTimedValue.Tick => ClientTick;
-
         #endregion
 
         #region To be implemented by API consumer.
-
         [PublicAPI]
         protected abstract void SetDataFrom(RailCommand other);
 
@@ -79,22 +72,18 @@ namespace RailgunNet.Logic
 
         [PublicAPI]
         protected abstract void ResetData();
-
         #endregion
 
         #region Implementation: IRailPoolable
-
         IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
 
         void IRailPoolable<RailCommand>.Reset()
         {
             Reset();
         }
-
         #endregion
 
         #region Encode/Decode/internals
-
         private void Reset()
         {
             ClientTick = Tick.INVALID;
@@ -102,8 +91,7 @@ namespace RailgunNet.Logic
         }
 
         [OnlyIn(Component.Client)]
-        public void Encode(
-            RailBitBuffer buffer)
+        public void Encode(RailBitBuffer buffer)
         {
             // Write: [SenderTick]
             buffer.WriteTick(ClientTick);
@@ -127,7 +115,6 @@ namespace RailgunNet.Logic
 
             return command;
         }
-
         #endregion
     }
 }

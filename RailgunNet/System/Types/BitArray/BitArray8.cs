@@ -46,7 +46,6 @@ namespace RailgunNet.System.Types.BitArray
     public readonly struct BitArray8
     {
         #region Encoding/Decoding
-
         public void Write(RailBitBuffer buffer)
         {
             buffer.WriteByte(bitField);
@@ -61,7 +60,6 @@ namespace RailgunNet.System.Types.BitArray
         {
             return new BitArray8(buffer.PeekByte());
         }
-
         #endregion
 
         private const int LENGTH = 8;
@@ -123,8 +121,7 @@ namespace RailgunNet.System.Types.BitArray
 
         public override bool Equals(object obj)
         {
-            if (obj is BitArray8)
-                return ((BitArray8) obj).bitField == bitField;
+            if (obj is BitArray8) return ((BitArray8) obj).bitField == bitField;
             return false;
         }
 

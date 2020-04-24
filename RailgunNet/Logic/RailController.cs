@@ -36,6 +36,7 @@ namespace RailgunNet.Logic
         ///     The entities controlled by this controller.
         /// </summary>
         private readonly HashSet<IRailEntity> controlledEntities;
+
         public RailController(
             IRailStateConstruction stateCreator,
             ExternalEntityVisibility eVisibility,
@@ -43,22 +44,31 @@ namespace RailgunNet.Logic
         {
             controlledEntities = new HashSet<IRailEntity>();
             NetPeer = netPeer;
-            Scope = eVisibility == ExternalEntityVisibility.Scoped ? new RailScope(this, stateCreator) : null;
+            Scope = eVisibility == ExternalEntityVisibility.Scoped ?
+                new RailScope(this, stateCreator) :
+                null;
             netPeer?.BindController(this);
         }
 
         /// <summary>
         ///     The network I/O peer for sending/receiving data.
         /// </summary>
-        [CanBeNull] protected IRailNetPeer NetPeer { get; }
+        [CanBeNull]
+        protected IRailNetPeer NetPeer { get; }
 
         public object UserData { get; set; }
 
         public virtual Tick EstimatedRemoteTick =>
-            throw new InvalidOperationException(
-                "Local controller has no remote tick");
+            throw new InvalidOperationException("Local controller has no remote tick");
 
         public IEnumerable<IRailEntity> ControlledEntities => controlledEntities;
+
+        /// <summary>
+        ///     Used for determining which entity updates to send.
+        /// </summary>
+        [CanBeNull]
+        [OnlyIn(Component.Server)]
+        public RailScope Scope { get; }
 
         /// <summary>
         ///     Queues an event to send directly to this peer.
@@ -68,35 +78,28 @@ namespace RailgunNet.Logic
             ushort attempts = 3,
             bool freeWhenDone = true)
         {
-            throw new InvalidOperationException(
-                "Cannot raise event to local controller");
+            throw new InvalidOperationException("Cannot raise event to local controller");
         }
 
         /// <summary>
         ///     Queues an event to send directly to this peer.
         /// </summary>
-        public virtual void SendEvent(
-            RailEvent evnt,
-            ushort attempts)
+        public virtual void SendEvent(RailEvent evnt, ushort attempts)
         {
-            throw new InvalidOperationException(
-                "Cannot send event to local controller");
+            throw new InvalidOperationException("Cannot send event to local controller");
         }
 
-        /// <summary>
-        ///     Used for determining which entity updates to send.
-        /// </summary>
-        [CanBeNull][OnlyIn(Component.Server)] public RailScope Scope { get; }
-
         #region Controller
-
         /// <summary>
         ///     Detaches the controller from all controlled entities.
         /// </summary>
         public void Shutdown()
         {
             foreach (IRailEntity entity in controlledEntities)
+            {
                 entity.AsBase.AssignController(null);
+            }
+
             controlledEntities.Clear();
         }
 
@@ -105,8 +108,7 @@ namespace RailgunNet.Logic
         /// </summary>
         public void GrantControlInternal(IRailEntity entity)
         {
-            if (entity.Controller == this)
-                return;
+            if (entity.Controller == this) return;
             RailDebug.Assert(entity.Controller == null);
 
             controlledEntities.Add(entity);
@@ -123,7 +125,6 @@ namespace RailgunNet.Logic
             controlledEntities.Remove(entity);
             entity.AsBase.AssignController(null);
         }
-
         #endregion
     }
 }

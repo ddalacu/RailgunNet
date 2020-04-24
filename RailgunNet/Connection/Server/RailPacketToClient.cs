@@ -33,8 +33,7 @@ namespace RailgunNet.Connection.Server
     ///     side is RailPacketFromServer.
     /// </summary>
     [OnlyIn(Component.Server)]
-    public sealed class RailPacketToClient
-        : RailPacketOutgoing
+    public sealed class RailPacketToClient : RailPacketOutgoing
     {
         private readonly RailPackedListOutgoing<RailStateDelta> deltas;
 
@@ -63,7 +62,6 @@ namespace RailgunNet.Connection.Server
         }
 
         #region Encode/Decode
-
         public override void EncodePayload(
             IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
@@ -85,7 +83,6 @@ namespace RailgunNet.Connection.Server
                 RailConfig.MAXSIZE_ENTITY,
                 (delta, buf) => RailState.EncodeDelta(stateCreator, buf, delta));
         }
-
         #endregion
     }
 }

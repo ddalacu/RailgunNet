@@ -11,8 +11,7 @@ namespace RailgunNet.Connection.Client
     ///     Packet sent from server to client.
     /// </summary>
     [OnlyIn(Component.Client)]
-    public sealed class RailPacketFromServer
-        : RailPacketIncoming
+    public sealed class RailPacketFromServer : RailPacketIncoming
     {
         private readonly RailPackedListIncoming<RailStateDelta> deltas;
 
@@ -31,7 +30,6 @@ namespace RailgunNet.Connection.Client
         }
 
         #region Encode/Decode
-
         public override void DecodePayload(
             IRailCommandConstruction commandCreator,
             IRailStateConstruction stateCreator,
@@ -41,15 +39,10 @@ namespace RailgunNet.Connection.Client
             DecodeDeltas(stateCreator, buffer);
         }
 
-        private void DecodeDeltas(
-            IRailStateConstruction stateCreator,
-            RailBitBuffer buffer)
+        private void DecodeDeltas(IRailStateConstruction stateCreator, RailBitBuffer buffer)
         {
-            deltas.Decode(
-                buffer,
-                (buf) => RailState.DecodeDelta(stateCreator, buf, SenderTick));
+            deltas.Decode(buffer, buf => RailState.DecodeDelta(stateCreator, buf, SenderTick));
         }
-
         #endregion
     }
 }

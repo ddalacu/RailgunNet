@@ -38,10 +38,7 @@ namespace RailgunNet.Connection.Traffic
             bitBuffer = new RailBitBuffer();
         }
 
-        public void SendPacket(
-            RailResource resource,
-            IRailNetPeer peer,
-            RailPacketOutgoing packet)
+        public void SendPacket(RailResource resource, IRailNetPeer peer, RailPacketOutgoing packet)
         {
             bitBuffer.Clear();
             packet.Encode(resource, bitBuffer);

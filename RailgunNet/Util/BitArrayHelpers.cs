@@ -37,8 +37,7 @@ namespace RailgunNet.Util
                     offset += 3;
                 }
 
-                if ((bits & 0x1UL) > 0)
-                    yield return offset;
+                if ((bits & 0x1UL) > 0) yield return offset;
 
                 bits >>= 1;
                 offset++;
@@ -47,10 +46,8 @@ namespace RailgunNet.Util
 
         public static bool Contains(int value, ulong bits, int length)
         {
-            if (value < 0)
-                return false;
-            if (value >= length)
-                return false;
+            if (value < 0) return false;
+            if (value >= length) return false;
 
             ulong bit = 1UL << value;
             return (bits & bit) > 0;

@@ -32,8 +32,7 @@ namespace RailgunNet.Connection.Client
     ///     Packet sent from client to server.
     /// </summary>
     [OnlyIn(Component.Client)]
-    public sealed class RailPacketToServer
-        : RailPacketOutgoing
+    public sealed class RailPacketToServer : RailPacketOutgoing
     {
         private readonly RailPackedListOutgoing<RailCommandUpdate> commandUpdates;
         private readonly RailView view;
@@ -54,9 +53,7 @@ namespace RailgunNet.Connection.Client
             commandUpdates.Clear();
         }
 
-        public void Populate(
-            IEnumerable<RailCommandUpdate> commandUpdates,
-            RailView view)
+        public void Populate(IEnumerable<RailCommandUpdate> commandUpdates, RailView view)
         {
             this.commandUpdates.AddPending(commandUpdates);
 
@@ -65,7 +62,6 @@ namespace RailgunNet.Connection.Client
         }
 
         #region Encode/Decode
-
         public override void EncodePayload(
             IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
@@ -88,10 +84,7 @@ namespace RailgunNet.Connection.Client
                 (commandUpdate, buf) => commandUpdate.Encode(buf));
         }
 
-        private void EncodeView(
-            RailBitBuffer buffer,
-            Tick localTick,
-            int reservedBytes)
+        private void EncodeView(RailBitBuffer buffer, Tick localTick, int reservedBytes)
         {
             buffer.PackToSize(
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
@@ -105,7 +98,6 @@ namespace RailgunNet.Connection.Client
                     buf.WriteBool(pair.Value.IsFrozen); // Write: [IsFrozen]
                 });
         }
-
         #endregion
     }
 }

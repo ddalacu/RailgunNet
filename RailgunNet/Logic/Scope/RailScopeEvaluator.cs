@@ -25,8 +25,7 @@ namespace RailgunNet.Logic.Scope
     [OnlyIn(Component.Server)]
     public class RailScopeEvaluator
     {
-        public virtual bool Evaluate(
-            RailEvent evnt)
+        public virtual bool Evaluate(RailEvent evnt)
         {
             return true;
         }

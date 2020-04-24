@@ -46,10 +46,7 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         private EntityId nextEntityId = EntityId.START;
 
-        private List<RailEntityServer> ToRemove { get; } // Pre-allocated removal list
-        private List<RailEntityServer> ToUpdate { get; } // Pre-allocated update list
-        public RailServerRoom(RailResource resource, RailServer server)
-            : base(resource, server)
+        public RailServerRoom(RailResource resource, RailServer server) : base(resource, server)
         {
             ToUpdate = new List<RailEntityServer>();
             ToRemove = new List<RailEntityServer>();
@@ -57,6 +54,9 @@ namespace RailgunNet.Connection.Server
             clients = new HashSet<RailController>();
             this.server = server;
         }
+
+        private List<RailEntityServer> ToRemove { get; } // Pre-allocated removal list
+        private List<RailEntityServer> ToUpdate { get; } // Pre-allocated update list
 
         /// <summary>
         ///     Fired when a controller has been added (i.e. player join).
@@ -74,7 +74,8 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
-        public T AddNewEntity<T>() where T : RailEntityServer
+        public T AddNewEntity<T>()
+            where T : RailEntityServer
         {
             T entity = CreateEntity<T>();
             RegisterEntity(entity);
@@ -92,8 +93,11 @@ namespace RailgunNet.Connection.Server
                 RailEntityServer serverEntity = entity as RailEntityServer;
                 if (serverEntity == null)
                 {
-                    throw new ArgumentNullException(nameof(entity), $"unexpected type of entity to remove: {entity}");
+                    throw new ArgumentNullException(
+                        nameof(entity),
+                        $"unexpected type of entity to remove: {entity}");
                 }
+
                 serverEntity.MarkForRemoval();
                 server.LogRemovedEntity(serverEntity);
             }
@@ -102,15 +106,14 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Queues an event to broadcast to all present clients.
         /// </summary>
-        public void BroadcastEvent(
-            RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true)
+        public void BroadcastEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
         {
             foreach (RailController client in clients)
+            {
                 client.SendEvent(evnt, attempts);
-            if (freeWhenDone)
-                evnt.Free();
+            }
+
+            if (freeWhenDone) evnt.Free();
         }
 
         public void AddClient(RailController client)
@@ -133,10 +136,16 @@ namespace RailgunNet.Connection.Server
             // Collect the entities in the priority order and
             // separate them out for either update or removal
             foreach (RailEntityServer entity in GetAllEntities<RailEntityServer>())
+            {
                 if (entity.ShouldRemove)
+                {
                     ToRemove.Add(entity);
+                }
                 else
+                {
                     ToUpdate.Add(entity);
+                }
+            }
 
             // Wave 0: Remove all sunsetted entities
             ToRemove.ForEach(RemoveEntity);
@@ -158,10 +167,13 @@ namespace RailgunNet.Connection.Server
         public void StoreStates()
         {
             foreach (RailEntityServer entity in Entities)
+            {
                 entity.StoreRecord(Resource);
+            }
         }
 
-        private T CreateEntity<T>() where T : RailEntityServer
+        private T CreateEntity<T>()
+            where T : RailEntityServer
         {
             T entity = RailEntityServer.Create<T>(Resource);
             entity.AssignId(nextEntityId);

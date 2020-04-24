@@ -6,9 +6,9 @@ namespace RailgunNet.Factory
 {
     public interface IRailStateConstruction
     {
+        RailIntCompressor EntityTypeCompressor { get; }
         RailState CreateState(int factoryType);
         RailStateDelta CreateDelta();
         RailStateRecord CreateRecord();
-        RailIntCompressor EntityTypeCompressor { get; }
     }
 }

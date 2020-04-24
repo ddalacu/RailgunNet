@@ -35,58 +35,55 @@ namespace RailgunNet.Connection.Client
     ///     The peer created by the client representing the server.
     /// </summary>
     [OnlyIn(Component.Client)]
-    public class RailClientPeer
-        : RailPeer<RailPacketFromServer, RailPacketToServer>
+    public class RailClientPeer : RailPeer<RailPacketFromServer, RailPacketToServer>
     {
         private readonly RailView localView;
 
         public RailClientPeer(
             RailResource resource,
             IRailNetPeer netPeer,
-            RailInterpreter interpreter)
-            : base(
-                resource,
-                netPeer,
-                ExternalEntityVisibility.All,
-                RailConfig.SERVER_SEND_RATE,
-                interpreter)
+            RailInterpreter interpreter) : base(
+            resource,
+            netPeer,
+            ExternalEntityVisibility.All,
+            RailConfig.SERVER_SEND_RATE,
+            interpreter)
         {
             localView = new RailView();
         }
 
         public event Action<RailPacketFromServer> PacketReceived;
 
-        public void SendPacket(
-            Tick localTick,
-            IEnumerable<IRailEntity> controlledEntities)
+        public void SendPacket(Tick localTick, IEnumerable<IRailEntity> controlledEntities)
         {
             // TODO: Sort controlledEntities by most recently sent
 
             RailPacketToServer packet = PrepareSend<RailPacketToServer>(localTick);
-            packet.Populate(
-                ProduceCommandUpdates(controlledEntities),
-                localView);
+            packet.Populate(ProduceCommandUpdates(controlledEntities), localView);
 
             // Send the packet
             base.SendPacket(packet);
 
             foreach (RailCommandUpdate commandUpdate in packet.Sent)
+            {
                 commandUpdate.Entity.LastSentCommandTick = localTick;
+            }
         }
 
-        protected override void ProcessPacket(
-            RailPacketIncoming packetBase,
-            Tick localTick)
+        protected override void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
         {
             base.ProcessPacket(packetBase, localTick);
 
             RailPacketFromServer packetFromServer = (RailPacketFromServer) packetBase;
             foreach (RailStateDelta delta in packetFromServer.Deltas)
+            {
                 localView.RecordUpdate(
                     delta.EntityId,
                     packetBase.SenderTick,
                     localTick,
                     delta.IsFrozen);
+            }
+
             PacketReceived?.Invoke(packetFromServer);
         }
 
@@ -95,10 +92,9 @@ namespace RailgunNet.Connection.Client
         {
             // If we have too many entities to fit commands for in a packet,
             // we want to round-robin sort them to avoid starvation
-            return entities
-                    .Select(e => e as RailEntityClient)
-                    .OrderBy(e => e.LastSentCommandTick)
-                    .Select(e => RailCommandUpdate.Create(Resource, e, e.OutgoingCommands));
+            return entities.Select(e => e as RailEntityClient)
+                           .OrderBy(e => e.LastSentCommandTick)
+                           .Select(e => RailCommandUpdate.Create(Resource, e, e.OutgoingCommands));
         }
     }
 }

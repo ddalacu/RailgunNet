@@ -60,8 +60,7 @@ namespace RailgunNet.Connection
             int remoteSendRate,
             RailInterpreter interpreter,
             RailPacketIncoming reusableIncoming,
-            RailPacketOutgoing reusableOutgoing)
-            : base(resource, visibility, netPeer)
+            RailPacketOutgoing reusableOutgoing) : base(resource, visibility, netPeer)
         {
             Resource = resource;
             remoteClock = new RailClock(remoteSendRate);
@@ -94,10 +93,7 @@ namespace RailgunNet.Connection
             interpreter.SendPacket(Resource, NetPeer, packet);
         }
 
-        private void OnPayloadReceived(
-            IRailNetPeer peer,
-            byte[] buffer,
-            int length)
+        private void OnPayloadReceived(IRailNetPeer peer, byte[] buffer, int length)
         {
             try
             {
@@ -106,9 +102,13 @@ namespace RailgunNet.Connection
                 reusableIncoming.Decode(Resource, bitBuffer);
 
                 if (bitBuffer.IsFinished)
+                {
                     ProcessPacket(reusableIncoming, localTick);
+                }
                 else
+                {
                     RailDebug.LogError("Bad packet read, discarding...");
+                }
             }
             catch (Exception e)
             {
@@ -136,18 +136,18 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Records acknowledging information for the packet.
         /// </summary>
-        protected virtual void ProcessPacket(
-            RailPacketIncoming packetBase,
-            Tick localTick)
+        protected virtual void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
         {
             remoteClock.UpdateLatest(packetBase.SenderTick);
             foreach (RailEvent evnt in FilterIncomingEvents(packetBase.Events))
+            {
                 ProcessEvent(evnt);
+            }
+
             CleanOutgoingEvents(packetBase.LastAckEventId);
         }
 
         #region Event-Related
-
         /// <summary>
         ///     Used for uniquely identifying outgoing events.
         /// </summary>
@@ -162,11 +162,9 @@ namespace RailgunNet.Connection
         ///     A history buffer of received events.
         /// </summary>
         private readonly RailHistory eventHistory;
-
         #endregion
 
         #region Events
-
         /// <summary>
         ///     Queues an event to send directly to this peer.
         /// </summary>
@@ -176,16 +174,13 @@ namespace RailgunNet.Connection
             bool freeWhenDone = true)
         {
             SendEvent(evnt, attempts);
-            if (freeWhenDone)
-                evnt.Free();
+            if (freeWhenDone) evnt.Free();
         }
 
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
-        public override void SendEvent(
-            RailEvent evnt,
-            ushort attempts)
+        public override void SendEvent(RailEvent evnt, ushort attempts)
         {
             // TODO: Event scoping
             RailEvent clone = evnt.Clone(Resource);
@@ -200,22 +195,23 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Removes any acked or expired outgoing events.
         /// </summary>
-        private void CleanOutgoingEvents(
-            SequenceId ackedEventId)
+        private void CleanOutgoingEvents(SequenceId ackedEventId)
         {
-            if (ackedEventId.IsValid == false)
-                return;
+            if (ackedEventId.IsValid == false) return;
 
             // Stop attempting to send acked events
             foreach (RailEvent evnt in outgoingEvents)
+            {
                 if (evnt.EventId <= ackedEventId)
+                {
                     evnt.Attempts = 0;
+                }
+            }
 
             // Clean out any events with zero attempts left
             while (outgoingEvents.Count > 0)
             {
-                if (outgoingEvents.Peek().Attempts > 0)
-                    break;
+                if (outgoingEvents.Peek().Attempts > 0) break;
                 RailPool.Free(outgoingEvents.Dequeue());
             }
         }
@@ -245,8 +241,7 @@ namespace RailgunNet.Connection
             foreach (RailEvent evnt in outgoingEvents)
             {
                 // Ignore dead events, they'll be cleaned up eventually
-                if (evnt.Attempts <= 0)
-                    continue;
+                if (evnt.Attempts <= 0) continue;
 
                 // Don't send an event if it's out of scope for this peer
                 if (Scope != null && Scope.Includes(evnt) == false)
@@ -256,8 +251,7 @@ namespace RailgunNet.Connection
                     continue;
                 }
 
-                if (firstId.IsValid == false)
-                    firstId = evnt.EventId;
+                if (firstId.IsValid == false) firstId = evnt.EventId;
                 RailDebug.Assert(firstId <= evnt.EventId);
 
                 if (eventHistory.AreInRange(firstId, evnt.EventId) == false)
@@ -273,12 +267,15 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Gets all events that we haven't processed yet, in order with no gaps.
         /// </summary>
-        private IEnumerable<RailEvent> FilterIncomingEvents(
-            IEnumerable<RailEvent> events)
+        private IEnumerable<RailEvent> FilterIncomingEvents(IEnumerable<RailEvent> events)
         {
             foreach (RailEvent evnt in events)
+            {
                 if (eventHistory.IsNewId(evnt.EventId))
+                {
                     yield return evnt;
+                }
+            }
         }
 
         /// <summary>
@@ -289,7 +286,6 @@ namespace RailgunNet.Connection
             EventReceived?.Invoke(evnt, this);
             eventHistory.Store(evnt.EventId);
         }
-
         #endregion
     }
 
@@ -302,15 +298,14 @@ namespace RailgunNet.Connection
             IRailNetPeer netPeer,
             ExternalEntityVisibility visibility,
             int remoteSendRate,
-            RailInterpreter interpreter)
-            : base(
-                resource,
-                netPeer,
-                visibility,
-                remoteSendRate,
-                interpreter,
-                new TIncoming(),
-                new TOutgoing())
+            RailInterpreter interpreter) : base(
+            resource,
+            netPeer,
+            visibility,
+            remoteSendRate,
+            interpreter,
+            new TIncoming(),
+            new TOutgoing())
         {
         }
     }

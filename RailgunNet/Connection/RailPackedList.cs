@@ -28,10 +28,14 @@ namespace RailgunNet.Connection
     public class RailPackedListIncoming<T>
         where T : IRailPoolable<T>
     {
+        private readonly List<T> received;
+
         public RailPackedListIncoming()
         {
             received = new List<T>();
         }
+
+        public IEnumerable<T> Received => received;
 
         public void Clear()
         {
@@ -39,47 +43,50 @@ namespace RailgunNet.Connection
             received.Clear();
         }
 
-        public void Decode(
-            RailBitBuffer buffer,
-            Func<RailBitBuffer, T> decode)
+        public void Decode(RailBitBuffer buffer, Func<RailBitBuffer, T> decode)
         {
             IEnumerable<T> decoded = buffer.UnpackAll(decode);
             foreach (T delta in decoded)
+            {
                 received.Add(delta);
+            }
         }
-        public IEnumerable<T> Received => received;
-        private readonly List<T> received;
     }
 
     /// <summary>
-    /// Packs a maximum of 255 elements into a bit buffer.
+    ///     Packs a maximum of 255 elements into a bit buffer.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class RailPackedListOutgoing<T>
         where T : IRailPoolable<T>
     {
+        private readonly List<T> pending;
+        private readonly List<T> sent;
+
         public RailPackedListOutgoing()
         {
             pending = new List<T>();
             sent = new List<T>();
         }
 
+        public IEnumerable<T> Pending => pending;
+        public IEnumerable<T> Sent => sent;
+
         /// <summary>
-        /// Discards all elements added as pending, regardless whether they have been sent or not.
+        ///     Discards all elements added as pending, regardless whether they have been sent or not.
         /// </summary>
         public void Clear()
         {
             // Everything in sent is also in pending, so only free pending
             foreach (T value in pending)
+            {
                 RailPool.Free(value);
+            }
+
             pending.Clear();
             sent.Clear();
         }
 
-        public IEnumerable<T> Pending => pending;
-        public IEnumerable<T> Sent => sent;
-        private readonly List<T> pending;
-        private readonly List<T> sent;
         public void AddPending(T value)
         {
             pending.Add(value);

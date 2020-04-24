@@ -18,9 +18,7 @@ namespace RailgunNet.Connection.Server
     ///     side is RailPacketToServer.
     /// </summary>
     [OnlyIn(Component.Server)]
-    public class RailPacketFromClient
-        : RailPacketIncoming
-            , IRailClientPacket
+    public class RailPacketFromClient : RailPacketIncoming, IRailClientPacket
     {
         private readonly RailPackedListIncoming<RailCommandUpdate> commandUpdates;
 
@@ -33,9 +31,7 @@ namespace RailgunNet.Connection.Server
         public RailView View { get; }
 
         #region Interface
-
         IEnumerable<RailCommandUpdate> IRailClientPacket.CommandUpdates => commandUpdates.Received;
-
         #endregion
 
         public override void Reset()
@@ -58,30 +54,26 @@ namespace RailgunNet.Connection.Server
             DecodeView(buffer);
         }
 
-        private void DecodeCommands(
-            IRailCommandConstruction commandCreator,
-            RailBitBuffer buffer)
+        private void DecodeCommands(IRailCommandConstruction commandCreator, RailBitBuffer buffer)
         {
-            commandUpdates.Decode(
-                buffer,
-                (buf) => RailCommandUpdate.Decode(commandCreator, buf));
+            commandUpdates.Decode(buffer, buf => RailCommandUpdate.Decode(commandCreator, buf));
         }
 
         private void DecodeView(RailBitBuffer buffer)
         {
-            IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded =
-                buffer.UnpackAll(
-                    (buf) =>
-                        new KeyValuePair<EntityId, RailViewEntry>(
-                            buf.ReadEntityId(), // Read: [EntityId] 
-                            new RailViewEntry(
-                                buf.ReadTick(), // Read: [LastReceivedTick]
-                                Tick.INVALID, // (Local tick not transmitted)
-                                buf.ReadBool())) // Read: [IsFrozen]
-                );
+            IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded = buffer.UnpackAll(
+                buf => new KeyValuePair<EntityId, RailViewEntry>(
+                    buf.ReadEntityId(), // Read: [EntityId] 
+                    new RailViewEntry(
+                        buf.ReadTick(), // Read: [LastReceivedTick]
+                        Tick.INVALID, // (Local tick not transmitted)
+                        buf.ReadBool())) // Read: [IsFrozen]
+            );
 
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
+            {
                 View.RecordUpdate(pair.Key, pair.Value);
+            }
         }
     }
 }

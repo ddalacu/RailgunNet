@@ -31,42 +31,55 @@ namespace RailgunNet.System.Encoding.Compressors
             float value)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 buffer.WriteUInt(compressor.Pack(value));
+            }
             else
+            {
                 buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+            }
         }
 
-        public static float ReadFloat(
-            this RailBitBuffer buffer,
-            RailFloatCompressor compressor)
+        public static float ReadFloat(this RailBitBuffer buffer, RailFloatCompressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 return compressor.Unpack(buffer.ReadUInt());
+            }
+
             return compressor.Unpack(buffer.Read(compressor.RequiredBits));
         }
 
-        public static float PeekFloat(
-            this RailBitBuffer buffer,
-            RailFloatCompressor compressor)
+        public static float PeekFloat(this RailBitBuffer buffer, RailFloatCompressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 return compressor.Unpack(buffer.PeekUInt());
+            }
+
             return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
         }
 
         #region Array
-
         public static void WriteFloats(
             this RailBitBuffer buffer,
             RailFloatCompressor compressor,
             float[] values)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 foreach (float value in values)
+                {
                     buffer.WriteUInt(compressor.Pack(value));
+                }
+            }
             else
+            {
                 foreach (float value in values)
+                {
                     buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+                }
+            }
         }
 
         public static void ReadFloats(
@@ -75,13 +88,20 @@ namespace RailgunNet.System.Encoding.Compressors
             float[] toStore)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 for (int i = 0; i < toStore.Length; i++)
+                {
                     toStore[i] = compressor.Unpack(buffer.ReadUInt());
+                }
+            }
             else
+            {
                 for (int i = 0; i < toStore.Length; i++)
+                {
                     toStore[i] = compressor.Unpack(buffer.Read(compressor.RequiredBits));
+                }
+            }
         }
-
         #endregion
     }
 
@@ -98,10 +118,7 @@ namespace RailgunNet.System.Encoding.Compressors
         private readonly float minValue;
         private readonly float precision;
 
-        public RailFloatCompressor(
-            float minValue,
-            float maxValue,
-            float precision)
+        public RailFloatCompressor(float minValue, float maxValue, float precision)
         {
             this.minValue = minValue;
             this.maxValue = maxValue;
@@ -118,6 +135,7 @@ namespace RailgunNet.System.Encoding.Compressors
         {
             float newValue = RailUtil.Clamp(value, minValue, maxValue);
             if (newValue != value)
+            {
                 RailDebug.LogWarning(
                     "Clamping value for send! " +
                     value +
@@ -126,6 +144,8 @@ namespace RailgunNet.System.Encoding.Compressors
                     "," +
                     maxValue +
                     "]");
+            }
+
             float adjusted = (value - minValue) * invPrecision;
             return (uint) (adjusted + 0.5f) & mask;
         }

@@ -44,23 +44,16 @@ namespace RailgunNet.System.Types
     public readonly struct EntityId
     {
         #region Encoding/Decoding
-
         #region Byte Writing
-
-        public int PutBytes(
-            byte[] buffer,
-            int start)
+        public int PutBytes(byte[] buffer, int start)
         {
             return RailBitBuffer.PutBytes(idValue, buffer, start);
         }
 
-        public static EntityId ReadBytes(
-            byte[] buffer,
-            ref int position)
+        public static EntityId ReadBytes(byte[] buffer, ref int position)
         {
             return new EntityId(RailBitBuffer.ReadBytes(buffer, ref position));
         }
-
         #endregion
 
         public void Write(RailBitBuffer buffer)
@@ -77,7 +70,6 @@ namespace RailgunNet.System.Types
         {
             return new EntityId(buffer.PeekUInt());
         }
-
         #endregion
 
         private class EntityIdComparer : IEqualityComparer<EntityId>
@@ -146,8 +138,7 @@ namespace RailgunNet.System.Types
 
         public override bool Equals(object obj)
         {
-            if (obj is EntityId)
-                return ((EntityId) obj).idValue == idValue;
+            if (obj is EntityId) return ((EntityId) obj).idValue == idValue;
             return false;
         }
 

@@ -57,8 +57,7 @@ namespace RailgunNet.System.Buffer
         {
             get
             {
-                if (latestIdx < 0)
-                    return null;
+                if (latestIdx < 0) return null;
                 return data[latestIdx];
             }
         }
@@ -68,8 +67,12 @@ namespace RailgunNet.System.Buffer
             get
             {
                 foreach (T value in data)
+                {
                     if (value != null)
+                    {
                         yield return value;
+                    }
+                }
             }
         }
 
@@ -79,7 +82,10 @@ namespace RailgunNet.System.Buffer
         public void Clear()
         {
             for (int i = 0; i < data.Length; i++)
+            {
                 RailPool.SafeReplace(ref data[i], null);
+            }
+
             latestIdx = -1;
         }
 
@@ -98,8 +104,7 @@ namespace RailgunNet.System.Buffer
             else
             {
                 T latest = data[latestIdx];
-                if (value.Tick >= latest.Tick)
-                    store = true;
+                if (value.Tick >= latest.Tick) store = true;
             }
 
             if (store)
@@ -113,12 +118,10 @@ namespace RailgunNet.System.Buffer
 
         private T Get(Tick tick)
         {
-            if (tick == Tick.INVALID)
-                return null;
+            if (tick == Tick.INVALID) return null;
 
             T result = data[TickToIndex(tick)];
-            if (result != null && result.Tick == tick)
-                return result;
+            if (result != null && result.Tick == tick) return result;
             return null;
         }
 
@@ -128,24 +131,19 @@ namespace RailgunNet.System.Buffer
         ///     - The value immediately after that (next)
         ///     Runs in O(n).
         /// </summary>
-        public void GetFirstAfter(
-            Tick currentTick,
-            out T current,
-            out T next)
+        public void GetFirstAfter(Tick currentTick, out T current, out T next)
         {
             current = null;
             next = null;
 
-            if (currentTick == Tick.INVALID)
-                return;
+            if (currentTick == Tick.INVALID) return;
             foreach (T value in data)
             {
                 if (value == null) continue;
 
                 if (value.Tick > currentTick)
                 {
-                    if (next == null || value.Tick < next.Tick)
-                        next = value;
+                    if (next == null || value.Tick < next.Tick) next = value;
                 }
                 else if (current == null || value.Tick > current.Tick)
                 {
@@ -159,23 +157,24 @@ namespace RailgunNet.System.Buffer
         /// </summary>
         public T GetLatestAt(Tick tick)
         {
-            if (tick == Tick.INVALID)
-                return null;
+            if (tick == Tick.INVALID) return null;
 
             T result = Get(tick);
-            if (result != null)
-                return result;
+            if (result != null) return result;
 
             foreach (T value in data)
             {
                 if (value == null) continue;
 
-                if (value.Tick == tick)
-                    return value;
+                if (value.Tick == tick) return value;
 
                 if (value.Tick < tick)
+                {
                     if (result == null || result.Tick < value.Tick)
+                    {
                         result = value;
+                    }
+                }
             }
 
             return result;
@@ -187,12 +186,15 @@ namespace RailgunNet.System.Buffer
         public IList<T> GetRange(Tick start)
         {
             returnList.Clear();
-            if (start == Tick.INVALID)
-                return returnList;
+            if (start == Tick.INVALID) return returnList;
 
             foreach (T val in data)
+            {
                 if (val != null && val.Tick >= start)
+                {
                     returnList.Add(val);
+                }
+            }
 
             returnList.Sort(Compare);
             return returnList;
@@ -206,8 +208,7 @@ namespace RailgunNet.System.Buffer
         {
             next = null;
             returnList.Clear();
-            if (start == Tick.INVALID)
-                return returnList;
+            if (start == Tick.INVALID) return returnList;
 
             Tick lowest = Tick.INVALID;
             foreach (T val in data)
@@ -217,11 +218,13 @@ namespace RailgunNet.System.Buffer
                 if (val.Tick >= start && val.Tick <= end) returnList.Add(val);
 
                 if (val.Tick > end)
+                {
                     if (lowest == Tick.INVALID || val.Tick < lowest)
                     {
                         next = val;
                         lowest = val.Tick;
                     }
+                }
             }
 
             returnList.Sort(Compare);
@@ -230,12 +233,10 @@ namespace RailgunNet.System.Buffer
 
         public bool Contains(Tick tick)
         {
-            if (tick == Tick.INVALID)
-                return false;
+            if (tick == Tick.INVALID) return false;
 
             T result = data[TickToIndex(tick)];
-            if (result != null && result.Tick == tick)
-                return true;
+            if (result != null && result.Tick == tick) return true;
             return false;
         }
 

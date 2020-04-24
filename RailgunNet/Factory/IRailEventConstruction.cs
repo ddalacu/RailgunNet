@@ -5,7 +5,7 @@ namespace RailgunNet.Factory
 {
     public interface IRailEventConstruction
     {
-        RailEvent CreateEvent(int iFactoryType);
         RailIntCompressor EventTypeCompressor { get; }
+        RailEvent CreateEvent(int iFactoryType);
     }
 }

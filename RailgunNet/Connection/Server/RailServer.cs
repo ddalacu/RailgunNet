@@ -82,14 +82,10 @@ namespace RailgunNet.Connection.Server
         {
             if (clients.ContainsKey(netPeer) == false)
             {
-                RailServerPeer client =
-                    new RailServerPeer(
-                        Resource,
-                        netPeer,
-                        Interpreter)
-                    {
-                        Identifier = identifier
-                    };
+                RailServerPeer client = new RailServerPeer(Resource, netPeer, Interpreter)
+                {
+                    Identifier = identifier
+                };
                 client.EventReceived += OnEventReceived;
                 client.PacketReceived += OnPacketReceived;
                 clients.Add(netPeer, client);
@@ -125,7 +121,9 @@ namespace RailgunNet.Connection.Server
             DoStart();
 
             foreach (RailServerPeer client in clients.Values)
+            {
                 client.Update(Room.Tick);
+            }
 
             Room.ServerUpdate();
             if (Room.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE))
@@ -159,20 +157,20 @@ namespace RailgunNet.Connection.Server
                 foreach (RailServerPeer peer in clients.Values)
                 {
                     Tick lastSent = peer.Scope.GetLastSent(id);
-                    if (lastSent.IsValid == false)
-                        continue; // Was never sent in the first place
+                    if (lastSent.IsValid == false) continue; // Was never sent in the first place
 
                     Tick lastAcked = peer.Scope.GetLastAckedByClient(id);
                     if (lastAcked.IsValid && lastAcked >= entity.RemovedTick)
+                    {
                         continue; // Remove tick was acked by the client
+                    }
 
                     // Otherwise, not safe to remove
                     canRemove = false;
                     break;
                 }
 
-                if (canRemove)
-                    toRemove.Add(entity);
+                if (canRemove) toRemove.Add(entity);
             }
 
             toRemove.ForEach(entityToRemove => removedEntities.Remove(entityToRemove.Id));
@@ -185,40 +183,45 @@ namespace RailgunNet.Connection.Server
         private void BroadcastPackets()
         {
             foreach (RailServerPeer clientPeer in clients.Values)
+            {
                 clientPeer.SendPacket(
                     Room.Tick,
                     Room.Entities.Select(e => e as RailEntityServer),
                     removedEntities.Values);
-        }
-
-        #region Packet Receive
-
-        private void OnPacketReceived(
-            RailServerPeer peer,
-            IRailClientPacket packet)
-        {
-            foreach (RailCommandUpdate update in packet.CommandUpdates)
-                ProcessCommandUpdate(peer, update);
-        }
-
-        private void ProcessCommandUpdate(
-            RailServerPeer peer,
-            RailCommandUpdate update)
-        {
-            if (Room.TryGet(update.EntityId, out RailEntityServer entity))
-            {
-                bool canReceive =
-                    entity.Controller == peer && entity.IsRemoving == false;
-
-                if (canReceive)
-                    foreach (RailCommand command in update.Commands)
-                        entity.ReceiveCommand(command);
-                else // Can't send commands to that entity, so dump them
-                    foreach (RailCommand command in update.Commands)
-                        RailPool.Free(command);
             }
         }
 
+        #region Packet Receive
+        private void OnPacketReceived(RailServerPeer peer, IRailClientPacket packet)
+        {
+            foreach (RailCommandUpdate update in packet.CommandUpdates)
+            {
+                ProcessCommandUpdate(peer, update);
+            }
+        }
+
+        private void ProcessCommandUpdate(RailServerPeer peer, RailCommandUpdate update)
+        {
+            if (Room.TryGet(update.EntityId, out RailEntityServer entity))
+            {
+                bool canReceive = entity.Controller == peer && entity.IsRemoving == false;
+
+                if (canReceive)
+                {
+                    foreach (RailCommand command in update.Commands)
+                    {
+                        entity.ReceiveCommand(command);
+                    }
+                }
+                else // Can't send commands to that entity, so dump them
+                {
+                    foreach (RailCommand command in update.Commands)
+                    {
+                        RailPool.Free(command);
+                    }
+                }
+            }
+        }
         #endregion
     }
 }

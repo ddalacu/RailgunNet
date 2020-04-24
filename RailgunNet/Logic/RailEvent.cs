@@ -38,8 +38,7 @@ namespace RailgunNet.Logic
     ///     in status. They can be sent to specific controllers or broadcast to all
     ///     controllers for whom the entity is in scope.
     /// </summary>
-    public abstract class RailEvent
-        : IRailPoolable<RailEvent>
+    public abstract class RailEvent : IRailPoolable<RailEvent>
     {
         private int factoryType;
 
@@ -65,39 +64,28 @@ namespace RailgunNet.Logic
 
         private RailController Sender { get; set; }
 
-        private static RailEvent Create(
-            IRailEventConstruction eventCreator, 
-            int factoryType)
+        private static RailEvent Create(IRailEventConstruction eventCreator, int factoryType)
         {
             RailEvent evnt = eventCreator.CreateEvent(factoryType);
             evnt.factoryType = factoryType;
             return evnt;
         }
 
-        public TEntity Find<TEntity>(
-            EntityId id,
-            RailPolicy policy)
+        public TEntity Find<TEntity>(EntityId id, RailPolicy policy)
             where TEntity : class, IRailEntity
         {
-            if (Room == null)
-                return null;
-            if (id.IsValid == false)
-                return null;
+            if (Room == null) return null;
+            if (id.IsValid == false) return null;
 
-            if (policy == RailPolicy.NoProxy && Sender == null)
-                return null;
+            if (policy == RailPolicy.NoProxy && Sender == null) return null;
 
-            if (Room.TryGet(id, out IRailEntity entity) == false)
-                return null;
+            if (Room.TryGet(id, out IRailEntity entity) == false) return null;
 
-            if (policy == RailPolicy.NoFrozen && entity.IsFrozen)
-                return null;
+            if (policy == RailPolicy.NoFrozen && entity.IsFrozen) return null;
 
-            if (policy == RailPolicy.NoProxy && entity.Controller != Sender)
-                return null;
+            if (policy == RailPolicy.NoProxy && entity.Controller != Sender) return null;
 
-            if (entity is TEntity cast)
-                return cast;
+            if (entity is TEntity cast) return cast;
             return null;
         }
 
@@ -112,9 +100,7 @@ namespace RailgunNet.Logic
             return true;
         }
 
-        protected virtual void Execute(
-            RailRoom room,
-            RailController sender)
+        protected virtual void Execute(RailRoom room, RailController sender)
         {
             // Override this to process events
         }
@@ -144,20 +130,16 @@ namespace RailgunNet.Logic
             ResetData();
         }
 
-        public void Invoke(
-            RailRoom room,
-            RailController sender)
+        public void Invoke(RailRoom room, RailController sender)
         {
             Room = room;
             Sender = sender;
-            if (Validate())
-                Execute(room, sender);
+            if (Validate()) Execute(room, sender);
         }
 
         public void RegisterSent()
         {
-            if (Attempts > 0)
-                Attempts--;
+            if (Attempts > 0) Attempts--;
         }
 
         public void RegisterSkip()
@@ -166,27 +148,21 @@ namespace RailgunNet.Logic
         }
 
         #region Pooling
-
         IRailMemoryPool<RailEvent> IRailPoolable<RailEvent>.Pool { get; set; }
 
         void IRailPoolable<RailEvent>.Reset()
         {
             Reset();
         }
-
         #endregion
 
         #region Encode/Decode/etc.
-
         /// <summary>
         ///     Note that the packetTick may not be the tick this event was created on
         ///     if we're re-trying to send this event in subsequent packets. This tick
         ///     is intended for use in tick diffs for compression.
         /// </summary>
-        public void Encode(
-            RailIntCompressor compressor,
-            RailBitBuffer buffer,
-            Tick packetTick)
+        public void Encode(RailIntCompressor compressor, RailBitBuffer buffer, Tick packetTick)
         {
             // Write: [EventType]
             buffer.WriteInt(compressor, factoryType);
@@ -222,7 +198,6 @@ namespace RailgunNet.Logic
 
             return evnt;
         }
-
         #endregion
     }
 
@@ -233,12 +208,10 @@ namespace RailgunNet.Logic
         where TDerived : RailEvent<TDerived>, new()
     {
         #region Casting Overrides
-
         protected override void SetDataFrom(RailEvent other)
         {
             CopyDataFrom((TDerived) other);
         }
-
         #endregion
 
         protected abstract void CopyDataFrom(TDerived other);

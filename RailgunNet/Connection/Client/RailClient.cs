@@ -32,8 +32,7 @@ namespace RailgunNet.Connection.Client
 {
     [PublicAPI]
     [OnlyIn(Component.Client)]
-    public class RailClient
-        : RailConnection
+    public class RailClient : RailConnection
     {
         /// <summary>
         ///     The local simulation tick, used for commands
@@ -45,8 +44,7 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private RailClientPeer serverPeer;
 
-        public RailClient(RailRegistry registry)
-            : base(registry)
+        public RailClient(RailRegistry registry) : base(registry)
         {
             serverPeer = null;
             localTick = Tick.START;
@@ -83,8 +81,7 @@ namespace RailgunNet.Connection.Client
             else
             {
                 RailDebug.Assert(serverPeer == null, "Overwriting peer");
-                serverPeer =
-                    new RailClientPeer(Resource, netPeer, Interpreter);
+                serverPeer = new RailClientPeer(Resource, netPeer, Interpreter);
                 serverPeer.PacketReceived += OnPacketReceived;
                 serverPeer.EventReceived += OnEventReceived;
             }
@@ -100,15 +97,13 @@ namespace RailgunNet.Connection.Client
 
                 if (Room != null)
                 {
-                    Room.ClientUpdate(
-                        localTick,
-                        serverPeer.EstimatedRemoteTick);
+                    Room.ClientUpdate(localTick, serverPeer.EstimatedRemoteTick);
 
                     int sendRate = RailConfig.CLIENT_SEND_RATE;
                     if (localTick.IsSendTick(sendRate))
-                        serverPeer.SendPacket(
-                            localTick,
-                            Room.LocalEntities);
+                    {
+                        serverPeer.SendPacket(localTick, Room.LocalEntities);
+                    }
 
                     localTick++;
                 }
@@ -118,10 +113,7 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Queues an event to sent to the server.
         /// </summary>
-        public void RaiseEvent(
-            RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true)
+        public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
         {
             RailDebug.Assert(serverPeer != null);
             serverPeer?.RaiseEvent(evnt, attempts, freeWhenDone);
@@ -130,12 +122,22 @@ namespace RailgunNet.Connection.Client
         private void OnPacketReceived(RailPacketFromServer packet)
         {
             if (Room == null)
+            {
                 foreach (RailStateDelta delta in packet.Deltas)
+                {
                     RailPool.Free(delta);
+                }
+            }
             else
+            {
                 foreach (RailStateDelta delta in packet.Deltas)
+                {
                     if (Room.ProcessDelta(delta) == false)
+                    {
                         RailPool.Free(delta);
+                    }
+                }
+            }
         }
     }
 }

@@ -2,7 +2,6 @@
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.System.Encoding;
-using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Debug;
 
@@ -17,6 +16,7 @@ namespace RailgunNet.Connection
         {
             packet.Encode(resource, resource, buffer);
         }
+
         public static void Decode(
             this RailPacketIncoming packet,
             RailResource resource,
@@ -72,10 +72,7 @@ namespace RailgunNet.Connection
         }
 
         #region Header
-
-        private static void EncodeHeader(
-            RailPacketOutgoing packet,
-            RailBitBuffer buffer)
+        private static void EncodeHeader(RailPacketOutgoing packet, RailBitBuffer buffer)
         {
             RailDebug.Assert(packet.SenderTick.IsValid);
 
@@ -89,9 +86,7 @@ namespace RailgunNet.Connection
             buffer.WriteSequenceId(packet.LastAckEventId);
         }
 
-        private static void DecodeHeader(
-            RailPacketIncoming packet,
-            RailBitBuffer buffer)
+        private static void DecodeHeader(RailPacketIncoming packet, RailBitBuffer buffer)
         {
             // Read: [LocalTick]
             packet.SenderTick = buffer.ReadTick();
@@ -102,11 +97,9 @@ namespace RailgunNet.Connection
             // Read: [AckReliableEventId]
             packet.LastAckEventId = buffer.ReadSequenceId();
         }
-
         #endregion
 
         #region Events
-
         /// <summary>
         ///     Writes as many events as possible up to maxSize and returns the number
         ///     of events written in the batch. Also increments the total counter.
@@ -117,13 +110,15 @@ namespace RailgunNet.Connection
             RailBitBuffer buffer,
             int maxSize)
         {
-            packet.EventsWritten +=
-                buffer.PackToSize(
-                    maxSize,
-                    RailConfig.MAXSIZE_EVENT,
-                    packet.GetNextEvents(),
-                    (evnt, buf) => evnt.Encode(eventCreator.EventTypeCompressor, buf, packet.SenderTick),
-                    evnt => evnt.RegisterSent());
+            packet.EventsWritten += buffer.PackToSize(
+                maxSize,
+                RailConfig.MAXSIZE_EVENT,
+                packet.GetNextEvents(),
+                (evnt, buf) => evnt.Encode(
+                    eventCreator.EventTypeCompressor,
+                    buf,
+                    packet.SenderTick),
+                evnt => evnt.RegisterSent());
         }
 
         private static void DecodeEvents(
@@ -131,13 +126,17 @@ namespace RailgunNet.Connection
             IRailEventConstruction eventCreator,
             RailBitBuffer buffer)
         {
-            IEnumerable<RailEvent> decoded =
-                buffer.UnpackAll(
-                    (buf) => RailEvent.Decode(eventCreator, eventCreator.EventTypeCompressor, buf, packet.SenderTick));
+            IEnumerable<RailEvent> decoded = buffer.UnpackAll(
+                buf => RailEvent.Decode(
+                    eventCreator,
+                    eventCreator.EventTypeCompressor,
+                    buf,
+                    packet.SenderTick));
             foreach (RailEvent evnt in decoded)
+            {
                 packet.Events.Add(evnt);
+            }
         }
-
         #endregion
     }
 }

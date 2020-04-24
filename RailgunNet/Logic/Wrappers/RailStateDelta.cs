@@ -25,9 +25,7 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic.Wrappers
 {
-    public class RailStateDelta
-        : IRailPoolable<RailStateDelta>
-            , IRailTimedValue
+    public class RailStateDelta : IRailPoolable<RailStateDelta>, IRailTimedValue
     {
         private RailState state;
 
@@ -50,9 +48,7 @@ namespace RailgunNet.Logic.Wrappers
         public Tick CommandAck { get; private set; } // Controller only
 
         #region Interface
-
         Tick IRailTimedValue.Tick => Tick;
-
         #endregion
 
         public static RailStateDelta CreateFrozen(
@@ -95,14 +91,12 @@ namespace RailgunNet.Logic.Wrappers
         }
 
         #region Pooling
-
         IRailMemoryPool<RailStateDelta> IRailPoolable<RailStateDelta>.Pool { get; set; }
 
         void IRailPoolable<RailStateDelta>.Reset()
         {
             Reset();
         }
-
         #endregion
     }
 }

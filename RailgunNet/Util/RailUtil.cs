@@ -25,8 +25,38 @@ namespace RailgunNet.Util
         // http://stackoverflow.com/questions/15967240/fastest-implementation-of-log2int-and-log2float
         private static readonly int[] DeBruijnLookup = new int[32]
         {
-            0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-            8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+            0,
+            9,
+            1,
+            10,
+            13,
+            21,
+            2,
+            29,
+            11,
+            14,
+            16,
+            18,
+            22,
+            25,
+            3,
+            30,
+            8,
+            12,
+            20,
+            28,
+            15,
+            17,
+            24,
+            7,
+            19,
+            27,
+            23,
+            6,
+            26,
+            5,
+            4,
+            31
         };
 
         public static int Log2(uint v)
@@ -43,8 +73,11 @@ namespace RailgunNet.Util
         public static float Clamp(float value, float min, float max)
         {
             if (value < min)
+            {
                 value = min;
+            }
             else if (value > max) value = max;
+
             return value;
         }
     }

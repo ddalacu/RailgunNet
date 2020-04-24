@@ -55,8 +55,7 @@ namespace RailgunNet.System
                 history.Shift(offset);
 
                 // We might shift so far we need to clear everything
-                if (offset - 1 < history.Capacity)
-                    history.Set(offset - 1);
+                if (offset - 1 < history.Capacity) history.Set(offset - 1);
                 latest = value;
             }
         }
@@ -64,19 +63,15 @@ namespace RailgunNet.System
         private bool Contains(SequenceId value)
         {
             int difference = Latest - value;
-            if (difference < 0)
-                return false;
-            if (difference == 0)
-                return true;
+            if (difference < 0) return false;
+            if (difference == 0) return true;
             return history.Get(difference - 1);
         }
 
         public bool IsNewId(SequenceId id)
         {
-            if (ValueTooOld(id))
-                return false;
-            if (Contains(id))
-                return false;
+            if (ValueTooOld(id)) return false;
+            if (Contains(id)) return false;
             return true;
         }
 
@@ -113,7 +108,10 @@ namespace RailgunNet.System
                 int position = index % CHUNK_SIZE;
 
                 if (chunk >= chunks.Length)
+                {
                     throw new ArgumentOutOfRangeException("index (" + index + ")");
+                }
+
                 chunks[chunk] |= 0x1U << position;
             }
 
@@ -123,7 +121,10 @@ namespace RailgunNet.System
                 int position = index % CHUNK_SIZE;
 
                 if (chunk >= chunks.Length)
+                {
                     throw new ArgumentOutOfRangeException("index (" + index + ")");
+                }
+
                 return (chunks[chunk] & (1U << position)) != 0;
             }
 
@@ -133,43 +134,45 @@ namespace RailgunNet.System
                 int numBits = count % CHUNK_SIZE;
 
                 // Clear the top chunks since they're shifted out
-                for (int i = 0; i < numChunks; i++) chunks[chunks.Length - 1 - i] = 0;
+                for (int i = 0; i < numChunks; i++)
+                {
+                    chunks[chunks.Length - 1 - i] = 0;
+                }
 
                 // Perform the shift
                 for (int i = chunks.Length - 1; i >= numChunks; i--)
                 {
                     // Get the high and low bits for shifting
-                    ulong bits =
-                        chunks[i - numChunks] |
-                        ((ulong) chunks[i] << CHUNK_SIZE);
+                    ulong bits = chunks[i - numChunks] | ((ulong) chunks[i] << CHUNK_SIZE);
 
                     // Perform the mini-shift
                     bits <<= numBits;
 
                     // Separate and re-apply
                     chunks[i] = (uint) bits;
-                    if (i + 1 < chunks.Length)
-                        chunks[i + 1] |= (uint) (bits >> CHUNK_SIZE);
+                    if (i + 1 < chunks.Length) chunks[i + 1] |= (uint) (bits >> CHUNK_SIZE);
                 }
 
                 // Clear the bottom chunks since they're shifted out
-                for (int i = 0; i < numChunks; i++) chunks[i] = 0;
+                for (int i = 0; i < numChunks; i++)
+                {
+                    chunks[i] = 0;
+                }
             }
 
             public override string ToString()
             {
                 StringBuilder raw = new StringBuilder();
                 for (int i = chunks.Length - 1; i >= 0; i--)
-                    raw.Append(
-                        Convert.ToString(
-                            chunks[i], 2).PadLeft(CHUNK_SIZE, '0'));
+                {
+                    raw.Append(Convert.ToString(chunks[i], 2).PadLeft(CHUNK_SIZE, '0'));
+                }
 
                 StringBuilder spaced = new StringBuilder();
                 for (int i = 0; i < raw.Length; i++)
                 {
                     spaced.Append(raw[i]);
-                    if ((i + 1) % 8 == 0)
-                        spaced.Append(" ");
+                    if ((i + 1) % 8 == 0) spaced.Append(" ");
                 }
 
                 return spaced.ToString();

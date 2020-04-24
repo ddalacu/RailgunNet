@@ -31,42 +31,55 @@ namespace RailgunNet.System.Encoding.Compressors
             int value)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 buffer.WriteUInt(compressor.Pack(value));
+            }
             else
+            {
                 buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+            }
         }
 
-        public static int ReadInt(
-            this RailBitBuffer buffer,
-            RailIntCompressor compressor)
+        public static int ReadInt(this RailBitBuffer buffer, RailIntCompressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 return compressor.Unpack(buffer.ReadUInt());
+            }
+
             return compressor.Unpack(buffer.Read(compressor.RequiredBits));
         }
 
-        public static int PeekInt(
-            this RailBitBuffer buffer,
-            RailIntCompressor compressor)
+        public static int PeekInt(this RailBitBuffer buffer, RailIntCompressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 return compressor.Unpack(buffer.PeekUInt());
+            }
+
             return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
         }
 
         #region Array
-
         public static void WriteInts(
             this RailBitBuffer buffer,
             RailIntCompressor compressor,
             int[] values)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 foreach (int value in values)
+                {
                     buffer.WriteUInt(compressor.Pack(value));
+                }
+            }
             else
+            {
                 foreach (int value in values)
+                {
                     buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+                }
+            }
         }
 
         public static void ReadInts(
@@ -75,13 +88,20 @@ namespace RailgunNet.System.Encoding.Compressors
             int[] toStore)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
+            {
                 for (int i = 0; i < toStore.Length; i++)
+                {
                     toStore[i] = compressor.Unpack(buffer.ReadUInt());
+                }
+            }
             else
+            {
                 for (int i = 0; i < toStore.Length; i++)
+                {
                     toStore[i] = compressor.Unpack(buffer.Read(compressor.RequiredBits));
+                }
+            }
         }
-
         #endregion
     }
 
@@ -105,6 +125,7 @@ namespace RailgunNet.System.Encoding.Compressors
         public uint Pack(int value)
         {
             if (value < minValue || value > maxValue)
+            {
                 RailDebug.LogWarning(
                     "Clamping value for send! " +
                     value +
@@ -113,6 +134,8 @@ namespace RailgunNet.System.Encoding.Compressors
                     "," +
                     maxValue +
                     "]");
+            }
+
             return (uint) (value - minValue) & mask;
         }
 
@@ -123,8 +146,7 @@ namespace RailgunNet.System.Encoding.Compressors
 
         private int ComputeRequiredBits()
         {
-            if (minValue >= maxValue)
-                return 0;
+            if (minValue >= maxValue) return 0;
 
             long minLong = minValue;
             long maxLong = maxValue;

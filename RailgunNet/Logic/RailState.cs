@@ -40,7 +40,6 @@ namespace RailgunNet.Logic
         protected abstract bool IsControllerDataEqual(T basis);
 
         #region Casting Overrides
-
         protected override void ApplyMutableFrom(RailState source, uint flags)
         {
             ApplyMutableFrom((T) source, flags);
@@ -65,7 +64,6 @@ namespace RailgunNet.Logic
         {
             return IsControllerDataEqual((T) basis);
         }
-
         #endregion
     }
 
@@ -85,8 +83,7 @@ namespace RailgunNet.Logic
     ///     Removal Data (Not currently implemented):
     ///     Sent when the state is removed. Arrives at the time of removal.
     /// </summary>
-    public abstract class RailState
-        : IRailPoolable<RailState>
+    public abstract class RailState : IRailPoolable<RailState>
     {
         private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
         private const uint FLAGS_NONE = 0x00000000; // No values different
@@ -120,8 +117,7 @@ namespace RailgunNet.Logic
 
         protected static uint SetFlag(bool isEqual, uint flag)
         {
-            if (isEqual == false)
-                return flag;
+            if (isEqual == false) return flag;
             return 0;
         }
 
@@ -162,14 +158,11 @@ namespace RailgunNet.Logic
             ApplyMutableFrom(deltaState, deltaState.Flags);
 
             ResetControllerData();
-            if (deltaState.HasControllerData)
-                ApplyControllerFrom(deltaState);
+            if (deltaState.HasControllerData) ApplyControllerFrom(deltaState);
             HasControllerData = delta.HasControllerData;
 
-            HasImmutableData =
-                delta.HasImmutableData || HasImmutableData;
-            if (deltaState.HasImmutableData)
-                ApplyImmutableFrom(deltaState);
+            HasImmutableData = delta.HasImmutableData || HasImmutableData;
+            if (deltaState.HasImmutableData) ApplyImmutableFrom(deltaState);
         }
 
         [OnlyIn(Component.Server)]
@@ -195,7 +188,9 @@ namespace RailgunNet.Logic
 
                 if (delta.RemovedTick.IsValid)
                     // Write: [RemovedTick]
+                {
                     buffer.WriteTick(delta.RemovedTick);
+                }
 
                 // Write: [HasControllerData]
                 buffer.WriteBool(state.HasControllerData);
@@ -220,7 +215,9 @@ namespace RailgunNet.Logic
 
                 if (state.HasImmutableData)
                     // Write: [Immutable Data]
+                {
                     state.EncodeImmutableData(buffer);
+                }
             }
         }
 
@@ -253,7 +250,9 @@ namespace RailgunNet.Logic
 
                 if (isRemoved)
                     // Read: [RemovedTick]
+                {
                     removedTick = buffer.ReadTick();
+                }
 
                 // Read: [HasControllerData]
                 state.HasControllerData = buffer.ReadBool();
@@ -278,32 +277,25 @@ namespace RailgunNet.Logic
 
                 if (state.HasImmutableData)
                     // Read: [Immutable Data]
+                {
                     state.DecodeImmutableData(buffer);
+                }
             }
 
-            delta.Initialize(
-                packetTick,
-                entityId,
-                state,
-                removedTick,
-                commandAck,
-                isFrozen);
+            delta.Initialize(packetTick, entityId, state, removedTick, commandAck, isFrozen);
             return delta;
         }
 
         #region Pooling
-
         IRailMemoryPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
 
         void IRailPoolable<RailState>.Reset()
         {
             Reset();
         }
-
         #endregion
 
         #region Creation
-
         public static RailState Create(IRailStateConstruction creator, int factoryType)
         {
             RailState state = creator.CreateState(factoryType);
@@ -329,11 +321,10 @@ namespace RailgunNet.Logic
             Tick removedTick,
             bool forceAllMutable)
         {
-            bool shouldReturn =
-                forceAllMutable ||
-                includeControllerData ||
-                includeImmutableData ||
-                removedTick.IsValid;
+            bool shouldReturn = forceAllMutable ||
+                                includeControllerData ||
+                                includeImmutableData ||
+                                removedTick.IsValid;
 
             // We don't know what the client has and hasn't received from us since
             // the acked state. As a result, we'll build diff flags across all 
@@ -342,34 +333,32 @@ namespace RailgunNet.Logic
             // while appearing as no change on just the current-latest diff.
             uint flags = 0;
             if (forceAllMutable == false && basisStates != null)
+            {
                 foreach (RailStateRecord record in basisStates)
+                {
                     flags |= current.CompareMutableData(record.State);
+                }
+            }
             else
+            {
                 flags = FLAGS_ALL;
-            if (flags == FLAGS_NONE && shouldReturn == false)
-                return null;
+            }
+
+            if (flags == FLAGS_NONE && shouldReturn == false) return null;
 
             RailState deltaState = Create(stateCreator, current.factoryType);
             deltaState.Flags = flags;
             deltaState.ApplyMutableFrom(current, deltaState.Flags);
 
             deltaState.HasControllerData = includeControllerData;
-            if (includeControllerData)
-                deltaState.ApplyControllerFrom(current);
+            if (includeControllerData) deltaState.ApplyControllerFrom(current);
 
             deltaState.HasImmutableData = includeImmutableData;
-            if (includeImmutableData)
-                deltaState.ApplyImmutableFrom(current);
+            if (includeImmutableData) deltaState.ApplyImmutableFrom(current);
 
             // We don't need to include a tick when sending -- it's in the packet
             RailStateDelta delta = stateCreator.CreateDelta();
-            delta.Initialize(
-                Tick.INVALID,
-                entityId,
-                deltaState,
-                removedTick,
-                commandAck,
-                false);
+            delta.Initialize(Tick.INVALID, entityId, deltaState, removedTick, commandAck, false);
             return delta;
         }
 
@@ -387,34 +376,27 @@ namespace RailgunNet.Logic
             if (latestRecord != null)
             {
                 RailState latest = latestRecord.State;
-                bool shouldReturn =
-                    current.CompareMutableData(latest) > 0 ||
-                    current.IsControllerDataEqual(latest) == false;
-                if (shouldReturn == false)
-                    return null;
+                bool shouldReturn = current.CompareMutableData(latest) > 0 ||
+                                    current.IsControllerDataEqual(latest) == false;
+                if (shouldReturn == false) return null;
             }
 
             RailStateRecord record = stateCreator.CreateRecord();
             record.Overwrite(stateCreator, tick, current);
             return record;
         }
-
         #endregion
 
         #region Client
-
         protected abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
         protected abstract void DecodeControllerData(RailBitBuffer buffer);
         protected abstract void DecodeImmutableData(RailBitBuffer buffer);
-
         #endregion
 
         #region Server
-
         protected abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
         protected abstract void EncodeControllerData(RailBitBuffer buffer);
         protected abstract void EncodeImmutableData(RailBitBuffer buffer);
-
         #endregion
     }
 }

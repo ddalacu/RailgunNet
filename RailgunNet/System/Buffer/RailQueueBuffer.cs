@@ -44,19 +44,18 @@ namespace RailgunNet.System.Buffer
 
         public T Latest { get; private set; }
 
-        private static IEnumerable<T> Remainder(
-            T latest,
-            Queue<T>.Enumerator enumerator)
+        private static IEnumerable<T> Remainder(T latest, Queue<T>.Enumerator enumerator)
         {
             yield return latest;
             while (enumerator.MoveNext())
+            {
                 yield return enumerator.Current;
+            }
         }
 
         public void Store(T val)
         {
-            if (data.Count >= capacity)
-                RailPool.Free(data.Dequeue());
+            if (data.Count >= capacity) RailPool.Free(data.Dequeue());
             data.Enqueue(val);
             Latest = val;
         }
@@ -68,8 +67,7 @@ namespace RailgunNet.System.Buffer
         /// </summary>
         public IEnumerable<T> LatestFrom(Tick tick)
         {
-            if (tick.IsValid == false)
-                return null;
+            if (tick.IsValid == false) return null;
 
             Queue<T>.Enumerator head = data.GetEnumerator();
             Queue<T>.Enumerator tail = data.GetEnumerator();
@@ -80,14 +78,18 @@ namespace RailgunNet.System.Buffer
             while (head.MoveNext())
             {
                 if (head.Current.Tick <= tick)
+                {
                     latest = head.Current;
+                }
                 else
+                {
                     break;
+                }
+
                 tail.MoveNext();
             }
 
-            if (latest == null)
-                return null;
+            if (latest == null) return null;
             return Remainder(latest, tail);
         }
 
@@ -97,7 +99,10 @@ namespace RailgunNet.System.Buffer
         public void Clear()
         {
             foreach (T val in data)
+            {
                 RailPool.Free(val);
+            }
+
             data.Clear();
             Latest = null;
         }

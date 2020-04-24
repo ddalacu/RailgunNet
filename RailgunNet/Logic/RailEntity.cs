@@ -18,14 +18,8 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using System;
-using System.Collections.Generic;
-using RailgunNet.Connection.Client;
 using RailgunNet.Factory;
-using RailgunNet.Logic.Wrappers;
-using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
 
@@ -37,9 +31,7 @@ namespace RailgunNet.Logic
     ///     vehicles, or conceptual objects like scoreboards and teams that
     ///     mainly serve as blackboards for transmitting state data.
     /// </summary>
-    public abstract class RailEntity
-        : IRailPoolable<RailEntity>
-        , IRailEntity
+    public abstract class RailEntity : IRailPoolable<RailEntity>, IRailEntity
     {
         private bool deferNotifyControllerChanged;
         private int factoryType;
@@ -49,25 +41,18 @@ namespace RailgunNet.Logic
         // Configuration
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
-        public bool CanFreeze
-        {
-            get => true;
-        }
-
         protected abstract RailState StateBase { get; set; }
         public Tick RemovedTick { get; protected set; }
 
         /// <summary>
         ///     Whether or not this entity should be removed from a room this tick.
         /// </summary>
-        public bool ShouldRemove =>
-            RemovedTick.IsValid &&
-            RemovedTick <= Room.Tick;
+        public bool ShouldRemove => RemovedTick.IsValid && RemovedTick <= Room.Tick;
+
+        public bool CanFreeze => true;
 
         #region Interface
-
         RailEntity IRailEntity.AsBase => this;
-
         #endregion
 
         // Simulation info
@@ -117,31 +102,26 @@ namespace RailgunNet.Logic
 
         protected void NotifyControllerChanged()
         {
-            if (deferNotifyControllerChanged)
-                OnControllerChanged();
+            if (deferNotifyControllerChanged) OnControllerChanged();
             deferNotifyControllerChanged = false;
         }
 
         #region Pooling
-
         IRailMemoryPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
 
         void IRailPoolable<RailEntity>.Reset()
         {
             Reset();
         }
-
         #endregion
 
         #region Creation
-
         protected virtual void InitState(IRailStateConstruction creator, RailState initialState)
         {
             StateBase = initialState;
         }
-        public static RailEntity Create(
-            RailResource resource,
-            int factoryType)
+
+        public static RailEntity Create(RailResource resource, int factoryType)
         {
             RailEntity entity = resource.CreateEntity(factoryType);
             entity.CommandCreator = resource;
@@ -149,11 +129,9 @@ namespace RailgunNet.Logic
             entity.InitState(resource, RailState.Create(resource, factoryType));
             return entity;
         }
-
         #endregion
 
         #region Override Functions
-
         protected virtual void Revert()
         {
         } // Called on controller
@@ -212,15 +190,12 @@ namespace RailgunNet.Logic
         protected virtual void OnUnfrozen()
         {
         }
-
         #endregion
 
         #region Lifecycle and Loop
-
         public virtual void PreUpdate()
         {
-            if (HasStarted == false)
-                OnPreUpdate();
+            if (HasStarted == false) OnPreUpdate();
             HasStarted = true;
             NotifyControllerChanged();
         }
@@ -235,7 +210,6 @@ namespace RailgunNet.Logic
             RailDebug.Assert(HasStarted);
             OnShutdown();
         }
-
         #endregion
     }
 

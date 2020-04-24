@@ -31,9 +31,7 @@ namespace RailgunNet.Logic.Wrappers
     ///     Used to differentiate/typesafe state records. Not strictly necessary.
     /// </summary>
     [OnlyIn(Component.Server)]
-    public class RailStateRecord
-        : IRailTimedValue
-            , IRailPoolable<RailStateRecord>
+    public class RailStateRecord : IRailTimedValue, IRailPoolable<RailStateRecord>
     {
         private RailState state;
 
@@ -50,23 +48,22 @@ namespace RailgunNet.Logic.Wrappers
         private Tick Tick => tick;
 
         #region Interface
-
         Tick IRailTimedValue.Tick => tick;
-
         #endregion
 
-        public void Overwrite(
-            IRailStateConstruction stateCreator,
-            Tick tick,
-            RailState state)
+        public void Overwrite(IRailStateConstruction stateCreator, Tick tick, RailState state)
         {
             RailDebug.Assert(tick.IsValid);
 
             this.tick = tick;
             if (this.state == null)
+            {
                 this.state = state.Clone(stateCreator);
+            }
             else
+            {
                 this.state.OverwriteFrom(state);
+            }
         }
 
         public void Invalidate()
@@ -81,14 +78,12 @@ namespace RailgunNet.Logic.Wrappers
         }
 
         #region Pooling
-
         IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
 
         void IRailPoolable<RailStateRecord>.Reset()
         {
             Reset();
         }
-
         #endregion
     }
 }
