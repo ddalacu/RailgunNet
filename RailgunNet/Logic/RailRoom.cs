@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using RailgunNet.Connection;
 using RailgunNet.Factory;
 using RailgunNet.System.Types;
@@ -104,17 +105,9 @@ namespace RailgunNet.Logic
         protected IEnumerable<T> GetAllEntities<T>()
             where T : RailEntity
         {
-            // TODO: This makes multiple full passes, could probably optimize
-            foreach (RailConfig.RailUpdateOrder order in RailConfig.Orders)
-            {
-                foreach (RailEntity entity in entities.Values)
-                {
-                    if (entity.UpdateOrder == order)
-                    {
-                        yield return entity as T;
-                    }
-                }
-            }
+            return entities
+                   .Select(pair => (T)pair.Value)
+                   .OrderBy(entity => entity.UpdateOrder);
         }
 
         protected void RegisterEntity(RailEntity entity)
