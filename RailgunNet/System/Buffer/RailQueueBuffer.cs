@@ -28,7 +28,7 @@ namespace RailgunNet.System.Buffer
     ///     A rolling queue that maintains entries in order. Designed to access
     ///     the entry at a given tick, or the most recent entry before it.
     /// </summary>
-    internal class RailQueueBuffer<T>
+    public class RailQueueBuffer<T>
         where T : class, IRailTimedValue, IRailPoolable<T>
     {
         private readonly int capacity;

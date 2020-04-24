@@ -22,12 +22,12 @@ namespace RailgunNet.Connection.Server
         : RailPacketIncoming
             , IRailClientPacket
     {
-        private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
+        private readonly RailPackedListIncoming<RailCommandUpdate> commandUpdates;
 
         public RailPacketFromClient()
         {
             View = new RailView();
-            commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
+            commandUpdates = new RailPackedListIncoming<RailCommandUpdate>();
         }
 
         public RailView View { get; }

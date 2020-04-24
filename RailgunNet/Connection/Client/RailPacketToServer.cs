@@ -35,13 +35,13 @@ namespace RailgunNet.Connection.Client
     public sealed class RailPacketToServer
         : RailPacketOutgoing
     {
-        private readonly RailPackedListC2S<RailCommandUpdate> commandUpdates;
+        private readonly RailPackedListOutgoing<RailCommandUpdate> commandUpdates;
         private readonly RailView view;
 
         public RailPacketToServer()
         {
             view = new RailView();
-            commandUpdates = new RailPackedListC2S<RailCommandUpdate>();
+            commandUpdates = new RailPackedListOutgoing<RailCommandUpdate>();
         }
 
         public IEnumerable<RailCommandUpdate> Sent => commandUpdates.Sent;

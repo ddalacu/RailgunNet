@@ -30,7 +30,7 @@ using RailgunNet.Util.Debug;
 namespace RailgunNet.Connection.Client
 {
     [OnlyIn(Component.Client)]
-    internal class RailClientRoom : RailRoom
+    public class RailClientRoom : RailRoom
     {
         /// <summary>
         ///     The local Railgun client.

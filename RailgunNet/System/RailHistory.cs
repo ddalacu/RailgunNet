@@ -27,7 +27,7 @@ namespace RailgunNet.System
     /// <summary>
     ///     A rolling history buffer to keep track of seen SequenceIds.
     /// </summary>
-    internal class RailHistory
+    public class RailHistory
     {
         private readonly HistoryBits history;
 

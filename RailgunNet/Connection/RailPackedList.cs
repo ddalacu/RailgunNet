@@ -25,36 +25,20 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Connection
 {
-    internal class RailPackedListS2C<T>
+    public class RailPackedListIncoming<T>
         where T : IRailPoolable<T>
     {
-        public RailPackedListS2C()
+        public RailPackedListIncoming()
         {
-#if CLIENT
             received = new List<T>();
-#endif
-#if SERVER
-            pending = new List<T>();
-            sent = new List<T>();
-#endif
         }
 
         public void Clear()
         {
-#if CLIENT
             // We don't free the received values as they will be passed elsewhere
             received.Clear();
-#endif
-#if SERVER
-            // Everything in sent is also in pending, so only free pending
-            foreach (T value in pending)
-                RailPool.Free(value);
-            pending.Clear();
-            sent.Clear();
-#endif
         }
 
-#if CLIENT
         public void Decode(
             RailBitBuffer buffer,
             Func<T> decode)
@@ -63,94 +47,32 @@ namespace RailgunNet.Connection
             foreach (T delta in decoded)
                 received.Add(delta);
         }
-#endif
-#if CLIENT
         public IEnumerable<T> Received => received;
         private readonly List<T> received;
-#endif
-#if SERVER
-        public IEnumerable<T> Pending => pending;
-        public IEnumerable<T> Sent => sent;
-        private readonly List<T> pending;
-        private readonly List<T> sent;
-#endif
-#if SERVER
-        public void AddPending(T value)
-        {
-            pending.Add(value);
-        }
-
-        public void AddPending(IEnumerable<T> values)
-        {
-            pending.AddRange(values);
-        }
-
-        public void Encode(
-            RailBitBuffer buffer,
-            int maxTotalSize,
-            int maxIndividualSize,
-            Action<T> encode)
-        {
-            buffer.PackToSize(
-                maxTotalSize,
-                maxIndividualSize,
-                pending,
-                encode,
-                val => sent.Add(val));
-        }
-#endif
     }
 
-    internal class RailPackedListC2S<T>
+    public class RailPackedListOutgoing<T>
         where T : IRailPoolable<T>
     {
-        public RailPackedListC2S()
+        public RailPackedListOutgoing()
         {
-#if SERVER
-            received = new List<T>();
-#endif
-#if CLIENT
             pending = new List<T>();
             sent = new List<T>();
-#endif
         }
 
         public void Clear()
         {
-#if SERVER
-            // We don't free the received values as they will be passed elsewhere
-            received.Clear();
-#endif
-#if CLIENT
             // Everything in sent is also in pending, so only free pending
             foreach (T value in pending)
                 RailPool.Free(value);
             pending.Clear();
             sent.Clear();
-#endif
         }
 
-#if SERVER
-        public void Decode(
-            RailBitBuffer buffer,
-            Func<T> decode)
-        {
-            IEnumerable<T> decoded = buffer.UnpackAll(decode);
-            foreach (T delta in decoded)
-                received.Add(delta);
-        }
-#endif
-#if SERVER
-        public IEnumerable<T> Received => received;
-        private readonly List<T> received;
-#endif
-#if CLIENT
         public IEnumerable<T> Pending => pending;
         public IEnumerable<T> Sent => sent;
         private readonly List<T> pending;
         private readonly List<T> sent;
-#endif
-#if CLIENT
         public void AddPending(T value)
         {
             pending.Add(value);
@@ -174,6 +96,5 @@ namespace RailgunNet.Connection
                 encode,
                 val => sent.Add(val));
         }
-#endif
     }
 }

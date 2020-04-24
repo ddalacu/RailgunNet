@@ -14,11 +14,11 @@ namespace RailgunNet.Connection.Client
     public sealed class RailPacketFromServer
         : RailPacketIncoming
     {
-        private readonly RailPackedListS2C<RailStateDelta> deltas;
+        private readonly RailPackedListIncoming<RailStateDelta> deltas;
 
         public RailPacketFromServer()
         {
-            deltas = new RailPackedListS2C<RailStateDelta>();
+            deltas = new RailPackedListIncoming<RailStateDelta>();
         }
 
         public IEnumerable<RailStateDelta> Deltas => deltas.Received;

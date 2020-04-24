@@ -28,7 +28,7 @@ namespace RailgunNet.System.Buffer
     ///     Pre-allocated random access buffer for dejittering values. Preferable to
     ///     DejitterList because of fast insertion and lookup, but harder to use.
     /// </summary>
-    internal class RailDejitterBuffer<T>
+    public class RailDejitterBuffer<T>
         where T : class, IRailTimedValue, IRailPoolable<T>
     {
         private readonly T[] data;

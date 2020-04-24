@@ -27,7 +27,7 @@ namespace RailgunNet.System.Buffer
     ///     A rolling buffer that contains a sliding window of the most recent
     ///     stored values.
     /// </summary>
-    internal class RailRollingBuffer<T>
+    public class RailRollingBuffer<T>
     {
         private readonly int capacity;
 

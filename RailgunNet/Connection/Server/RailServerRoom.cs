@@ -28,7 +28,7 @@ using RailgunNet.Util;
 namespace RailgunNet.Connection.Server
 {
     [OnlyIn(Component.Server)]
-    internal class RailServerRoom : RailRoom
+    public class RailServerRoom : RailRoom
     {
         /// <summary>
         ///     All client controllers involved in this room.

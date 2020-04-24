@@ -36,11 +36,11 @@ namespace RailgunNet.Connection.Server
     public sealed class RailPacketToClient
         : RailPacketOutgoing
     {
-        private readonly RailPackedListS2C<RailStateDelta> deltas;
+        private readonly RailPackedListOutgoing<RailStateDelta> deltas;
 
         public RailPacketToClient()
         {
-            deltas = new RailPackedListS2C<RailStateDelta>();
+            deltas = new RailPackedListOutgoing<RailStateDelta>();
         }
 
         public IEnumerable<RailStateDelta> Sent => deltas.Sent;
