@@ -51,6 +51,10 @@ namespace RailgunNet.Connection
         private readonly List<T> received;
     }
 
+    /// <summary>
+    /// Packs a maximum of 255 elements into a bit buffer.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class RailPackedListOutgoing<T>
         where T : IRailPoolable<T>
     {
@@ -60,6 +64,9 @@ namespace RailgunNet.Connection
             sent = new List<T>();
         }
 
+        /// <summary>
+        /// Discards all elements added as pending, regardless whether they have been sent or not.
+        /// </summary>
         public void Clear()
         {
             // Everything in sent is also in pending, so only free pending
@@ -89,6 +96,7 @@ namespace RailgunNet.Connection
             int maxIndividualSize,
             Action<T> encode)
         {
+            // TODO: prevent loss of data if there are too many pending or the individual size is too large.
             buffer.PackToSize(
                 maxTotalSize,
                 maxIndividualSize,

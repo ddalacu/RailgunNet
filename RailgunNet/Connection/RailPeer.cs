@@ -248,15 +248,13 @@ namespace RailgunNet.Connection
                 if (evnt.Attempts <= 0)
                     continue;
 
-#if SERVER
                 // Don't send an event if it's out of scope for this peer
-                if (Scope.Includes(evnt) == false)
+                if (Scope != null && Scope.Includes(evnt) == false)
                 {
                     // Skipping due to out of scope counts as an attempt
                     evnt.RegisterSkip();
                     continue;
                 }
-#endif
 
                 if (firstId.IsValid == false)
                     firstId = evnt.EventId;

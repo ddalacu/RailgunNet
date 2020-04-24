@@ -26,7 +26,7 @@ namespace Tests
         }
 
         [Fact]
-        public void AllocateCallsFactory()
+        private void AllocateCallsFactory()
         {
             A instance = new A();
             factoryMock.Setup(f => f.Create()).Returns(instance);
@@ -37,7 +37,7 @@ namespace Tests
             Assert.Same(instance, allocatedObject);
         }
         [Fact]
-        public void PoolReusesInstances()
+        private void PoolReusesInstances()
         {
             factoryMock.Setup(f => f.Create()).Returns(new A());
             var pool = new RailMemoryPool<A>(factoryMock.Object);
