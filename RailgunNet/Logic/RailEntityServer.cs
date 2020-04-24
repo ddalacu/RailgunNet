@@ -18,7 +18,7 @@ namespace RailgunNet.Logic
         // The controller at the time of entity removal
         private RailController priorController;
 
-        public RailEntityServer()
+        protected RailEntityServer()
         {
             // We use no divisor for storing commands because commands are sent in
             // batches that we can use to fill in the holes between send ticks
@@ -63,7 +63,7 @@ namespace RailgunNet.Logic
         }
         public static T Create<T>(
             RailResource resource)
-            where T : RailEntity
+            where T : RailEntityServer
         {
             int factoryType = resource.GetEntityFactoryType<T>();
             return (T)Create(resource, factoryType);
@@ -121,7 +121,7 @@ namespace RailgunNet.Logic
         }
 
         #endregion
-        protected override void Reset()
+        protected sealed override void Reset()
         {
             base.Reset();
             outgoingStates.Clear();

@@ -52,7 +52,7 @@ namespace RailgunNet.Logic.Scope
             this.stateCreator = stateCreator;
         }
 
-        public RailScopeEvaluator Evaluator { get; set; }
+        private RailScopeEvaluator Evaluator { get; }
 
         public bool Includes(
             RailEvent evnt)

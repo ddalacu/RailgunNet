@@ -187,7 +187,7 @@ namespace RailgunNet.Connection.Client
         }
 
         public void RequestControlUpdate(
-            RailEntity entity,
+            RailEntityClient entity,
             RailStateDelta delta)
         {
             // Can't infer anything if the delta is an empty frozen update

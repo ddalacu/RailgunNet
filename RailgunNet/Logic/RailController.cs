@@ -95,8 +95,8 @@ namespace RailgunNet.Logic
         /// </summary>
         public void Shutdown()
         {
-            foreach (RailEntity entity in controlledEntities)
-                entity.AssignController(null);
+            foreach (IRailEntity entity in controlledEntities)
+                entity.AsBase.AssignController(null);
             controlledEntities.Clear();
         }
 

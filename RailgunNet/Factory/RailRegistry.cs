@@ -64,6 +64,25 @@ namespace RailgunNet.Factory
             where TEntity : RailEntity
             where TState : RailState
         {
+            // Type check for TEntity
+            Type expectedBaseType;
+            switch (Component)
+            {
+                case Component.Server:
+                    expectedBaseType = typeof(RailEntityServer);
+                    break;
+                case Component.Client:
+                    expectedBaseType = typeof(RailEntityClient);
+                    break;
+                default:
+                    throw new ArgumentException(nameof(Component));
+            }
+            Type entityType = typeof(TEntity);
+            if (!entityType.IsSubclassOf(expectedBaseType))
+            {
+                throw new ArgumentException($"All entities in a {Component} have to be derived from {expectedBaseType}. The provided entity is of type {entityType}.");
+            }
+
             entityTypes.Add(
                 new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
         }

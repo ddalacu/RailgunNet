@@ -178,14 +178,5 @@ namespace RailgunNet.Connection.Server
         {
             ClientLeft?.Invoke(client);
         }
-#if false
-        public static T Create<T>(
-            RailResource resource)
-            where T : RailEntity
-        {
-            int factoryType = resource.GetEntityFactoryType<T>();
-            return (T)Create(resource, factoryType);
-        }
-#endif
     }
 }

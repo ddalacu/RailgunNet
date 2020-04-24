@@ -107,7 +107,7 @@ namespace RailgunNet.Logic
             {
                 foreach (RailEntity entity in entities.Values)
                     if (entity.UpdateOrder == order)
-                        yield return (T)entity;
+                        yield return entity as T;
             }
         }
 

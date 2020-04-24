@@ -44,7 +44,7 @@ namespace RailgunNet.Logic
         private bool deferNotifyControllerChanged;
         private int factoryType;
 
-        protected IRailCommandConstruction commandCreator { get; private set; }
+        protected IRailCommandConstruction CommandCreator { get; private set; }
 
         // Configuration
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
@@ -87,7 +87,7 @@ namespace RailgunNet.Logic
             Room = null;
             HasStarted = false;
             IsFrozen = false;
-            commandCreator = null;
+            CommandCreator = null;
 
             Id = EntityId.INVALID;
             Controller = null;
@@ -144,7 +144,7 @@ namespace RailgunNet.Logic
             int factoryType)
         {
             RailEntity entity = resource.CreateEntity(factoryType);
-            entity.commandCreator = resource;
+            entity.CommandCreator = resource;
             entity.factoryType = factoryType;
             entity.InitState(resource, RailState.Create(resource, factoryType));
             return entity;

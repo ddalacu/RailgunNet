@@ -74,7 +74,7 @@ namespace RailgunNet.Logic
         private Tick authTick;
         private Tick nextTick;
         private bool shouldBeFrozen;
-        public RailEntityClient()
+        protected RailEntityClient()
         {
             incomingStates =
                 new RailDejitterBuffer<RailStateDelta>(
@@ -220,13 +220,13 @@ namespace RailgunNet.Logic
 
         #endregion
 
-        protected override void InitState(IRailStateConstruction creator, RailState initialState)
+        protected sealed override void InitState(IRailStateConstruction creator, RailState initialState)
         {
             base.InitState(creator, initialState);
             AuthStateBase = StateBase.Clone(creator);
             NextStateBase = StateBase.Clone(creator);
         }
-        protected override void Reset()
+        protected sealed override void Reset()
         {
             base.Reset();
 

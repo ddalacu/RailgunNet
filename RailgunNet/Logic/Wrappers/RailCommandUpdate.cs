@@ -48,7 +48,7 @@ namespace RailgunNet.Logic.Wrappers
                     BUFFER_CAPACITY);
         }
 
-        [OnlyIn(Component.Client)] [CanBeNull] public RailEntityClient Entity { get; set; }
+        [OnlyIn(Component.Client)] [CanBeNull] public RailEntityClient Entity { get; private set; }
 
         public EntityId EntityId { get; private set; }
 
