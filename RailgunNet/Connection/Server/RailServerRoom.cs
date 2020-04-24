@@ -148,7 +148,7 @@ namespace RailgunNet.Connection.Server
         public void StoreStates()
         {
             foreach (RailEntity entity in Entities)
-                entity.StoreRecord();
+                entity.StoreRecord(Resource);
         }
 
         private T CreateEntity<T>() where T : RailEntity

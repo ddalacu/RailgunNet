@@ -166,6 +166,7 @@ namespace RailgunNet.Logic.Scope
                 //       Should investigate a smarter way to handle this later.
                 RailStateDelta delta =
                     entry.Value.AsBase.ProduceDelta(
+                        stateCreator,
                         latest.LastReceivedTick,
                         owner,
                         latest.IsFrozen);
@@ -190,6 +191,7 @@ namespace RailgunNet.Logic.Scope
                 if (latest.IsValid && latest.LastReceivedTick < entity.AsBase.RemovedTick)
                     removedList.Add(
                         entity.AsBase.ProduceDelta(
+                            stateCreator,
                             latest.LastReceivedTick,
                             target,
                             false));

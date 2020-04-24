@@ -44,7 +44,7 @@ namespace RailgunNet.Logic
         private bool deferNotifyControllerChanged;
         private int factoryType;
 
-        private RailResource resource;
+        private IRailCommandConstruction commandCreator;
 
         protected RailEntity()
         {
@@ -112,7 +112,7 @@ namespace RailgunNet.Logic
             Room = null;
             HasStarted = false;
             IsFrozen = false;
-            resource = null;
+            commandCreator = null;
 
             Id = EntityId.INVALID;
             Controller = null;
@@ -212,7 +212,7 @@ namespace RailgunNet.Logic
             int factoryType)
         {
             RailEntity entity = resource.CreateEntity(factoryType);
-            entity.resource = resource;
+            entity.commandCreator = resource;
             entity.factoryType = factoryType;
             entity.StateBase = RailState.Create(resource, factoryType);
 #if CLIENT
@@ -450,11 +450,11 @@ namespace RailgunNet.Logic
         #endregion
 
 #if SERVER
-        public void StoreRecord()
+        public void StoreRecord(IRailStateConstruction stateCreator)
         {
             RailStateRecord record =
                 RailState.CreateRecord(
-                    resource,
+                    stateCreator,
                     Room.Tick,
                     StateBase,
                     outgoingStates.Latest);
@@ -463,6 +463,7 @@ namespace RailgunNet.Logic
         }
 
         public RailStateDelta ProduceDelta(
+            IRailStateConstruction stateCreator,
             Tick basisTick,
             RailController destination,
             bool forceAllMutable)
@@ -474,7 +475,7 @@ namespace RailgunNet.Logic
             bool includeImmutableData = basisTick.IsValid == false;
 
             return RailState.CreateDelta(
-                resource,
+                stateCreator,
                 Id,
                 StateBase,
                 outgoingStates.LatestFrom(basisTick),
@@ -588,7 +589,7 @@ namespace RailgunNet.Logic
             RailDebug.Assert(Controller != null);
             if (outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
             {
-                RailCommand command = resource.CreateCommand();
+                RailCommand command = commandCreator.CreateCommand();
 
                 command.ClientTick = localTick;
                 command.IsNewCommand = true;
