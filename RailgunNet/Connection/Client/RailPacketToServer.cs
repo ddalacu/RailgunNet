@@ -67,7 +67,7 @@ namespace RailgunNet.Connection.Client
         #region Encode/Decode
 
         public override void EncodePayload(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             Tick localTick,
             int reservedBytes)

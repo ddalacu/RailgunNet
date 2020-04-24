@@ -24,6 +24,7 @@ using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
@@ -129,9 +130,9 @@ namespace RailgunNet.Logic
             return RailEntity.Create(resource, factoryType);
         }
 
-        public RailState Clone(RailResource resource)
+        public RailState Clone(IRailStateConstruction stateCreator)
         {
-            RailState clone = Create(resource, factoryType);
+            RailState clone = Create(stateCreator, factoryType);
             clone.OverwriteFrom(this);
             return clone;
         }
@@ -154,7 +155,7 @@ namespace RailgunNet.Logic
             ResetAllData();
         }
 
-#if CLIENT
+        [OnlyIn(Component.Client)]
         public void ApplyDelta(RailStateDelta delta)
         {
             RailState deltaState = delta.State;
@@ -170,11 +171,10 @@ namespace RailgunNet.Logic
             if (deltaState.HasImmutableData)
                 ApplyImmutableFrom(deltaState);
         }
-#endif
 
-#if SERVER
+        [OnlyIn(Component.Server)]
         public static void EncodeDelta(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             RailStateDelta delta)
         {
@@ -188,7 +188,7 @@ namespace RailgunNet.Logic
             {
                 // Write: [FactoryType]
                 RailState state = delta.State;
-                buffer.WriteInt(resource.EntityTypeCompressor, state.factoryType);
+                buffer.WriteInt(stateCreator.EntityTypeCompressor, state.factoryType);
 
                 // Write: [IsRemoved]
                 buffer.WriteBool(delta.RemovedTick.IsValid);
@@ -223,14 +223,14 @@ namespace RailgunNet.Logic
                     state.EncodeImmutableData(buffer);
             }
         }
-#endif
-#if CLIENT
+
+        [OnlyIn(Component.Client)]
         public static RailStateDelta DecodeDelta(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             Tick packetTick)
         {
-            RailStateDelta delta = resource.CreateDelta();
+            RailStateDelta delta = stateCreator.CreateDelta();
             RailState state = null;
 
             Tick commandAck = Tick.INVALID;
@@ -245,8 +245,8 @@ namespace RailgunNet.Logic
             if (isFrozen == false)
             {
                 // Read: [FactoryType]
-                int factoryType = buffer.ReadInt(resource.EntityTypeCompressor);
-                state = Create(resource, factoryType);
+                int factoryType = buffer.ReadInt(stateCreator.EntityTypeCompressor);
+                state = Create(stateCreator, factoryType);
 
                 // Read: [IsRemoved]
                 bool isRemoved = buffer.ReadBool();
@@ -290,7 +290,6 @@ namespace RailgunNet.Logic
                 isFrozen);
             return delta;
         }
-#endif
 
         #region Pooling
 
@@ -305,22 +304,22 @@ namespace RailgunNet.Logic
 
         #region Creation
 
-        public static RailState Create(RailResource resource, int factoryType)
+        public static RailState Create(IRailStateConstruction creator, int factoryType)
         {
-            RailState state = resource.CreateState(factoryType);
+            RailState state = creator.CreateState(factoryType);
             state.factoryType = factoryType;
             state.InitializeData();
             return state;
         }
 
-#if SERVER
         /// <summary>
         ///     Creates a delta between a state and a record. If forceUpdate is set
         ///     to false, this function will return null if there is no change between
         ///     the current and basis.
         /// </summary>
+        [OnlyIn(Component.Server)]
         public static RailStateDelta CreateDelta(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             EntityId entityId,
             RailState current,
             IEnumerable<RailStateRecord> basisStates,
@@ -350,7 +349,7 @@ namespace RailgunNet.Logic
             if (flags == FLAGS_NONE && shouldReturn == false)
                 return null;
 
-            RailState deltaState = Create(resource, current.factoryType);
+            RailState deltaState = Create(stateCreator, current.factoryType);
             deltaState.Flags = flags;
             deltaState.ApplyMutableFrom(current, deltaState.Flags);
 
@@ -363,7 +362,7 @@ namespace RailgunNet.Logic
                 deltaState.ApplyImmutableFrom(current);
 
             // We don't need to include a tick when sending -- it's in the packet
-            RailStateDelta delta = resource.CreateDelta();
+            RailStateDelta delta = stateCreator.CreateDelta();
             delta.Initialize(
                 Tick.INVALID,
                 entityId,
@@ -380,7 +379,7 @@ namespace RailgunNet.Logic
         ///     return null if there is no change between the current and latest.
         /// </summary>
         public static RailStateRecord CreateRecord(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             Tick tick,
             RailState current,
             RailStateRecord latestRecord = null)
@@ -395,11 +394,10 @@ namespace RailgunNet.Logic
                     return null;
             }
 
-            RailStateRecord record = resource.CreateRecord();
-            record.Overwrite(resource, tick, current);
+            RailStateRecord record = stateCreator.CreateRecord();
+            record.Overwrite(stateCreator, tick, current);
             return record;
         }
-#endif
 
         #endregion
 

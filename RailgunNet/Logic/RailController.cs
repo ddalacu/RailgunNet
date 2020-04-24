@@ -37,14 +37,14 @@ namespace RailgunNet.Logic
         private readonly HashSet<IRailEntity> controlledEntities;
 
         public RailController(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             IRailNetPeer netPeer = null)
         {
             controlledEntities = new HashSet<IRailEntity>();
             NetPeer = netPeer;
 
 #if SERVER
-            Scope = new RailScope(this, resource);
+            Scope = new RailScope(this, stateCreator);
 #endif
 
             netPeer?.BindController(this);

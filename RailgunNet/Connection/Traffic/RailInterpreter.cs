@@ -44,7 +44,7 @@ namespace RailgunNet.Connection.Traffic
             RailPacketOutgoing packet)
         {
             bitBuffer.Clear();
-            RailPacketSerializer.Encode(packet, resource, bitBuffer);
+            packet.Encode(resource, bitBuffer);
             int length = bitBuffer.Store(bytes);
             RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
             peer.SendPayload(bytes, length);

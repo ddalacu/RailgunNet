@@ -33,20 +33,21 @@ namespace RailgunNet.Connection.Client
         #region Encode/Decode
 
         public override void DecodePayload(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer)
         {
             // Read: [Deltas]
-            DecodeDeltas(resource, buffer);
+            DecodeDeltas(stateCreator, buffer);
         }
 
         private void DecodeDeltas(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer)
         {
             deltas.Decode(
                 buffer,
-                () => RailState.DecodeDelta(resource, buffer, SenderTick));
+                () => RailState.DecodeDelta(stateCreator, buffer, SenderTick));
         }
 
         #endregion

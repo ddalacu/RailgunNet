@@ -18,9 +18,11 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
+using RailgunNet.Util;
+
 namespace RailgunNet.Logic.Scope
 {
+    [OnlyIn(Component.Server)]
     public class RailScopeEvaluator
     {
         public virtual bool Evaluate(
@@ -40,4 +42,3 @@ namespace RailgunNet.Logic.Scope
         }
     }
 }
-#endif

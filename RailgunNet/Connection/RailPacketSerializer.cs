@@ -10,6 +10,21 @@ namespace RailgunNet.Connection
 {
     public static class RailPacketSerializer
     {
+        public static void Encode(
+            this RailPacketOutgoing packet,
+            RailResource resource,
+            RailBitBuffer buffer)
+        {
+            packet.Encode(resource, resource, buffer);
+        }
+        public static void Decode(
+            this RailPacketIncoming packet,
+            RailResource resource,
+            RailBitBuffer buffer)
+        {
+            packet.Decode(resource, resource, resource, buffer);
+        }
+
         /// <summary>
         ///     After writing the header we write the packet data in three passes.
         ///     The first pass is a fill of events up to a percentage of the packet.
@@ -18,39 +33,42 @@ namespace RailgunNet.Connection
         ///     to fill it with any remaining events, up to the maximum packet size.
         /// </summary>
         public static void Encode(
-            RailPacketOutgoing packet,
-            RailResource resource,
+            this RailPacketOutgoing packet,
+            IRailStateConstruction stateCreator,
+            IRailEventConstruction eventCreator,
             RailBitBuffer buffer)
         {
             // Write: [Header]
             EncodeHeader(packet, buffer);
 
             // Write: [Events] (Early Pack)
-            EncodeEvents(packet, resource.EventTypeCompressor, buffer, RailConfig.PACKCAP_EARLY_EVENTS);
+            EncodeEvents(packet, eventCreator, buffer, RailConfig.PACKCAP_EARLY_EVENTS);
 
             // Write: [Payload] (+1 byte for the event count)
-            packet.EncodePayload(resource, buffer, packet.SenderTick, 1);
+            packet.EncodePayload(stateCreator, buffer, packet.SenderTick, 1);
 
             // Write: [Events] (Fill Pack)
-            EncodeEvents(packet, resource.EventTypeCompressor, buffer, RailConfig.PACKCAP_MESSAGE_TOTAL);
+            EncodeEvents(packet, eventCreator, buffer, RailConfig.PACKCAP_MESSAGE_TOTAL);
         }
 
         public static void Decode(
-            RailPacketIncoming packet,
-            RailResource resource,
+            this RailPacketIncoming packet,
+            IRailCommandConstruction commandCreator,
+            IRailStateConstruction stateCreator,
+            IRailEventConstruction eventCreator,
             RailBitBuffer buffer)
         {
             // Read: [Header]
             DecodeHeader(packet, buffer);
 
             // Read: [Events] (Early Pack)
-            DecodeEvents(packet, resource, resource.EventTypeCompressor, buffer);
+            DecodeEvents(packet, eventCreator, buffer);
 
             // Read: [Payload]
-            packet.DecodePayload(resource, buffer);
+            packet.DecodePayload(commandCreator, stateCreator, buffer);
 
             // Read: [Events] (Fill Pack)
-            DecodeEvents(packet, resource, resource.EventTypeCompressor, buffer);
+            DecodeEvents(packet, eventCreator, buffer);
         }
 
         #region Header
@@ -95,7 +113,7 @@ namespace RailgunNet.Connection
         /// </summary>
         private static void EncodeEvents(
             RailPacketOutgoing packet,
-            RailIntCompressor compressor,
+            IRailEventConstruction eventCreator,
             RailBitBuffer buffer,
             int maxSize)
         {
@@ -104,19 +122,18 @@ namespace RailgunNet.Connection
                     maxSize,
                     RailConfig.MAXSIZE_EVENT,
                     packet.GetNextEvents(),
-                    evnt => evnt.Encode(compressor, buffer, packet.SenderTick),
+                    evnt => evnt.Encode(eventCreator.EventTypeCompressor, buffer, packet.SenderTick),
                     evnt => evnt.RegisterSent());
         }
 
         private static void DecodeEvents(
             RailPacketIncoming packet,
-            IRailEventCreator creator,
-            RailIntCompressor compressor,
+            IRailEventConstruction eventCreator,
             RailBitBuffer buffer)
         {
             IEnumerable<RailEvent> decoded =
                 buffer.UnpackAll(
-                    () => RailEvent.Decode(creator, compressor, buffer, packet.SenderTick));
+                    () => RailEvent.Decode(eventCreator, eventCreator.EventTypeCompressor, buffer, packet.SenderTick));
             foreach (RailEvent evnt in decoded)
                 packet.Events.Add(evnt);
         }

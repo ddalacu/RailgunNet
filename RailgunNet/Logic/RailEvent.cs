@@ -69,9 +69,11 @@ namespace RailgunNet.Logic
 
         private RailController Sender { get; set; }
 
-        private static RailEvent Create(IRailEventCreator creator, int factoryType)
+        private static RailEvent Create(
+            IRailEventConstruction eventCreator, 
+            int factoryType)
         {
-            RailEvent evnt = creator.CreateEvent(factoryType);
+            RailEvent evnt = eventCreator.CreateEvent(factoryType);
             evnt.factoryType = factoryType;
             return evnt;
         }
@@ -208,7 +210,7 @@ namespace RailgunNet.Logic
         ///     is intended for use in tick diffs for compression.
         /// </summary>
         public static RailEvent Decode(
-            IRailEventCreator creator,
+            IRailEventConstruction eventCreator,
             RailIntCompressor compressor,
             RailBitBuffer buffer,
             Tick packetTick)
@@ -216,7 +218,7 @@ namespace RailgunNet.Logic
             // Read: [EventType]
             int factoryType = buffer.ReadInt(compressor);
 
-            RailEvent evnt = Create(creator, factoryType);
+            RailEvent evnt = Create(eventCreator, factoryType);
 
             // Read: [EventId]
             evnt.EventId = buffer.ReadSequenceId();

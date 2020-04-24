@@ -47,23 +47,24 @@ namespace RailgunNet.Connection.Server
         }
 
         public override void DecodePayload(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer)
         {
             // Read: [Commands]
-            DecodeCommands(resource, buffer);
+            DecodeCommands(commandCreator, buffer);
 
             // Read: [View]
             DecodeView(buffer);
         }
 
         private void DecodeCommands(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
             RailBitBuffer buffer)
         {
             commandUpdates.Decode(
                 buffer,
-                () => RailCommandUpdate.Decode(resource, buffer));
+                () => RailCommandUpdate.Decode(commandCreator, buffer));
         }
 
         private void DecodeView(RailBitBuffer buffer)

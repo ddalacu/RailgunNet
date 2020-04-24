@@ -65,17 +65,17 @@ namespace RailgunNet.Connection.Server
         #region Encode/Decode
 
         public override void EncodePayload(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             Tick localTick,
             int reservedBytes)
         {
             // Write: [Deltas]
-            EncodeDeltas(resource, buffer, reservedBytes);
+            EncodeDeltas(stateCreator, buffer, reservedBytes);
         }
 
         private void EncodeDeltas(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             int reservedBytes)
         {
@@ -83,7 +83,7 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 RailConfig.MAXSIZE_ENTITY,
-                delta => RailState.EncodeDelta(resource, buffer, delta));
+                delta => RailState.EncodeDelta(stateCreator, buffer, delta));
         }
 
         #endregion

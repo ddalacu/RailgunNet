@@ -30,8 +30,9 @@ using RailgunNet.Util.Pooling;
 namespace RailgunNet.Factory
 {
     public class RailResource :
-        IRailCommandCreator,
-        IRailEventCreator
+        IRailCommandConstruction,
+        IRailEventConstruction,
+        IRailStateConstruction
     {
         private readonly IRailMemoryPool<RailCommand> commandPool;
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;

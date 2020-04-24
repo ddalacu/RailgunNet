@@ -30,7 +30,7 @@ namespace RailgunNet.Connection
     public abstract class RailPacketOutgoing : RailPacketBase
     {
         public abstract void EncodePayload(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
             Tick localTick,
             int reservedBytes);
@@ -39,7 +39,8 @@ namespace RailgunNet.Connection
     public abstract class RailPacketIncoming : RailPacketBase
     {
         public abstract void DecodePayload(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
+            IRailStateConstruction stateCreator,
             RailBitBuffer buffer);
     }
 

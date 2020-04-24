@@ -114,10 +114,10 @@ namespace RailgunNet.Logic
 
         [OnlyIn(Component.Server)]
         public static RailCommand Decode(
-            IRailCommandCreator creator,
+            IRailCommandConstruction commandCreator,
             RailBitBuffer buffer)
         {
-            RailCommand command = creator.CreateCommand();
+            RailCommand command = commandCreator.CreateCommand();
 
             // Read: [SenderTick]
             command.ClientTick = buffer.ReadTick();

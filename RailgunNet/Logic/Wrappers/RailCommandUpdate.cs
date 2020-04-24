@@ -55,11 +55,11 @@ namespace RailgunNet.Logic.Wrappers
         public IEnumerable<RailCommand> Commands => commands.GetValues();
 
         public static RailCommandUpdate Create(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
             EntityId entityId,
             IEnumerable<RailCommand> commands)
         {
-            RailCommandUpdate update = resource.CreateCommandUpdate();
+            RailCommandUpdate update = commandCreator.CreateCommandUpdate();
             update.Initialize(entityId, commands);
             return update;
         }
@@ -95,10 +95,10 @@ namespace RailgunNet.Logic.Wrappers
 
         [OnlyIn(Component.Server)]
         public static RailCommandUpdate Decode(
-            RailResource resource,
+            IRailCommandConstruction commandCreator,
             RailBitBuffer buffer)
         {
-            RailCommandUpdate update = resource.CreateCommandUpdate();
+            RailCommandUpdate update = commandCreator.CreateCommandUpdate();
 
             // Read: [EntityId]
             update.EntityId = buffer.ReadEntityId();
@@ -108,7 +108,7 @@ namespace RailgunNet.Logic.Wrappers
 
             // Read: [Commands]
             for (int i = 0; i < count; i++)
-                update.commands.Store(RailCommand.Decode(resource, buffer));
+                update.commands.Store(RailCommand.Decode(commandCreator, buffer));
 
             return update;
         }

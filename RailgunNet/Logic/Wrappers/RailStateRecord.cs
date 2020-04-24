@@ -56,7 +56,7 @@ namespace RailgunNet.Logic.Wrappers
         #endregion
 
         public void Overwrite(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             Tick tick,
             RailState state)
         {
@@ -64,7 +64,7 @@ namespace RailgunNet.Logic.Wrappers
 
             this.tick = tick;
             if (this.state == null)
-                this.state = state.Clone(resource);
+                this.state = state.Clone(stateCreator);
             else
                 this.state.OverwriteFrom(state);
         }

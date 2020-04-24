@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
  *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
  *
@@ -18,49 +18,43 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-#if SERVER
 using System.Collections.Generic;
+using System.Linq;
 using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 
 namespace RailgunNet.Logic.Scope
 {
+    [OnlyIn(Component.Server)]
     public class RailScope
     {
-        private readonly RailView ackedByClient;
-        private readonly List<RailStateDelta> activeList;
+        private readonly RailView ackedByClient = new RailView();
+        private readonly List<RailStateDelta> activeList = new List<RailStateDelta>();
 
         // Pre-allocated reusable fill lists
-        private readonly List<KeyValuePair<float, IRailEntity>> entryList;
-        private readonly List<RailStateDelta> frozenList;
-        private readonly RailView lastSent;
+        private readonly List<KeyValuePair<float, IRailEntity>> entryList = new List<KeyValuePair<float, IRailEntity>>();
+        private readonly List<RailStateDelta> frozenList = new List<RailStateDelta>();
+        private readonly RailView lastSent = new RailView();
 
         private readonly RailController owner;
-        private readonly EntityPriorityComparer priorityComparer;
-        private readonly List<RailStateDelta> removedList;
-        private readonly RailResource resource;
+        private readonly EntityPriorityComparer priorityComparer = new EntityPriorityComparer();
+        private readonly List<RailStateDelta> removedList = new List<RailStateDelta>();
+        private readonly IRailStateConstruction stateCreator;
 
-        public RailScope(RailController owner, RailResource resource)
+        public RailScope(RailController owner, IRailStateConstruction stateCreator)
         {
             Evaluator = new RailScopeEvaluator();
             this.owner = owner;
-            this.resource = resource;
-            lastSent = new RailView();
-            ackedByClient = new RailView();
-            priorityComparer = new EntityPriorityComparer();
-
-            entryList = new List<KeyValuePair<float, IRailEntity>>();
-            activeList = new List<RailStateDelta>();
-            frozenList = new List<RailStateDelta>();
-            removedList = new List<RailStateDelta>();
+            this.stateCreator = stateCreator;
         }
 
         public RailScopeEvaluator Evaluator { get; set; }
 
-        public bool EvaluateEvent(
+        public bool Includes(
             RailEvent evnt)
         {
             return Evaluator.Evaluate(evnt);
@@ -94,7 +88,7 @@ namespace RailgunNet.Logic.Scope
         }
 
         private bool GetPriority(
-            RailEntity entity,
+            IRailEntity entity,
             Tick current,
             out float priority)
         {
@@ -152,7 +146,7 @@ namespace RailgunNet.Logic.Scope
                     if (latest.IsFrozen == false)
                         frozenList.Add(
                             RailStateDelta.CreateFrozen(
-                                resource,
+                                stateCreator,
                                 serverTick,
                                 entity.Id));
                 }
@@ -234,7 +228,6 @@ namespace RailgunNet.Logic.Scope
             }
         }
 
-#if SERVER
         public Tick GetLastSent(EntityId entityId)
         {
             return lastSent.GetLatest(entityId).LastReceivedTick;
@@ -251,7 +244,5 @@ namespace RailgunNet.Logic.Scope
         {
             return GetLastAckedByClient(entityId).IsValid;
         }
-#endif
     }
 }
-#endif

@@ -56,11 +56,11 @@ namespace RailgunNet.Logic.Wrappers
         #endregion
 
         public static RailStateDelta CreateFrozen(
-            RailResource resource,
+            IRailStateConstruction stateCreator,
             Tick tick,
             EntityId entityId)
         {
-            RailStateDelta delta = resource.CreateDelta();
+            RailStateDelta delta = stateCreator.CreateDelta();
             delta.Initialize(tick, entityId, null, Tick.INVALID, Tick.INVALID, true);
             return delta;
         }

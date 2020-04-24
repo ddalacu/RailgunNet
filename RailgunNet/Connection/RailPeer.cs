@@ -102,7 +102,7 @@ namespace RailgunNet.Connection
             {
                 RailBitBuffer bitBuffer = interpreter.LoadData(buffer, length);
                 reusableIncoming.Reset();
-                RailPacketSerializer.Decode(reusableIncoming, Resource, bitBuffer);
+                reusableIncoming.Decode(Resource, bitBuffer);
 
                 if (bitBuffer.IsFinished)
                     ProcessPacket(reusableIncoming, localTick);
@@ -117,7 +117,6 @@ namespace RailgunNet.Connection
 
         /// <summary>
         ///     Allocates a packet and writes common boilerplate information to it.
-        ///     Make sure to call OnSent() afterwards.
         /// </summary>
         protected T PrepareSend<T>(Tick localTick)
             where T : RailPacketOutgoing
@@ -250,7 +249,7 @@ namespace RailgunNet.Connection
 
 #if SERVER
                 // Don't send an event if it's out of scope for this peer
-                if (Scope.EvaluateEvent(evnt) == false)
+                if (Scope.Includes(evnt) == false)
                 {
                     // Skipping due to out of scope counts as an attempt
                     evnt.RegisterSkip();
