@@ -34,6 +34,7 @@ namespace RailgunNet
         bool HasStarted { get; }
         bool IsRemoving { get; }
         bool IsFrozen { get; }
+        bool CanFreeze { get; }
         RailController Controller { get; }
 
         EntityId Id { get; }

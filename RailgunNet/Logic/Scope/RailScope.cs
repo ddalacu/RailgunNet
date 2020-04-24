@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
  *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
  *
@@ -129,7 +129,8 @@ namespace RailgunNet.Logic.Scope
         {
             entryList.Clear();
 
-            foreach (RailEntity entity in activeEntities)
+            foreach (IRailEntity entity in activeEntities)
+            {
                 if (entity.IsRemoving)
                 {
                 }
@@ -155,6 +156,7 @@ namespace RailgunNet.Logic.Scope
                                 serverTick,
                                 entity.Id));
                 }
+            }
 
             entryList.Sort(priorityComparer);
             foreach (KeyValuePair<float, IRailEntity> entry in entryList)

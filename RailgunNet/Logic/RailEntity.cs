@@ -39,7 +39,7 @@ namespace RailgunNet.Logic
     /// </summary>
     public abstract class RailEntity
         : IRailPoolable<RailEntity>
-            , IRailEntity
+        , IRailEntity
     {
         private bool deferNotifyControllerChanged;
         private int factoryType;
@@ -74,7 +74,10 @@ namespace RailgunNet.Logic
         // Configuration
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
-        public virtual bool CanFreeze => true;
+        public bool CanFreeze
+        {
+            get => true;
+        }
 
         protected abstract RailState StateBase { get; set; }
         public Tick RemovedTick { get; private set; }
