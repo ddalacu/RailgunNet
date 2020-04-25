@@ -52,10 +52,6 @@ namespace RailgunNet.Logic
 
         public bool CanFreeze => true;
 
-        #region Interface
-        RailEntity IRailEntity.AsBase => this;
-        #endregion
-
         // Simulation info
         public RailRoom Room { get; set; }
         public bool HasStarted { get; private set; }

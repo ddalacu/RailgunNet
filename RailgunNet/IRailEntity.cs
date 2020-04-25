@@ -25,10 +25,6 @@ namespace RailgunNet
 {
     public interface IRailEntity
     {
-        /// <summary>
-        ///     Used internally within Railgun to downcast.
-        /// </summary>
-        RailEntity AsBase { get; }
 
         RailRoom Room { get; }
         bool HasStarted { get; }
