@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Debug;
@@ -60,6 +61,14 @@ namespace RailgunNet.Logic
         public bool HasStarted { get; private set; }
         public bool IsRemoving => RemovedTick.IsValid;
         public bool IsFrozen { get; protected set; }
+
+        /// <summary>
+        ///     The controller of this entity.
+        ///     Attention: client side this is either the client itself or null.
+        ///     Remote controlled entities are represented as null.
+        ///     TODO: unfriendly API, change that.
+        /// </summary>
+        [CanBeNull]
         public RailController Controller { get; private set; }
 
         // Synchronization info
@@ -131,63 +140,67 @@ namespace RailgunNet.Logic
         }
         #endregion
 
-        #region Override Functions
-        protected virtual void Revert()
-        {
-        } // Called on controller
-
-        protected virtual void UpdateControlGeneric(RailCommand toPopulate)
-        {
-        } // Called on controller
-
+        #region Override Function
+        /// <summary>
+        ///     Applies a command to this instance.
+        ///     Called on controller and server.
+        /// </summary>
+        /// <param name="toApply"></param>
+        [PublicAPI]
         protected virtual void ApplyControlGeneric(RailCommand toApply)
-        {
-        } // Called on controller and server
-
-        protected virtual void CommandMissing()
-        {
-        } // Called on server
-
-        protected virtual void UpdateFrozen()
-        {
-        } // Called on non-controller client
-
-        protected virtual void UpdateProxy()
-        {
-        } // Called on non-controller client
-
-        protected virtual void UpdateAuth()
-        {
-        } // Called on server
-
-        protected virtual void OnControllerChanged()
-        {
-        } // Called on all
-
-        protected virtual void OnPreUpdate()
-        {
-        } // Called on all
-
-        protected virtual void OnPostUpdate()
-        {
-        } // Called on all except frozen
-
-        protected virtual void OnSunset()
-        {
-        } // Called on server
-
-        protected virtual void OnShutdown()
-        {
-        } // Called on all
-
-        protected abstract void OnReset();
-
-        // Client-only
-        protected virtual void OnFrozen()
         {
         }
 
-        protected virtual void OnUnfrozen()
+        /// <summary>
+        ///     When the controller of the current instance changed.
+        ///     Called on all.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnControllerChanged()
+        {
+        }
+
+        /// <summary>
+        ///     Immediately before the update call.
+        ///     Called on all.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnPreUpdate()
+        {
+        }
+
+        /// <summary>
+        ///     Immediately after the update call.
+        ///     Called on server. Called on clients if not frozen.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnPostUpdate()
+        {
+        }
+
+        /// <summary>
+        ///     When the entity was added to a room.
+        ///     Called on all.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnAdded()
+        {
+        }
+
+        /// <summary>
+        ///     When the entity was removed from a room.
+        ///     Called on all.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnRemoved()
+        {
+        }
+
+        /// <summary>
+        ///     After the entity has been reset.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnReset()
         {
         }
         #endregion
@@ -205,10 +218,15 @@ namespace RailgunNet.Logic
             OnPostUpdate();
         }
 
-        public virtual void Shutdown()
+        public virtual void Removed()
         {
             RailDebug.Assert(HasStarted);
-            OnShutdown();
+            OnRemoved();
+        }
+
+        public virtual void Added()
+        {
+            OnAdded();
         }
         #endregion
     }
@@ -292,7 +310,7 @@ namespace RailgunNet.Logic
         where TState : RailState, new()
         where TCommand : RailCommand
     {
-        protected override void UpdateControlGeneric(RailCommand toPopulate)
+        protected override void WriteCommandGeneric(RailCommand toPopulate)
         {
             UpdateControl((TCommand) toPopulate);
         }

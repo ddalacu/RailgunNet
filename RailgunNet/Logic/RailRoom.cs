@@ -105,15 +105,14 @@ namespace RailgunNet.Logic
         protected IEnumerable<T> GetAllEntities<T>()
             where T : RailEntity
         {
-            return entities
-                   .Select(pair => (T)pair.Value)
-                   .OrderBy(entity => entity.UpdateOrder);
+            return entities.Select(pair => (T) pair.Value).OrderBy(entity => entity.UpdateOrder);
         }
 
         protected void RegisterEntity(RailEntity entity)
         {
             entities.Add(entity.Id, entity);
             entity.Room = this;
+            entity.Added();
         }
 
         protected void RemoveEntity(RailEntity entity)
@@ -121,8 +120,8 @@ namespace RailgunNet.Logic
             if (entities.ContainsKey(entity.Id))
             {
                 entities.Remove(entity.Id);
-                entity.Shutdown();
                 entity.Room = null;
+                entity.Removed();
                 // TODO: Pooling entities?
 
                 HandleRemovedEntity(entity.Id);

@@ -1,4 +1,5 @@
-﻿using RailgunNet.Factory;
+﻿using JetBrains.Annotations;
+using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
@@ -41,7 +42,7 @@ namespace RailgunNet.Logic
 
         public void ServerUpdate()
         {
-            UpdateAuth();
+            UpdateAuthoritative();
 
             RailCommand latest = GetLatestCommand();
             if (latest != null)
@@ -102,7 +103,7 @@ namespace RailgunNet.Logic
         }
 
         #region Lifecycle and Loop
-        public override void Shutdown()
+        public override void Removed()
         {
             RailDebug.Assert(HasStarted);
 
@@ -115,7 +116,7 @@ namespace RailgunNet.Logic
                 NotifyControllerChanged();
             }
 
-            base.Shutdown();
+            base.Removed();
         }
         #endregion
 
@@ -169,5 +170,35 @@ namespace RailgunNet.Logic
             bool shouldAck = commandAck.IsValid == false || latestCommandTick > commandAck;
             if (shouldAck) commandAck = latestCommandTick;
         }
+
+        #region Override Functions
+        /// <summary>
+        ///     If the entity had no pending command this tick.
+        ///     Called on server.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void CommandMissing()
+        {
+        }
+
+        /// <summary>
+        ///     Called first in an update, before processing a command. Clients will obey
+        ///     to this state and overwrite their local state.
+        ///     Called on server.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void UpdateAuthoritative()
+        {
+        }
+
+        /// <summary>
+        ///     When the entity will be removed on the next tick.
+        ///     Called on server.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnSunset()
+        {
+        } // Called on server
+        #endregion
     }
 }

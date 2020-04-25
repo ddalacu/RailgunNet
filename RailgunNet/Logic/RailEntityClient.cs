@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Client;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
@@ -152,23 +153,24 @@ namespace RailgunNet.Logic
         /// </summary>
         public bool ReceiveDelta(RailStateDelta delta)
         {
-            bool stored = false;
             if (delta.IsFrozen)
             {
                 // Frozen deltas have no state data, so we need to treat them
                 // separately when doing checks based on state content
-                stored = incomingStates.Store(delta);
+                return incomingStates.Store(delta);
             }
             else
             {
                 if (delta.IsRemoving) RemovedTick = delta.RemovedTick;
-                stored = incomingStates.Store(delta);
+                return incomingStates.Store(delta);
             }
-
-            return stored;
         }
 
-        private void CleanCommands(Tick ackTick)
+        /// <summary>
+        ///     Frees all outgoing commands that are older than the given Tick.
+        /// </summary>
+        /// <param name="ackTick"></param>
+        private void FreeExpiredCommands(Tick ackTick)
         {
             if (ackTick.IsValid == false) return;
 
@@ -190,7 +192,7 @@ namespace RailgunNet.Logic
                 command.ClientTick = localTick;
                 command.IsNewCommand = true;
 
-                UpdateControlGeneric(command);
+                WriteCommandGeneric(command);
                 outgoingCommands.Enqueue(command);
             }
         }
@@ -239,7 +241,7 @@ namespace RailgunNet.Logic
             LastSentCommandTick = Tick.START;
         }
 
-        private void UpdateAuthState()
+        private void ApplyAuthoritativeState()
         {
             // Apply all un-applied deltas to the auth state
             IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
@@ -257,8 +259,8 @@ namespace RailgunNet.Logic
             }
 
             if (lastDelta != null)
-                // Update the control status based on the most recent delta
             {
+                // Update the control status based on the most recent delta
                 (Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
             }
 
@@ -292,8 +294,8 @@ namespace RailgunNet.Logic
                 lastDelta = delta;
             }
 
-            if (lastDelta != null) CleanCommands(lastDelta.CommandAck);
-            Revert();
+            if (lastDelta != null) FreeExpiredCommands(lastDelta.CommandAck);
+            // TODO: Revert();
 
             // Forward-simulate
             foreach (RailCommand command in outgoingCommands)
@@ -317,7 +319,7 @@ namespace RailgunNet.Logic
         #region Lifecycle and Loop
         public override void PreUpdate()
         {
-            UpdateAuthState();
+            ApplyAuthoritativeState();
             StateBase.OverwriteFrom(AuthStateBase);
             base.PreUpdate();
         }
@@ -327,15 +329,73 @@ namespace RailgunNet.Logic
             if (IsFrozen == false) base.PostUpdate();
         }
 
-        public override void Shutdown()
+        public override void Removed()
         {
             RailDebug.Assert(HasStarted);
 
             // Set the final auth state before removing
-            UpdateAuthState();
+            ApplyAuthoritativeState();
             StateBase.OverwriteFrom(AuthStateBase);
 
-            base.Shutdown();
+            base.Removed();
+        }
+        #endregion
+
+        #region Override Functions
+        /// <summary>
+        ///     Called during UpdatePredicted after updating the StateBase.
+        ///     Called on client controller.
+        /// </summary>
+        [PublicAPI]
+        [Obsolete("Not very useful imo. Remove?")]
+        protected virtual void Revert()
+        {
+        }
+
+        /// <summary>
+        ///     Populate the provided command instance.
+        ///     Called on client controller.
+        /// </summary>
+        /// <param name="toPopulate"></param>
+        [PublicAPI]
+        protected virtual void WriteCommandGeneric(RailCommand toPopulate)
+        {
+        }
+
+        /// <summary>
+        ///     Called on every tick for frozen entities.
+        ///     Called on client for all client entities.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void UpdateFrozen()
+        {
+        }
+
+        /// <summary>
+        ///     Update for non-controlled entities.
+        ///     Called on non-controller client.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void UpdateProxy()
+        {
+        }
+
+        /// <summary>
+        ///     When an entity is frozen.
+        ///     Called on client.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnFrozen()
+        {
+        }
+
+        /// <summary>
+        ///     When an entity is unfrozen.
+        ///     Called on client.
+        /// </summary>
+        [PublicAPI]
+        protected virtual void OnUnfrozen()
+        {
         }
         #endregion
     }
