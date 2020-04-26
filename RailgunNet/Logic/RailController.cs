@@ -69,25 +69,6 @@ namespace RailgunNet.Logic
         [OnlyIn(Component.Server)]
         public RailScope Scope { get; }
 
-        /// <summary>
-        ///     Queues an event to send directly to this peer.
-        /// </summary>
-        public virtual void RaiseEvent(
-            RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true)
-        {
-            throw new InvalidOperationException("Cannot raise event to local controller");
-        }
-
-        /// <summary>
-        ///     Queues an event to send directly to this peer.
-        /// </summary>
-        public virtual void SendEvent(RailEvent evnt, ushort attempts)
-        {
-            throw new InvalidOperationException("Cannot send event to local controller");
-        }
-
         #region Controller
         /// <summary>
         ///     Detaches the controller from all controlled entities.

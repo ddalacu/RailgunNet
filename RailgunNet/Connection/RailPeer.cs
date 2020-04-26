@@ -168,7 +168,7 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Queues an event to send directly to this peer.
         /// </summary>
-        public override void RaiseEvent(
+        public void RaiseEvent(
             RailEvent evnt,
             ushort attempts = 3,
             bool freeWhenDone = true)
@@ -180,7 +180,7 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
-        public override void SendEvent(RailEvent evnt, ushort attempts)
+        public void SendEvent(RailEvent evnt, ushort attempts)
         {
             // TODO: Event scoping
             RailEvent clone = evnt.Clone(Resource);
