@@ -183,7 +183,7 @@ namespace RailgunNet.System.Buffer
         /// <summary>
         ///     Finds all items at or later than the given tick, in order.
         /// </summary>
-        public IList<T> GetRange(Tick start)
+        public IList<T> GetRangeStartingFrom(Tick start)
         {
             returnList.Clear();
             if (start == Tick.INVALID) return returnList;

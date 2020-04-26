@@ -35,13 +35,15 @@ namespace RailgunNet.Logic
     public abstract class RailEntity : IRailPoolable<RailEntity>, IRailEntity
     {
         private bool deferNotifyControllerChanged;
-        private int factoryType;
 
         protected IRailCommandConstruction CommandCreator { get; private set; }
 
         // Configuration
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
+        /// <summary>
+        /// The current local state.
+        /// </summary>
         protected abstract RailState StateBase { get; set; }
         public Tick RemovedTick { get; protected set; }
 
@@ -126,11 +128,16 @@ namespace RailgunNet.Logic
             StateBase = initialState;
         }
 
+        /// <summary>
+        /// Creates a new entity with its corresponding state.
+        /// </summary>
+        /// <param name="resource"></param>
+        /// <param name="factoryType"></param>
+        /// <returns></returns>
         public static RailEntity Create(RailResource resource, int factoryType)
         {
             RailEntity entity = resource.CreateEntity(factoryType);
             entity.CommandCreator = resource;
-            entity.factoryType = factoryType;
             entity.InitState(resource, RailState.Create(resource, factoryType));
             return entity;
         }
@@ -142,7 +149,6 @@ namespace RailgunNet.Logic
         ///     Called on controller and server.
         /// </summary>
         /// <param name="toApply"></param>
-        [PublicAPI]
         protected virtual void ApplyControlGeneric(RailCommand toApply)
         {
         }
@@ -226,103 +232,4 @@ namespace RailgunNet.Logic
         }
         #endregion
     }
-
-#if false
-/// <summary>
-    ///     Handy shortcut class for auto-casting the state.
-    /// </summary>
-    public abstract class RailEntity<TState>
-        : RailEntity
-            , IRailEntity<TState>
-        where TState : RailState, new()
-    {
-        protected override RailState StateBase
-        {
-            get => State;
-            set => State = (TState) value;
-        }
-
-        public TState State { get; private set; }
-
-#if CLIENT
-        protected override RailState AuthStateBase
-        {
-            get => authState;
-            set => authState = (TState) value;
-        }
-
-        protected override RailState NextStateBase
-        {
-            get => nextState;
-            set => nextState = (TState) value;
-        }
-#endif
-
-#if CLIENT
-        private TState authState;
-        private TState nextState;
-
-        /// <summary>
-        ///     Returns the current dejittered authoritative state from the server.
-        ///     Will return null if the entity is locally controlled (use State).
-        /// </summary>
-        public TState AuthState
-        {
-            get
-            {
-                // Not valid if we're controlling
-                if (IsControlled)
-                    return null;
-                return authState;
-            }
-        }
-
-        /// <summary>
-        ///     Returns the next dejittered authoritative state from the server. Will
-        ///     return null none is available or if the entity is locally controlled.
-        /// </summary>
-        public TState NextState
-        {
-            get
-            {
-                // Not valid if we're controlling
-                if (IsControlled)
-                    return null;
-                // Only return if we have a valid next state assigned
-                if (NextTick.IsValid)
-                    return nextState;
-                return null;
-            }
-        }
-#endif
-    }
-
-    /// <summary>
-    ///     Handy shortcut class for auto-casting the state and command.
-    /// </summary>
-    public abstract class RailEntity<TState, TCommand>
-        : RailEntity<TState>
-            , IRailEntity<TState>
-        where TState : RailState, new()
-        where TCommand : RailCommand
-    {
-        protected override void WriteCommandGeneric(RailCommand toPopulate)
-        {
-            UpdateControl((TCommand) toPopulate);
-        }
-
-        protected override void ApplyControlGeneric(RailCommand toApply)
-        {
-            ApplyControl((TCommand) toApply);
-        }
-
-        protected virtual void UpdateControl(TCommand toPopulate)
-        {
-        }
-
-        protected virtual void ApplyControl(TCommand toApply)
-        {
-        }
-    }
-#endif
 }

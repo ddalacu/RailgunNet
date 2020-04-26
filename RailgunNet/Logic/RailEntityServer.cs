@@ -8,6 +8,47 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
+/// <summary>
+    ///     Handy shortcut class for auto-casting the state.
+    /// </summary>
+    public abstract class RailEntityServer<TState>
+        : RailEntityServer
+        where TState : RailState, new()
+    {
+        #region Public API
+        /// <summary>
+        ///     Returns the current local state.
+        /// </summary>
+        [PublicAPI]
+        public TState State { get; private set; }
+        #endregion
+    }
+
+    /// <summary>
+    ///     Handy shortcut class for auto-casting the state and command.
+    /// </summary>
+    public abstract class RailEntityServer<TState, TCommand>
+        : RailEntityServer<TState>
+        where TState : RailState, new()
+        where TCommand : RailCommand
+    {
+        #region Public API
+        /// <summary>
+        ///     Applies a command to this instance.
+        ///     Called on controller and server.
+        /// </summary>
+        /// <param name="toApply"></param>
+        [PublicAPI]
+        protected virtual void ApplyControl(TCommand toApply)
+        {
+        }
+        #endregion
+
+        protected sealed override void ApplyControlGeneric(RailCommand toApply)
+        {
+            ApplyControl((TCommand)toApply);
+        }
+    }
     public abstract class RailEntityServer : RailEntity
     {
         private readonly RailDejitterBuffer<RailCommand> incomingCommands;
@@ -103,7 +144,7 @@ namespace RailgunNet.Logic
         }
 
         #region Lifecycle and Loop
-        public override void Removed()
+        public sealed override void Removed()
         {
             RailDebug.Assert(HasStarted);
 
@@ -137,7 +178,7 @@ namespace RailgunNet.Logic
             StateBase = null;
         }
 
-        protected override void ClearCommands()
+        protected sealed override void ClearCommands()
         {
             incomingCommands.Clear();
             commandAck = Tick.INVALID;
@@ -173,7 +214,7 @@ namespace RailgunNet.Logic
 
         #region Override Functions
         /// <summary>
-        ///     If the entity had no pending command this tick.
+        ///     Called if the entity had no pending command this tick.
         ///     Called on server.
         /// </summary>
         [PublicAPI]
@@ -183,7 +224,7 @@ namespace RailgunNet.Logic
 
         /// <summary>
         ///     Called first in an update, before processing a command. Clients will obey
-        ///     to this state and overwrite their local state.
+        ///     to this state for all non-controlled entities.
         ///     Called on server.
         /// </summary>
         [PublicAPI]

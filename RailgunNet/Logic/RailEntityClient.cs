@@ -11,41 +11,127 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
-    public interface IRailEntityClient
-    {
-        bool IsControlled { get; }
-
-        /// <summary>
-        ///     The tick of the last authoritative state.
-        /// </summary>
-        Tick AuthTick { get; }
-
-        /// <summary>
-        ///     The tick of the next authoritative state. May be invalid.
-        /// </summary>
-        Tick NextTick { get; }
-
-        /// <summary>
-        ///     Returns the number of ticks ahead we are, for extrapolation.
-        ///     Note that this does not take client-side prediction into account.
-        /// </summary>
-        int TicksAhead { get; }
-
-        float ComputeInterpolation(float tickDeltaTime, float timeSinceTick);
-    }
-
     /// <summary>
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
-    public interface IRailEntityClient<out TState> : IRailEntityClient
+    public abstract class RailEntityClient<TState> : RailEntityClient
         where TState : RailState, new()
     {
-        TState State { get; }
-        TState AuthState { get; }
-        TState NextState { get; }
+        #region Public API
+        /// <summary>
+        ///     Returns the current local state.
+        /// </summary>
+        [PublicAPI]
+        public TState State { get; private set; }
+
+        /// <summary>
+        ///     Returns the current dejittered authoritative state from the server.
+        ///     Will return null if the entity is locally controlled (use State).
+        /// </summary>
+        [PublicAPI]
+        public TState AuthState
+        {
+            get
+            {
+                // Not valid if we're controlling
+                if (IsControlled)
+                {
+                    return null;
+                }
+
+                return authState;
+            }
+        }
+
+        /// <summary>
+        ///     Returns the next dejittered authoritative state from the server. Will
+        ///     return null none is available or if the entity is locally controlled.
+        /// </summary>
+        [PublicAPI]
+        public TState NextState
+        {
+            get
+            {
+                // Not valid if we're controlling
+                if (IsControlled)
+                {
+                    return null;
+                }
+
+                // Only return if we have a valid next state assigned
+                if (NextTick.IsValid)
+                {
+                    return nextState;
+                }
+
+                return null;
+            }
+        }
+        #endregion
+
+        protected override RailState StateBase
+        {
+            get => State;
+            set => State = (TState)value;
+        }
+
+        protected override RailState AuthStateBase
+        {
+            get => authState;
+            set => authState = (TState)value;
+        }
+
+        protected override RailState NextAuthStateBase
+        {
+            get => nextState;
+            set => nextState = (TState)value;
+        }
+
+        private TState authState;
+        private TState nextState;
     }
 
-    public abstract class RailEntityClient : RailEntity, IRailEntityClient
+    /// <summary>
+    ///     Handy shortcut class for auto-casting the state and command.
+    /// </summary>
+    public abstract class RailEntityClient<TState, TCommand> : RailEntityClient<TState>
+        where TState : RailState, new()
+        where TCommand : RailCommand, new()
+    {
+        #region Public API
+        /// <summary>
+        ///     Populate the provided command instance.
+        ///     Called on client controller.
+        /// </summary>
+        /// <param name="toPopulate"></param>
+        [PublicAPI]
+        protected virtual void WriteCommand(TCommand toPopulate)
+        {
+        }
+
+        /// <summary>
+        ///     Applies a command to this instance.
+        ///     Called on controller and server.
+        /// </summary>
+        /// <param name="toApply"></param>
+        [PublicAPI]
+        protected virtual void ApplyControl(TCommand toApply)
+        {
+        }
+        #endregion
+
+        protected sealed override void WriteCommandGeneric(RailCommand toPopulate)
+        {
+            WriteCommand((TCommand)toPopulate);
+        }
+
+        protected sealed override void ApplyControlGeneric(RailCommand toApply)
+        {
+            ApplyControl((TCommand)toApply);
+        }
+    }
+
+    public abstract class RailEntityClient : RailEntity
     {
         private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
         private readonly Queue<RailCommand> outgoingCommands;
@@ -64,8 +150,12 @@ namespace RailgunNet.Logic
             Reset();
         }
 
+        /// <summary>
+        ///     The authoritative state
+        /// </summary>
         protected abstract RailState AuthStateBase { get; set; }
-        protected abstract RailState NextStateBase { get; set; }
+
+        protected abstract RailState NextAuthStateBase { get; set; }
         public IEnumerable<RailCommand> OutgoingCommands => outgoingCommands;
 
         public Tick
@@ -159,18 +249,16 @@ namespace RailgunNet.Logic
                 // separately when doing checks based on state content
                 return incomingStates.Store(delta);
             }
-            else
-            {
-                if (delta.IsRemoving) RemovedTick = delta.RemovedTick;
-                return incomingStates.Store(delta);
-            }
+
+            if (delta.IsRemoving) RemovedTick = delta.RemovedTick;
+            return incomingStates.Store(delta);
         }
 
         /// <summary>
         ///     Frees all outgoing commands that are older than the given Tick.
         /// </summary>
         /// <param name="ackTick"></param>
-        private void FreeExpiredCommands(Tick ackTick)
+        private void FreeCommandsUpTo(Tick ackTick)
         {
             if (ackTick.IsValid == false) return;
 
@@ -203,7 +291,7 @@ namespace RailgunNet.Logic
         {
             base.InitState(creator, initialState);
             AuthStateBase = StateBase.Clone(creator);
-            NextStateBase = StateBase.Clone(creator);
+            NextAuthStateBase = StateBase.Clone(creator);
         }
 
         protected sealed override void Reset()
@@ -228,11 +316,11 @@ namespace RailgunNet.Logic
         {
             if (StateBase != null) RailPool.Free(StateBase);
             if (AuthStateBase != null) RailPool.Free(AuthStateBase);
-            if (NextStateBase != null) RailPool.Free(NextStateBase);
+            if (NextAuthStateBase != null) RailPool.Free(NextAuthStateBase);
 
             StateBase = null;
             AuthStateBase = null;
-            NextStateBase = null;
+            NextAuthStateBase = null;
         }
 
         protected override void ClearCommands()
@@ -241,7 +329,10 @@ namespace RailgunNet.Logic
             LastSentCommandTick = Tick.START;
         }
 
-        private void ApplyAuthoritativeState()
+        /// <summary>
+        ///     Updates the local instance of the authoritative state.
+        /// </summary>
+        private void UpdateAuthoritativeState()
         {
             // Apply all un-applied deltas to the auth state
             IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
@@ -268,8 +359,8 @@ namespace RailgunNet.Logic
             bool canGetNext = shouldBeFrozen == false;
             if (canGetNext && next != null && next.IsFrozen == false)
             {
-                NextStateBase.OverwriteFrom(AuthStateBase);
-                NextStateBase.ApplyDelta(next);
+                NextAuthStateBase.OverwriteFrom(AuthStateBase);
+                NextAuthStateBase.ApplyDelta(next);
                 nextTick = next.Tick;
             }
             else
@@ -278,12 +369,15 @@ namespace RailgunNet.Logic
             }
         }
 
+        /// <summary>
+        ///     Updates the local state with all outgoing commands (if there are any).
+        /// </summary>
         private void UpdatePredicted()
         {
             // Bring the main state up to the latest (apply all deltas)
-            IList<RailStateDelta> deltas = incomingStates.GetRange(authTick);
+            IList<RailStateDelta> deltas = incomingStates.GetRangeStartingFrom(authTick);
 
-            RailStateDelta lastDelta = null;
+            RailStateDelta lastAppliedDelta = null;
             foreach (RailStateDelta delta in deltas)
             {
                 // It's possible the state is null if we lost control
@@ -291,10 +385,10 @@ namespace RailgunNet.Logic
                 if (delta.State == null) break;
                 if (delta.HasControllerData == false) break;
                 StateBase.ApplyDelta(delta);
-                lastDelta = delta;
+                lastAppliedDelta = delta;
             }
 
-            if (lastDelta != null) FreeExpiredCommands(lastDelta.CommandAck);
+            if (lastAppliedDelta != null) FreeCommandsUpTo(lastAppliedDelta.CommandAck);
             // TODO: Revert();
 
             // Forward-simulate
@@ -319,7 +413,7 @@ namespace RailgunNet.Logic
         #region Lifecycle and Loop
         public override void PreUpdate()
         {
-            ApplyAuthoritativeState();
+            UpdateAuthoritativeState();
             StateBase.OverwriteFrom(AuthStateBase);
             base.PreUpdate();
         }
@@ -334,7 +428,7 @@ namespace RailgunNet.Logic
             RailDebug.Assert(HasStarted);
 
             // Set the final auth state before removing
-            ApplyAuthoritativeState();
+            UpdateAuthoritativeState();
             StateBase.OverwriteFrom(AuthStateBase);
 
             base.Removed();
@@ -347,7 +441,8 @@ namespace RailgunNet.Logic
         ///     Called on client controller.
         /// </summary>
         [PublicAPI]
-        [Obsolete("Not very useful imo. Remove?")]
+        [Obsolete(
+            "Don't understand yet what this is actually supposed to do. There might be some interaction with another callback that i have not understood.")]
         protected virtual void Revert()
         {
         }
@@ -357,7 +452,6 @@ namespace RailgunNet.Logic
         ///     Called on client controller.
         /// </summary>
         /// <param name="toPopulate"></param>
-        [PublicAPI]
         protected virtual void WriteCommandGeneric(RailCommand toPopulate)
         {
         }
