@@ -66,8 +66,11 @@ namespace RailgunNet.Connection
 
         protected void DoStart()
         {
-            if (hasStarted == false) Started?.Invoke();
-            hasStarted = true;
+            if (!hasStarted)
+            {
+                hasStarted = true;
+                Started?.Invoke();
+            }
         }
     }
 }

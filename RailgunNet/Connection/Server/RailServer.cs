@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -75,7 +76,8 @@ namespace RailgunNet.Connection.Server
         }
 
         /// <summary>
-        ///     Wraps an incoming connection in a peer and stores it.
+        ///     Wraps an incoming connection in a peer and stores it. To be called
+        ///     from the network API wrapper.
         /// </summary>
         [PublicAPI]
         public void AddClient(IRailNetPeer netPeer, string identifier)
@@ -90,8 +92,10 @@ namespace RailgunNet.Connection.Server
                 client.PacketReceived += OnPacketReceived;
                 clients.Add(netPeer, client);
                 Room.AddClient(client);
+                ClientAdded?.Invoke(client);
             }
         }
+        [PublicAPI] public event Action<RailServerPeer> ClientAdded;
 
         /// <summary>
         ///     Wraps an incoming connection in a peer and stores it.
@@ -107,8 +111,10 @@ namespace RailgunNet.Connection.Server
 
                 // Revoke control of all the entities controlled by that client
                 client.Shutdown();
+                ClientRemoved?.Invoke(client);
             }
         }
+        [PublicAPI] public event Action<RailServerPeer> ClientRemoved;
 
         /// <summary>
         ///     Updates all entities and dispatches a snapshot if applicable. Should

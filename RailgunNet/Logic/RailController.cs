@@ -47,7 +47,6 @@ namespace RailgunNet.Logic
             Scope = eVisibility == ExternalEntityVisibility.Scoped ?
                 new RailScope(this, stateCreator) :
                 null;
-            netPeer?.BindController(this);
         }
 
         /// <summary>

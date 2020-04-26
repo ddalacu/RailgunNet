@@ -249,10 +249,20 @@ namespace RailgunNet.System.Encoding
             for (int i = 0; i < numChunks; i++)
             {
                 int dataIdx = i * 4;
-                uint chunk = data[dataIdx] |
-                             ((uint) data[dataIdx + 1] << 8) |
-                             ((uint) data[dataIdx + 2] << 16) |
-                             ((uint) data[dataIdx + 3] << 24);
+                uint chunk = 0;
+
+                if (dataIdx < length)
+                    chunk = (uint)data[dataIdx];
+
+                if (dataIdx + 1 < length)
+                    chunk |= (uint)data[dataIdx + 1] << 8;
+
+                if (dataIdx + 2 < length)
+                    chunk |= (uint)data[dataIdx + 2] << 16;
+
+                if (dataIdx + 3 < length)
+                    chunk |= (uint)data[dataIdx + 3] << 24;
+
                 chunks[i] = chunk;
             }
 

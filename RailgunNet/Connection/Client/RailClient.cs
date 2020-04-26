@@ -18,7 +18,9 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using JetBrains.Annotations;
+using RailgunNet.Connection.Server;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -74,6 +76,7 @@ namespace RailgunNet.Connection.Client
                 {
                     serverPeer.PacketReceived -= OnPacketReceived;
                     serverPeer.EventReceived -= OnEventReceived;
+                    Disconnected?.Invoke(serverPeer);
                 }
 
                 serverPeer = null;
@@ -84,8 +87,11 @@ namespace RailgunNet.Connection.Client
                 serverPeer = new RailClientPeer(Resource, netPeer, Interpreter);
                 serverPeer.PacketReceived += OnPacketReceived;
                 serverPeer.EventReceived += OnEventReceived;
+                Connected?.Invoke(serverPeer);
             }
         }
+        [PublicAPI] public event Action<RailClientPeer> Connected;
+        [PublicAPI] public event Action<RailClientPeer> Disconnected;
 
         [PublicAPI]
         public override void Update()

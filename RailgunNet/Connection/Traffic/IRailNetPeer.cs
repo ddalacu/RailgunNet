@@ -35,6 +35,5 @@ namespace RailgunNet.Connection.Traffic
         event RailNetPeerEvent PayloadReceived;
 
         void SendPayload(byte[] buffer, int length);
-        void BindController(RailController controller);
     }
 }
