@@ -241,35 +241,35 @@ namespace RailgunNet.System.Encoding
         /// <summary>
         ///     Overwrites this buffer with an array of byte data.
         /// </summary>
-        public void Load(byte[] data, int length)
+        public void Load(ArraySegment<byte> data)
         {
-            int numChunks = length / 4 + 1;
+            int numChunks = data.Count / 4 + 1;
             if (chunks.Length < numChunks) chunks = new uint[numChunks];
 
             for (int i = 0; i < numChunks; i++)
             {
-                int dataIdx = i * 4;
+                int dataIdx = i * 4 + data.Offset;
                 uint chunk = 0;
 
-                if (dataIdx < length)
-                    chunk = (uint)data[dataIdx];
+                if (dataIdx < data.Count)
+                    chunk = (uint)data.Array[dataIdx];
 
-                if (dataIdx + 1 < length)
-                    chunk |= (uint)data[dataIdx + 1] << 8;
+                if (dataIdx + 1 < data.Count)
+                    chunk |= (uint)data.Array[dataIdx + 1] << 8;
 
-                if (dataIdx + 2 < length)
-                    chunk |= (uint)data[dataIdx + 2] << 16;
+                if (dataIdx + 2 < data.Count)
+                    chunk |= (uint)data.Array[dataIdx + 2] << 16;
 
-                if (dataIdx + 3 < length)
-                    chunk |= (uint)data[dataIdx + 3] << 24;
+                if (dataIdx + 3 < data.Count)
+                    chunk |= (uint)data.Array[dataIdx + 3] << 24;
 
                 chunks[i] = chunk;
             }
 
-            int positionInByte = FindHighestBitPosition(data[length - 1]);
+            int positionInByte = FindHighestBitPosition(data.Array[data.Count - 1 + data.Offset]);
 
             // Take one off the position to backtrack from the sentinel bit
-            writePos = (length - 1) * 8 + (positionInByte - 1);
+            writePos = (data.Count - 1) * 8 + (positionInByte - 1);
             readPos = 0;
         }
 

@@ -65,10 +65,10 @@ namespace RailgunNet.Logic
         protected abstract void SetDataFrom(RailCommand other);
 
         [PublicAPI]
-        protected abstract void WriteData(RailBitBuffer buffer);
+        protected abstract void EncodeData(RailBitBuffer buffer);
 
         [PublicAPI]
-        protected abstract void ReadData(RailBitBuffer buffer);
+        protected abstract void DecodeData(RailBitBuffer buffer);
 
         [PublicAPI]
         protected abstract void ResetData();
@@ -97,7 +97,7 @@ namespace RailgunNet.Logic
             buffer.WriteTick(ClientTick);
 
             // Write: [Command Data]
-            WriteData(buffer);
+            EncodeData(buffer);
         }
 
         [OnlyIn(Component.Server)]
@@ -111,7 +111,7 @@ namespace RailgunNet.Logic
             command.ClientTick = buffer.ReadTick();
 
             // Read: [Command Data]
-            command.ReadData(buffer);
+            command.DecodeData(buffer);
 
             return command;
         }

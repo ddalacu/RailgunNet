@@ -22,6 +22,11 @@ namespace RailgunNet.Logic
         [PublicAPI]
         public TState State { get; private set; }
         #endregion
+        protected override RailState StateBase
+        {
+            get => State;
+            set => State = (TState)value;
+        }
     }
 
     /// <summary>

@@ -93,11 +93,11 @@ namespace RailgunNet.Connection
             interpreter.SendPacket(Resource, NetPeer, packet);
         }
 
-        private void OnPayloadReceived(IRailNetPeer peer, byte[] buffer, int length)
+        private void OnPayloadReceived(IRailNetPeer peer, ArraySegment<byte> buffer)
         {
             try
             {
-                RailBitBuffer bitBuffer = interpreter.LoadData(buffer, length);
+                RailBitBuffer bitBuffer = interpreter.LoadData(buffer);
                 reusableIncoming.Reset();
                 reusableIncoming.Decode(Resource, bitBuffer);
 

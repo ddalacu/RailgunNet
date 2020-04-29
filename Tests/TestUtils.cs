@@ -50,11 +50,11 @@ namespace Tests
                 Data = i;
                 initialData = i;
             }
-            protected override void ReadData(RailBitBuffer buffer)
+            protected override void DecodeData(RailBitBuffer buffer)
             {
                 Data = buffer.ReadInt();
             }
-            protected override void WriteData(RailBitBuffer buffer)
+            protected override void EncodeData(RailBitBuffer buffer)
             {
                 buffer.WriteInt(Data);
             }

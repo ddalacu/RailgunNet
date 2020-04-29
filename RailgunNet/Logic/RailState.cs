@@ -36,8 +36,8 @@ namespace RailgunNet.Logic
         protected abstract void ApplyControllerFrom(T source);
         protected abstract void ApplyImmutableFrom(T source);
 
-        protected abstract uint CompareMutableData(T basis);
-        protected abstract bool IsControllerDataEqual(T basis);
+        protected abstract uint CompareMutableData(T other);
+        protected abstract bool IsControllerDataEqual(T other);
 
         #region Casting Overrides
         protected override void ApplyMutableFrom(RailState source, uint flags)
@@ -55,14 +55,14 @@ namespace RailgunNet.Logic
             ApplyImmutableFrom((T) source);
         }
 
-        protected override uint CompareMutableData(RailState basis)
+        protected override uint CompareMutableData(RailState other)
         {
-            return CompareMutableData((T) basis);
+            return CompareMutableData((T)other);
         }
 
-        protected override bool IsControllerDataEqual(RailState basis)
+        protected override bool IsControllerDataEqual(RailState other)
         {
-            return IsControllerDataEqual((T) basis);
+            return IsControllerDataEqual((T)other);
         }
         #endregion
     }
@@ -115,10 +115,9 @@ namespace RailgunNet.Logic
             return (flags & flag) == flag;
         }
 
-        protected static uint SetFlag(bool isEqual, uint flag)
+        protected static uint SetFlag<T>(bool isEqual, uint flag)
         {
-            if (isEqual == false) return flag;
-            return 0;
+            return isEqual ? FLAGS_NONE : flag;
         }
 
         public RailEntity ProduceEntity(RailResource resource)

@@ -45,7 +45,7 @@ namespace RailgunNet.Logic
 
         /// <summary>
         ///     Returns the next dejittered authoritative state from the server. Will
-        ///     return null none is available or if the entity is locally controlled.
+        ///     return null if none is available or if the entity is locally controlled.
         /// </summary>
         [PublicAPI]
         public TState NextState
@@ -343,7 +343,7 @@ namespace RailgunNet.Logic
             RailStateDelta lastDelta = null;
             foreach (RailStateDelta delta in toApply)
             {
-                if (delta.IsFrozen == false) AuthStateBase.ApplyDelta(delta);
+                if (!delta.IsFrozen) AuthStateBase.ApplyDelta(delta);
                 shouldBeFrozen = delta.IsFrozen;
                 authTick = delta.Tick;
                 lastDelta = delta;

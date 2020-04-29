@@ -18,11 +18,12 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using RailgunNet.Logic;
 
 namespace RailgunNet.Connection.Traffic
 {
-    public delegate void RailNetPeerEvent(IRailNetPeer peer, byte[] data, int length);
+    public delegate void RailNetPeerEvent(IRailNetPeer peer, ArraySegment<byte> buffer);
 
     public interface IRailNetPeer
     {
@@ -34,6 +35,6 @@ namespace RailgunNet.Connection.Traffic
         float? Ping { get; }
         event RailNetPeerEvent PayloadReceived;
 
-        void SendPayload(byte[] buffer, int length);
+        void SendPayload(ArraySegment<byte> buffer);
     }
 }

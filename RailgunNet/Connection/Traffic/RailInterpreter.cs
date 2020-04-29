@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using RailgunNet.Factory;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util.Debug;
@@ -44,12 +45,12 @@ namespace RailgunNet.Connection.Traffic
             packet.Encode(resource, bitBuffer);
             int length = bitBuffer.Store(bytes);
             RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
-            peer.SendPayload(bytes, length);
+            peer.SendPayload(new ArraySegment<byte>(bytes, 0, length));
         }
 
-        public RailBitBuffer LoadData(byte[] buffer, int length)
+        public RailBitBuffer LoadData(ArraySegment<byte> buffer)
         {
-            bitBuffer.Load(buffer, length);
+            bitBuffer.Load(buffer);
             return bitBuffer;
         }
     }
