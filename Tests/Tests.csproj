@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NetworkWrappers\RailgunNet.Wrappers.csproj" />
     <ProjectReference Include="..\RailgunNet\RailgunNet.csproj" />
   </ItemGroup>
 

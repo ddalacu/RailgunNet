@@ -59,10 +59,11 @@ namespace RailgunNet.Connection.Client
         [CanBeNull]
         private RailClientRoom Room { get; set; }
 
-        public void StartRoom()
+        public RailClientRoom StartRoom()
         {
             Room = new RailClientRoom(Resource, this);
             SetRoom(Room, Tick.INVALID);
+            return Room;
         }
 
         /// <summary>

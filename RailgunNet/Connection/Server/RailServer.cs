@@ -63,16 +63,17 @@ namespace RailgunNet.Connection.Server
         ///     The server's room instance. TODO: Multiple rooms?
         /// </summary>
         [CanBeNull]
-        private RailServerRoom Room { get; set; }
+        public RailServerRoom Room { get; set; }
 
         /// <summary>
         ///     Starts the server's room.
         /// </summary>
         [PublicAPI]
-        public void StartRoom()
+        public RailServerRoom StartRoom()
         {
             Room = new RailServerRoom(Resource, this);
             SetRoom(Room, Tick.START);
+            return Room;
         }
 
         /// <summary>
