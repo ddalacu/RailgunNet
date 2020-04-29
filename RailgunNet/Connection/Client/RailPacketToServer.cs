@@ -58,7 +58,7 @@ namespace RailgunNet.Connection.Client
             this.commandUpdates.AddPending(commandUpdates);
 
             // We don't care about sending/storing the local tick
-            view.Integrate(view);
+            this.view.Integrate(view);
         }
 
         #region Encode/Decode
