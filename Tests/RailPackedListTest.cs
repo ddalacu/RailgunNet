@@ -10,36 +10,20 @@ namespace Tests
 {
     public class RailPackedListTest
     {
-        private int elementsCreated = 0;
-        public class Foo : IRailPoolable<Foo>
-        {
-            public int Data { get; private set; }
-            public Foo(int iData)
-            {
-                Data = iData;
-            }
-            IRailMemoryPool<Foo> IRailPoolable<Foo>.Pool { get; set; }
-            void IRailPoolable<Foo>.Reset() { }
-            public void ReadData(RailBitBuffer buffer)
-            {
-                Data = buffer.ReadInt();
-            }
-            public void WriteData(RailBitBuffer buffer)
-            {
-                buffer.WriteInt(Data);
-            }
-        }
-
         private readonly Mock<IRailMemoryPool<Foo>> poolMock;
+        private int elementsCreated;
+
         public RailPackedListTest()
         {
             poolMock = new Mock<IRailMemoryPool<Foo>>();
-            poolMock.Setup(p => p.Allocate()).Returns(() =>
-            {
-                Foo foo = new Foo(elementsCreated++);
-                (foo as IRailPoolable<Foo>).Pool = poolMock.Object;
-                return foo;
-            });
+            poolMock.Setup(p => p.Allocate())
+                    .Returns(
+                        () =>
+                        {
+                            Foo foo = new Foo(elementsCreated++);
+                            (foo as IRailPoolable<Foo>).Pool = poolMock.Object;
+                            return foo;
+                        });
             poolMock.Setup(p => p.Deallocate(It.IsAny<Foo>()));
         }
 
@@ -48,7 +32,7 @@ namespace Tests
         [InlineData(10)]
         [InlineData(100)]
         [InlineData(255)]
-        void CanEncode(int iNumberOfEntries)
+        private void CanEncode(int iNumberOfEntries)
         {
             // Add entries to pending
             RailPackedListOutgoing<Foo> list = new RailPackedListOutgoing<Foo>();
@@ -56,15 +40,16 @@ namespace Tests
             {
                 list.AddPending(poolMock.Object.Allocate());
             }
+
             Assert.Equal(iNumberOfEntries, elementsCreated);
-            poolMock.Verify(p=>p.Allocate(), Times.Exactly(iNumberOfEntries));
-            poolMock.Verify(p=>p.Deallocate(It.IsAny<Foo>()), Times.Never);
+            poolMock.Verify(p => p.Allocate(), Times.Exactly(iNumberOfEntries));
+            poolMock.Verify(p => p.Deallocate(It.IsAny<Foo>()), Times.Never);
 
             // Encode
             RailBitBuffer buffer = new RailBitBuffer();
             list.Encode(
-                buffer, 
-                RailConfig.PACKCAP_COMMANDS, 
+                buffer,
+                RailConfig.PACKCAP_COMMANDS,
                 RailConfig.MAXSIZE_COMMANDUPDATE,
                 (foo, buf) => foo.WriteData(buf));
             Assert.False(buffer.Empty);
@@ -83,7 +68,7 @@ namespace Tests
         [InlineData(10)]
         [InlineData(100)]
         [InlineData(255)]
-        void CanDecode(int iNumberOfEntries)
+        private void CanDecode(int iNumberOfEntries)
         {
             // Add entries to pending
             RailPackedListOutgoing<Foo> list = new RailPackedListOutgoing<Foo>();
@@ -91,6 +76,7 @@ namespace Tests
             {
                 list.AddPending(poolMock.Object.Allocate());
             }
+
             Assert.Equal(iNumberOfEntries, elementsCreated);
             poolMock.Verify(p => p.Allocate(), Times.Exactly(iNumberOfEntries));
             poolMock.Verify(p => p.Deallocate(It.IsAny<Foo>()), Times.Never);
@@ -108,14 +94,41 @@ namespace Tests
             Assert.Equal(iNumberOfEntries, list.Sent.Count());
 
             RailPackedListIncoming<Foo> incoming = new RailPackedListIncoming<Foo>();
-            incoming.Decode(buffer, (b) =>
-            {
-                Foo foo = poolMock.Object.Allocate();
-                foo.ReadData(b);
-                return foo;
-            });
+            incoming.Decode(
+                buffer,
+                b =>
+                {
+                    Foo foo = poolMock.Object.Allocate();
+                    foo.ReadData(b);
+                    return foo;
+                });
 
             Assert.Equal(iNumberOfEntries, incoming.Received.Count());
+        }
+
+        public class Foo : IRailPoolable<Foo>
+        {
+            public Foo(int iData)
+            {
+                Data = iData;
+            }
+
+            public int Data { get; private set; }
+            IRailMemoryPool<Foo> IRailPoolable<Foo>.Pool { get; set; }
+
+            void IRailPoolable<Foo>.Reset()
+            {
+            }
+
+            public void ReadData(RailBitBuffer buffer)
+            {
+                Data = buffer.ReadInt();
+            }
+
+            public void WriteData(RailBitBuffer buffer)
+            {
+                buffer.WriteInt(Data);
+            }
         }
     }
 }

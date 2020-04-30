@@ -1,5 +1,4 @@
-﻿using System;
-using Moq;
+﻿using Moq;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.System.Encoding;
@@ -8,18 +7,18 @@ using Xunit;
 
 namespace Tests
 {
-    public partial class RailCommandTest
+    public class RailCommandTest
     {
         [Theory]
         [InlineData(0)]
-        [InlineData(Int32.MinValue)]
-        [InlineData(Int32.MaxValue)]
-        void EncodeWritesTickAndCommandData(int iData)
+        [InlineData(int.MinValue)]
+        [InlineData(int.MaxValue)]
+        private void EncodeWritesTickAndCommandData(int iData)
         {
             RailBitBuffer bitBuffer = new RailBitBuffer(2);
             TestUtils.Command command = new TestUtils.Command(iData)
             {
-                ClientTick = Tick.START, 
+                ClientTick = Tick.START,
                 IsNewCommand = true
             };
             command.Encode(bitBuffer);
@@ -29,13 +28,14 @@ namespace Tests
             Assert.Equal(Tick.START, writtenTick);
             Assert.Equal(iData, writtenData);
         }
+
         [Theory]
         [InlineData(0)]
-        [InlineData(Int32.MinValue)]
-        [InlineData(Int32.MaxValue)]
-        void DecodeReadsTickAndCommandData(int iData)
+        [InlineData(int.MinValue)]
+        [InlineData(int.MaxValue)]
+        private void DecodeReadsTickAndCommandData(int iData)
         {
-            var mockCreator = new Mock<IRailCommandConstruction>();
+            Mock<IRailCommandConstruction> mockCreator = new Mock<IRailCommandConstruction>();
             mockCreator.Setup(m => m.CreateCommand()).Returns(new TestUtils.Command());
 
             RailBitBuffer bitBuffer = new RailBitBuffer(2);

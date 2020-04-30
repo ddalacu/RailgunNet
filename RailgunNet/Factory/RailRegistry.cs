@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
 
@@ -27,7 +28,7 @@ namespace RailgunNet.Factory
 {
     public class RailRegistry
     {
-        private readonly List<KeyValuePair<Type, Type>> entityTypes;
+        private readonly List<EntityConstructionInfo> entityTypes;
         private readonly List<Type> eventTypes;
 
         public RailRegistry(Component eComponent)
@@ -35,7 +36,7 @@ namespace RailgunNet.Factory
             Component = eComponent;
             CommandType = null;
             eventTypes = new List<Type>();
-            entityTypes = new List<KeyValuePair<Type, Type>>();
+            entityTypes = new List<EntityConstructionInfo>();
         }
 
         public Component Component { get; }
@@ -43,7 +44,7 @@ namespace RailgunNet.Factory
 
         public IEnumerable<Type> EventTypes => eventTypes;
 
-        public IEnumerable<KeyValuePair<Type, Type>> EntityTypes => entityTypes;
+        public IEnumerable<EntityConstructionInfo> EntityTypes => entityTypes;
 
         [PublicAPI]
         public void SetCommandType<TCommand>()
@@ -59,8 +60,17 @@ namespace RailgunNet.Factory
             eventTypes.Add(typeof(TEvent));
         }
 
+        /// <summary>
+        ///     Adds an entity type with its corresponding state to the registry.
+        /// </summary>
+        /// <typeparam name="TEntity"></typeparam>
+        /// <typeparam name="TState"></typeparam>
+        /// <param name="paramsEntity">Array of parameters for the entity constructor to invoke or null.</param>
+        /// <param name="paramsState">Array of parameters for the state constructor to invoke or null.</param>
         [PublicAPI]
-        public void AddEntityType<TEntity, TState>()
+        public void AddEntityType<TEntity, TState>(
+            object[] paramsEntity = null,
+            object[] paramsState = null)
             where TEntity : RailEntity
             where TState : RailState
         {
@@ -85,7 +95,32 @@ namespace RailgunNet.Factory
                     $"All entities in a {Component} have to be derived from {expectedBaseType}. The provided entity is of type {entityType}.");
             }
 
-            entityTypes.Add(new KeyValuePair<Type, Type>(typeof(TEntity), typeof(TState)));
+            if (!CanBeConstructedWith<TEntity>(paramsEntity))
+            {
+                throw new ArgumentException(
+                    $"The provided constructor arguments {paramsEntity} do not match any constructors in {entityType}.");
+            }
+
+            Type stateType = typeof(TState);
+            if (!CanBeConstructedWith<TState>(paramsState))
+            {
+                throw new ArgumentException(
+                    $"The provided constructor arguments {paramsState} do not match any constructors in {stateType}.");
+            }
+
+            entityTypes.Add(
+                new EntityConstructionInfo(entityType, stateType, paramsEntity, paramsState));
+        }
+
+        private bool CanBeConstructedWith<T>(object[] parameters)
+        {
+            if (parameters == null || parameters.Length == 0)
+            {
+                return typeof(T).GetConstructor(Type.EmptyTypes) != null;
+            }
+
+            Type[] paramPack = parameters.Select(obj => obj.GetType()).ToArray();
+            return typeof(T).GetConstructor(paramPack) != null;
         }
     }
 }

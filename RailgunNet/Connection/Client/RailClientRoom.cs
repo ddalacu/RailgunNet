@@ -119,7 +119,7 @@ namespace RailgunNet.Connection.Client
             ToUpdate.ForEach(e => e.PreUpdate());
 
             // Wave 2: Update all entities
-            ToUpdate.ForEach(e => e.ClientUpdate(localTick));
+            ToUpdate.ForEach(e => e. ClientUpdate(localTick));
 
             // Wave 3: Post-update all entities
             ToUpdate.ForEach(e => e.PostUpdate());

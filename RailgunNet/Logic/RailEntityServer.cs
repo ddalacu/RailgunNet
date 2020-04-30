@@ -13,7 +13,7 @@ namespace RailgunNet.Logic
     /// </summary>
     public abstract class RailEntityServer<TState>
         : RailEntityServer
-        where TState : RailState, new()
+        where TState : RailState
     {
         #region Public API
         /// <summary>

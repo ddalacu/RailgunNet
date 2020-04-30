@@ -32,7 +32,8 @@ namespace RailgunNet.Factory
     public class RailResource
         : IRailCommandConstruction, IRailEventConstruction, IRailStateConstruction
     {
-        private readonly IRailMemoryPool<RailCommand> commandPool;
+        [CanBeNull] private readonly IRailMemoryPool<RailCommand> commandPool;
+
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
 
         private readonly IRailMemoryPool<RailStateDelta> deltaPool;
@@ -80,8 +81,9 @@ namespace RailgunNet.Factory
 
         private IRailMemoryPool<RailCommand> CreateCommandPool(RailRegistry registry)
         {
-            return new RailMemoryPool<RailCommand>(
-                new RailFactory<RailCommand>(registry.CommandType));
+            return registry.CommandType == null ?
+                null :
+                new RailMemoryPool<RailCommand>(new RailFactory<RailCommand>(registry.CommandType));
         }
 
         private void RegisterEvents(RailRegistry registry)
@@ -99,21 +101,17 @@ namespace RailgunNet.Factory
 
         private void RegisterEntities(RailRegistry registry)
         {
-            foreach (KeyValuePair<Type, Type> pair in registry.EntityTypes)
+            foreach (EntityConstructionInfo pair in registry.EntityTypes)
             {
-                Type entityType = pair.Key;
-                Type stateType = pair.Value;
-
-                IRailMemoryPool<RailState> statePool =
-                    new RailMemoryPool<RailState>(new RailFactory<RailState>(stateType));
-                IRailMemoryPool<RailEntity> entityPool =
-                    new RailMemoryPool<RailEntity>(
-                        new RailFactory<RailEntity>(entityType));
+                IRailMemoryPool<RailState> statePool = new RailMemoryPool<RailState>(
+                    new RailFactory<RailState>(pair.State, pair.ConstructorParamsState));
+                IRailMemoryPool<RailEntity> entityPool = new RailMemoryPool<RailEntity>(
+                    new RailFactory<RailEntity>(pair.Entity, pair.ConstructorParamsEntity));
 
                 int typeKey = statePools.Count + 1; // 0 is an invalid type
                 statePools.Add(typeKey, statePool);
                 entityPools.Add(typeKey, entityPool);
-                entityTypeToKey.Add(entityType, typeKey);
+                entityTypeToKey.Add(pair.Entity, typeKey);
             }
         }
 

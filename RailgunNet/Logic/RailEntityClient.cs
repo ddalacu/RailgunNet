@@ -15,7 +15,7 @@ namespace RailgunNet.Logic
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
     public abstract class RailEntityClient<TState> : RailEntityClient
-        where TState : RailState, new()
+        where TState : RailState
     {
         #region Public API
         /// <summary>

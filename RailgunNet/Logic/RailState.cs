@@ -30,7 +30,7 @@ using RailgunNet.Util.Pooling;
 namespace RailgunNet.Logic
 {
     public abstract class RailState<T> : RailState
-        where T : RailState<T>, new()
+        where T : RailState<T>
     {
         protected abstract void ApplyMutableFrom(T source, uint flags);
         protected abstract void ApplyControllerFrom(T source);

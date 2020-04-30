@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Threading;
-using Xunit;
 
 namespace Tests.Example.Tests
 {
     public class UpdateThread
     {
         private readonly Action action;
+        private readonly object m_StopRequestLock = new object();
         private readonly uint tickRate;
+
+        private bool m_bStopRequest;
+        private Thread m_Thread;
+
         public UpdateThread(Action action, uint uiTickRate = 0)
         {
             this.action = action;
-            this.tickRate = uiTickRate;
+            tickRate = uiTickRate;
             Start();
         }
 
@@ -19,6 +23,7 @@ namespace Tests.Example.Tests
         {
             Stop();
         }
+
         public void Start()
         {
             startMainLoop();
@@ -29,9 +34,6 @@ namespace Tests.Example.Tests
             stopMainLoop();
         }
 
-        private bool m_bStopRequest = false;
-        private readonly object m_StopRequestLock = new object();
-        private Thread m_Thread = null;
         private void startMainLoop()
         {
             m_Thread = new Thread(() => run());
@@ -39,12 +41,14 @@ namespace Tests.Example.Tests
             {
                 m_bStopRequest = false;
             }
+
             m_Thread.Start();
         }
 
         private void run()
         {
-            FrameLimiter frameLimiter = new FrameLimiter(tickRate > 0 ? TimeSpan.FromMilliseconds(1000 / (double)tickRate) : TimeSpan.Zero);
+            FrameLimiter frameLimiter = new FrameLimiter(
+                tickRate > 0 ? TimeSpan.FromMilliseconds(1000 / (double) tickRate) : TimeSpan.Zero);
             bool bRunning = true;
             while (bRunning)
             {
@@ -72,6 +76,7 @@ namespace Tests.Example.Tests
             {
                 m_bStopRequest = true;
             }
+
             m_Thread.Join();
             m_Thread = null;
         }

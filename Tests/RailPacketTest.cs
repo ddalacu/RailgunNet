@@ -10,22 +10,24 @@ using RailgunNet.System;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
 using Xunit;
-using Newtonsoft.Json;
 
 namespace Tests
 {
     public class RailPacketTest
     {
         private readonly RailBitBuffer bitBuffer = new RailBitBuffer(2);
-        private readonly Mock<IRailCommandConstruction> commandCreator = TestUtils.CommandConstructionMock();
-        private readonly Mock<IRailEventConstruction> eventCreator = TestUtils.EventConstructionMock();
-        private readonly Mock<IRailStateConstruction> stateCreator = TestUtils.StateConstructionMock();
-        public RailPacketTest()
-        {
-        }
+
+        private readonly Mock<IRailCommandConstruction> commandCreator =
+            TestUtils.CommandConstructionMock();
+
+        private readonly Mock<IRailEventConstruction> eventCreator =
+            TestUtils.EventConstructionMock();
+
+        private readonly Mock<IRailStateConstruction> stateCreator =
+            TestUtils.StateConstructionMock();
 
         [Fact]
-        void VerifyEmptyPacketFromClientToServer()
+        private void VerifyEmptyPacketFromClientToServer()
         {
             // Init
             RailPacketToServer toServer = new RailPacketToServer();
@@ -35,31 +37,35 @@ namespace Tests
             toServer.Populate(new List<RailCommandUpdate>(), new RailView());
 
             // Verify initialize
-            Assert.Equal<Tick>(startingTick, toServer.SenderTick);
-            Assert.Equal<Tick>(lastAckTick, toServer.LastAckTick);
+            Assert.Equal(startingTick, toServer.SenderTick);
+            Assert.Equal(lastAckTick, toServer.LastAckTick);
 
             // Encode
             Assert.True(bitBuffer.Empty);
             toServer.Encode(stateCreator.Object, eventCreator.Object, bitBuffer);
 
             // Since the packet was empty, nothing was allocated
-            stateCreator.Verify(f=>f.CreateState(It.IsAny<int>()), Times.Never);
-            stateCreator.Verify(f=>f.CreateDelta(), Times.Never);
-            stateCreator.Verify(f=>f.CreateRecord(), Times.Never);
-            stateCreator.Verify(f=>f.EntityTypeCompressor, Times.Never);
-            eventCreator.Verify(f=>f.CreateEvent(It.IsAny<int>()), Times.Never);
-            eventCreator.Verify(f=>f.EventTypeCompressor, Times.Never);
+            stateCreator.Verify(f => f.CreateState(It.IsAny<int>()), Times.Never);
+            stateCreator.Verify(f => f.CreateDelta(), Times.Never);
+            stateCreator.Verify(f => f.CreateRecord(), Times.Never);
+            stateCreator.Verify(f => f.EntityTypeCompressor, Times.Never);
+            eventCreator.Verify(f => f.CreateEvent(It.IsAny<int>()), Times.Never);
+            eventCreator.Verify(f => f.EventTypeCompressor, Times.Never);
 
             // Bitbuffer was written to.
             Assert.True(!bitBuffer.Empty);
 
             // Decode
             RailPacketFromClient fromClient = new RailPacketFromClient();
-            fromClient.Decode(commandCreator.Object, stateCreator.Object, eventCreator.Object, bitBuffer);
+            fromClient.Decode(
+                commandCreator.Object,
+                stateCreator.Object,
+                eventCreator.Object,
+                bitBuffer);
 
             // Verify decoded packet
             Assert.True(bitBuffer.IsFinished);
-            Assert.Equal<RailPacketBase>(toServer, fromClient, new TestUtils.RailPacketComparer());
+            Assert.Equal(toServer, fromClient, new TestUtils.RailPacketComparer());
 
             // Since the packet was empty, nothing was allocated
             stateCreator.Verify(f => f.CreateState(It.IsAny<int>()), Times.Never);
@@ -69,19 +75,23 @@ namespace Tests
             eventCreator.Verify(f => f.CreateEvent(It.IsAny<int>()), Times.Never);
             eventCreator.Verify(f => f.EventTypeCompressor, Times.Never);
         }
+
         [Fact]
-        void VerifyEmptyPacketFromServerToClient()
+        private void VerifyEmptyPacketFromServerToClient()
         {
             // Init
             RailPacketToClient toClient = new RailPacketToClient();
             Tick startingTick = TestUtils.CreateTick(4200);
             Tick lastAckTick = TestUtils.CreateTick(4200 - 5);
             toClient.Initialize(startingTick, lastAckTick, SequenceId.Start, new List<RailEvent>());
-            toClient.Populate(new List<RailStateDelta>(), new List<RailStateDelta>(), new List<RailStateDelta>());
+            toClient.Populate(
+                new List<RailStateDelta>(),
+                new List<RailStateDelta>(),
+                new List<RailStateDelta>());
 
             // Verify initialize
-            Assert.Equal<Tick>(startingTick, toClient.SenderTick);
-            Assert.Equal<Tick>(lastAckTick, toClient.LastAckTick);
+            Assert.Equal(startingTick, toClient.SenderTick);
+            Assert.Equal(lastAckTick, toClient.LastAckTick);
 
             // Encode
             Assert.True(bitBuffer.Empty);
@@ -100,11 +110,15 @@ namespace Tests
 
             // Decode
             RailPacketFromServer fromServer = new RailPacketFromServer();
-            fromServer.Decode(commandCreator.Object, stateCreator.Object, eventCreator.Object, bitBuffer);
+            fromServer.Decode(
+                commandCreator.Object,
+                stateCreator.Object,
+                eventCreator.Object,
+                bitBuffer);
 
             // Verify decoded packet
             Assert.True(bitBuffer.IsFinished);
-            Assert.Equal<RailPacketBase>(toClient, fromServer, new TestUtils.RailPacketComparer());
+            Assert.Equal(toClient, fromServer, new TestUtils.RailPacketComparer());
 
             // Since the packet was empty, nothing was allocated
             stateCreator.Verify(f => f.CreateState(It.IsAny<int>()), Times.Never);
