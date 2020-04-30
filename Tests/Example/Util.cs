@@ -9,7 +9,7 @@ using RailgunNet.Connection.Client;
 using RailgunNet.Connection.Server;
 using RailgunNet.Connection.Traffic;
 
-namespace Tests.Example.Tests
+namespace Tests.Example
 {
     public static class Util
     {
