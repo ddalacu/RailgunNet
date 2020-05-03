@@ -125,67 +125,67 @@ namespace Tests
         {
             protected override int FlagBits => throw new NotImplementedException();
 
-            protected override void ApplyControllerFrom(State source)
+            public override void ApplyControllerFrom(State source)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void ApplyImmutableFrom(State source)
+            public override void ApplyImmutableFrom(State source)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void ApplyMutableFrom(State source, uint flags)
+            public override void ApplyMutableFrom(State source, uint flags)
             {
                 throw new NotImplementedException();
             }
 
-            protected override uint CompareMutableData(State basis)
+            public override uint CompareMutableData(State basis)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void DecodeControllerData(RailBitBuffer buffer)
+            public override void DecodeControllerData(RailBitBuffer buffer)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void DecodeImmutableData(RailBitBuffer buffer)
+            public override void DecodeImmutableData(RailBitBuffer buffer)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void DecodeMutableData(RailBitBuffer buffer, uint flags)
+            public override void DecodeMutableData(RailBitBuffer buffer, uint flags)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void EncodeControllerData(RailBitBuffer buffer)
+            public override void EncodeControllerData(RailBitBuffer buffer)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void EncodeImmutableData(RailBitBuffer buffer)
+            public override void EncodeImmutableData(RailBitBuffer buffer)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void EncodeMutableData(RailBitBuffer buffer, uint flags)
+            public override void EncodeMutableData(RailBitBuffer buffer, uint flags)
             {
                 throw new NotImplementedException();
             }
 
-            protected override bool IsControllerDataEqual(State basis)
+            public override bool IsControllerDataEqual(State basis)
             {
                 throw new NotImplementedException();
             }
 
-            protected override void ResetAllData()
+            public override void ResetAllData()
             {
                 throw new NotImplementedException();
             }
 
-            protected override void ResetControllerData()
+            public override void ResetControllerData()
             {
                 throw new NotImplementedException();
             }

@@ -32,35 +32,35 @@ namespace RailgunNet.Logic
     public abstract class RailState<T> : RailState
         where T : RailState<T>
     {
-        protected abstract void ApplyMutableFrom(T source, uint flags);
-        protected abstract void ApplyControllerFrom(T source);
-        protected abstract void ApplyImmutableFrom(T source);
+        public abstract void ApplyMutableFrom(T source, uint flags);
+        public abstract void ApplyControllerFrom(T source);
+        public abstract void ApplyImmutableFrom(T source);
 
-        protected abstract uint CompareMutableData(T other);
-        protected abstract bool IsControllerDataEqual(T other);
+        public abstract uint CompareMutableData(T other);
+        public abstract bool IsControllerDataEqual(T other);
 
         #region Casting Overrides
-        protected override void ApplyMutableFrom(RailState source, uint flags)
+        public override void ApplyMutableFrom(RailState source, uint flags)
         {
             ApplyMutableFrom((T) source, flags);
         }
 
-        protected override void ApplyControllerFrom(RailState source)
+        public override void ApplyControllerFrom(RailState source)
         {
             ApplyControllerFrom((T) source);
         }
 
-        protected override void ApplyImmutableFrom(RailState source)
+        public override void ApplyImmutableFrom(RailState source)
         {
             ApplyImmutableFrom((T) source);
         }
 
-        protected override uint CompareMutableData(RailState other)
+        public override uint CompareMutableData(RailState other)
         {
             return CompareMutableData((T)other);
         }
 
-        protected override bool IsControllerDataEqual(RailState other)
+        public override bool IsControllerDataEqual(RailState other)
         {
             return IsControllerDataEqual((T)other);
         }
@@ -96,19 +96,19 @@ namespace RailgunNet.Logic
         public bool HasControllerData { get; private set; } // Synchronized
         public bool HasImmutableData { get; private set; } // Synchronized
 
-        protected virtual void InitializeData()
+        public virtual void InitializeData()
         {
         }
 
-        protected abstract void ResetAllData();
-        protected abstract void ResetControllerData();
+        public abstract void ResetAllData();
+        public abstract void ResetControllerData();
 
-        protected abstract void ApplyMutableFrom(RailState source, uint flags);
-        protected abstract void ApplyControllerFrom(RailState source);
-        protected abstract void ApplyImmutableFrom(RailState source);
+        public abstract void ApplyMutableFrom(RailState source, uint flags);
+        public abstract void ApplyControllerFrom(RailState source);
+        public abstract void ApplyImmutableFrom(RailState source);
 
-        protected abstract uint CompareMutableData(RailState basis);
-        protected abstract bool IsControllerDataEqual(RailState basis);
+        public abstract uint CompareMutableData(RailState basis);
+        public abstract bool IsControllerDataEqual(RailState basis);
 
         protected static bool GetFlag(uint flags, uint flag)
         {
@@ -387,15 +387,15 @@ namespace RailgunNet.Logic
         #endregion
 
         #region Client
-        protected abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
-        protected abstract void DecodeControllerData(RailBitBuffer buffer);
-        protected abstract void DecodeImmutableData(RailBitBuffer buffer);
+        public abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
+        public abstract void DecodeControllerData(RailBitBuffer buffer);
+        public abstract void DecodeImmutableData(RailBitBuffer buffer);
         #endregion
 
         #region Server
-        protected abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
-        protected abstract void EncodeControllerData(RailBitBuffer buffer);
-        protected abstract void EncodeImmutableData(RailBitBuffer buffer);
+        public abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
+        public abstract void EncodeControllerData(RailBitBuffer buffer);
+        public abstract void EncodeImmutableData(RailBitBuffer buffer);
         #endregion
     }
 }

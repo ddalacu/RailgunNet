@@ -429,16 +429,16 @@ namespace RailgunNet.System.Encoding
 
         #region Encode/Decode
         #region Byte
+        [Encoder(SupportedType.Byte_t)]
         public void WriteByte(byte val)
         {
             Write(8, val);
         }
-
+        [Decoder(SupportedType.Byte_t)]
         public byte ReadByte()
         {
             return (byte) Read(8);
         }
-
         public byte PeekByte()
         {
             return (byte) Peek(8);
@@ -455,6 +455,7 @@ namespace RailgunNet.System.Encoding
         ///     22-28  2097152    268435455   0x0FFFFFFF  4 bytes
         ///     28-32  268435456  4294967295  0xFFFFFFFF  5 bytes
         /// </summary>
+        [Encoder(SupportedType.UInt_t)]
         public void WriteUInt(uint val)
         {
             do
@@ -471,7 +472,7 @@ namespace RailgunNet.System.Encoding
             }
             while (val > 0);
         }
-
+        [Decoder(SupportedType.UInt_t)]
         public uint ReadUInt()
         {
             uint buffer;
@@ -503,12 +504,13 @@ namespace RailgunNet.System.Encoding
         #endregion
 
         #region Int
+        [Encoder(SupportedType.Int_t)]
         public void WriteInt(int val)
         {
             uint zigzag = (uint) ((val << 1) ^ (val >> 31));
             WriteUInt(zigzag);
         }
-
+        [Decoder(SupportedType.Int_t)]
         public int ReadInt()
         {
             uint val = ReadUInt();
@@ -525,11 +527,12 @@ namespace RailgunNet.System.Encoding
         #endregion
 
         #region Bool
+        [Encoder(SupportedType.Bool_t)]
         public void WriteBool(bool value)
         {
             Write(1, value ? 1U : 0U);
         }
-
+        [Decoder(SupportedType.Bool_t)]
         public bool ReadBool()
         {
             return Read(1) > 0;
@@ -541,12 +544,13 @@ namespace RailgunNet.System.Encoding
         }
         #endregion
 
-        #region Bool
+        #region UShort
+        [Encoder(SupportedType.UShort_t)]
         public void WriteFull(ushort value)
         {
             Write(16, value);
         }
-
+        [Decoder(SupportedType.UShort_t)]
         public ushort ReadFullU16()
         {
             return (ushort) Read(16);
@@ -559,7 +563,7 @@ namespace RailgunNet.System.Encoding
 
         private static readonly int
             STRING_LENGTH_BITS = RailUtil.Log2(RailConfig.STRING_LENGTH_MAX);
-
+        [Encoder(SupportedType.StringAscii_t)]
         public void WriteString(string value)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
@@ -574,7 +578,7 @@ namespace RailgunNet.System.Encoding
                 Write(ASCII_BITS, ToASCII(value[i]));
             }
         }
-
+        [Decoder(SupportedType.StringAscii_t)]
         public string ReadString()
         {
             StringBuilder builder = new StringBuilder("");
@@ -588,5 +592,62 @@ namespace RailgunNet.System.Encoding
         }
         #endregion
         #endregion
+
+        public static SupportedType ToSupportedType(Type t)
+        {
+            if (t == typeof(byte))
+            {
+                return SupportedType.Byte_t;
+            }
+            else if (t == typeof(uint))
+            {
+                return SupportedType.UInt_t;
+            }
+            else if (t == typeof(int))
+            {
+                return SupportedType.Int_t;
+            }
+            else if (t == typeof(bool))
+            {
+                return SupportedType.Byte_t;
+            }
+            else if (t == typeof(ushort))
+            {
+                return SupportedType.UShort_t;
+            }
+            else if (t == typeof(string))
+            {
+                return SupportedType.StringAscii_t;
+            }
+            throw new ArgumentException("Unknown type.", nameof(t));
+        }
+    }
+    public enum SupportedType
+    {
+        Byte_t,
+        UInt_t,
+        Int_t,
+        Bool_t,
+        UShort_t,
+        StringAscii_t
+    }
+
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class EncoderAttribute : Attribute
+    {
+        public SupportedType Type { get; }
+        public EncoderAttribute(SupportedType eType)
+        {
+            Type = eType;
+        }
+    }
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public class DecoderAttribute : Attribute
+    {
+        public SupportedType Type { get; }
+        public DecoderAttribute(SupportedType eType)
+        {
+            Type = eType;
+        }
     }
 }
