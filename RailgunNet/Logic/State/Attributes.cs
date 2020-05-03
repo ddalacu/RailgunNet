@@ -19,4 +19,13 @@ namespace RailgunNet.Logic.State
     {
         
     }
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    public class CompressorAttribute : Attribute
+    {
+        public Type Compressor { get; }
+        public CompressorAttribute(Type compressor)
+        {
+            Compressor = compressor;
+        }
+    }
 }

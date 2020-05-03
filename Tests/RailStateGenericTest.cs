@@ -2,8 +2,12 @@
 using RailgunNet.Logic;
 using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
 using Xunit;
+using System.Linq.Expressions;
+using RailgunNet.System.Encoding;
+using Tests.Example;
 
 namespace Tests
 {
@@ -17,6 +21,18 @@ namespace Tests
             [Mutable] public bool MBoolProp { get; set; }
             [Mutable] public ushort MUShortProp { get; set; }
             [Mutable] public string MStringProp { get; set; }
+
+            
+        }
+        private class DataWithCompressor
+        {
+            [Mutable]
+            [Compressor(typeof(MyIntCompressor))]
+            public int CompressedInt { get; set; }
+
+            [Mutable]
+            [Compressor(typeof(MyFloatCompressor))]
+            public float CompressedFloat { get; set; }
         }
         [Fact]
         void CompareMutableData()
@@ -152,6 +168,74 @@ namespace Tests
             Assert.True(data1.MBoolProp);
             Assert.Equal(45, data1.MUShortProp);
             Assert.Equal("46", data1.MStringProp);
+        }
+
+        [Fact]
+        void CompressInt()
+        {
+            DataWithCompressor data0 = new DataWithCompressor()
+            {
+                CompressedInt = 0,
+                CompressedFloat = 0.0f
+            };
+            DataWithCompressor data1 = new DataWithCompressor()
+            {
+                CompressedInt = 42,
+                CompressedFloat = 43.0f
+            };
+            RailStateGeneric generic0 = RailStateGenericFactory.Create(data0);
+            RailStateGeneric generic1 = RailStateGenericFactory.Create(data1);
+
+            // Transfer data from data1 to data0 via buffer
+            uint uiFlagAll = 0xFFFF;
+            RailBitBuffer buffer = new RailBitBuffer();
+            generic1.EncodeMutableData(buffer, uiFlagAll);
+            generic0.DecodeMutableData(buffer, uiFlagAll);
+
+            Assert.Equal(data1.CompressedInt, data0.CompressedInt);
+            Assert.Equal(data1.CompressedFloat, data0.CompressedFloat);
+        }
+
+        class MyIntCompressor : RailIntCompressor
+        {
+            public MyIntCompressor()
+                : base(0, 100)
+            {
+
+            }
+
+            [Encoder(Encoders.SupportedType.Int_t)]
+            public void Write(RailBitBuffer buffer, int i)
+            {
+                buffer.WriteInt(this, i);
+            }
+
+            [Decoder(Encoders.SupportedType.Int_t)]
+            public int Read(RailBitBuffer buffer)
+            {
+                return buffer.ReadInt(this);
+            }
+        }
+
+        class MyFloatCompressor : RailFloatCompressor
+        {
+            public MyFloatCompressor()
+                : base(-512.0f, 512.0f, GameMath.COORDINATE_PRECISION / 10.0f)
+            {
+
+            }
+
+            [Encoder(Encoders.SupportedType.Float_t)]
+            public void Write(RailBitBuffer buffer, float f)
+            {
+                buffer.WriteFloat(this, f);
+            }
+
+            [Decoder(Encoders.SupportedType.Float_t)]
+            public float Read(RailBitBuffer buffer)
+            {
+                return buffer.ReadFloat(this);
+            }
         }
     }
 }

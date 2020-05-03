@@ -59,6 +59,10 @@ namespace RailgunNet.Logic
             {
                 return new RailStateMember<T, string>(instance, info);
             }
+            else if (t == typeof(float))
+            {
+                return new RailStateMember<T, float>(instance, info);
+            }
             throw new ArgumentException("Member type not supported.", nameof(info));
         }
         private class RailStateMember<TContainer, TValue> : IRailStateMember
@@ -69,18 +73,33 @@ namespace RailgunNet.Logic
             private readonly Func<TContainer, object> getter;
             private readonly Action<TContainer, object> setter;
 
+            private readonly object compressor = null;
             private readonly Func<RailBitBuffer, object> decode;
             private readonly Action<RailBitBuffer, object> encode;
+
             public RailStateMember(TContainer instanceToWrap, MemberInfo member)
             {
                 instance = instanceToWrap;
                 getter = FastInvoke.BuildUntypedGetter<TContainer>(member);
                 setter = FastInvoke.BuildUntypedSetter<TContainer>(member);
-
-                encode = FastInvoke.BuildEncodeCall(GetEncodeMethod(typeof(TValue)));
-                decode = FastInvoke.BuildDecodeCall(GetDecodeMethod(typeof(TValue)));
-
                 initialValue = (TValue)getter(instance);
+
+                CompressorAttribute att = member.GetCustomAttribute<CompressorAttribute>();
+                if (att == null)
+                {
+                    encode = FastInvoke.BuildEncodeCall(GetEncodeMethod(typeof(RailBitBuffer), typeof(TValue)));
+                    decode = FastInvoke.BuildDecodeCall(GetDecodeMethod(typeof(RailBitBuffer), typeof(TValue)));
+                }
+                else
+                {
+                    compressor = att.Compressor.GetConstructor(Type.EmptyTypes).Invoke(null);
+                    encode = FastInvoke.BuildEncodeCall(
+                        GetEncodeMethod(compressor.GetType(), typeof(TValue)),
+                        compressor);
+                    decode = FastInvoke.BuildDecodeCall(
+                        GetDecodeMethod(compressor.GetType(), typeof(TValue)),
+                        compressor);
+                }
             }
             public void ReadFrom(RailBitBuffer buffer)
             {
@@ -107,10 +126,10 @@ namespace RailgunNet.Logic
             {
                 setter(instance, initialValue);
             }
-            private static MethodInfo GetEncodeMethod(Type t)
+            private static MethodInfo GetEncodeMethod(Type encoder, Type value)
             {
-                SupportedType eType = RailBitBuffer.ToSupportedType(t);
-                foreach (MethodInfo method in typeof(RailBitBuffer).GetMethods())
+                Encoders.SupportedType eType = Encoders.ToSupportedType(value);
+                foreach (MethodInfo method in encoder.GetMethods(BindingFlags.Public | BindingFlags.Instance))
                 {
                     EncoderAttribute att = method.GetCustomAttribute<EncoderAttribute>();
                     if (att != null && att.Type == eType)
@@ -118,12 +137,12 @@ namespace RailgunNet.Logic
                         return method;
                     }
                 }
-                throw new ArgumentException("No encoder method registered.", nameof(t));
+                throw new ArgumentException($"{encoder} does not contain an encoder method for value type {value}.");
             }
-            private static MethodInfo GetDecodeMethod(Type t)
+            private static MethodInfo GetDecodeMethod(Type decoder, Type value)
             {
-                SupportedType eType = RailBitBuffer.ToSupportedType(t);
-                foreach (MethodInfo method in typeof(RailBitBuffer).GetMethods())
+                Encoders.SupportedType eType = Encoders.ToSupportedType(value);
+                foreach (MethodInfo method in decoder.GetMethods())
                 {
                     DecoderAttribute att = method.GetCustomAttribute<DecoderAttribute>();
                     if (att != null && att.Type == eType)
@@ -131,7 +150,7 @@ namespace RailgunNet.Logic
                         return method;
                     }
                 }
-                throw new ArgumentException("No decode method registered.", nameof(t));
+                throw new ArgumentException($"{decoder} does not contain a decoder method for value type {value}.");
             }
         }
     }

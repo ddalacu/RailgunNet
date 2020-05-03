@@ -62,6 +62,27 @@ namespace RailgunNet.Util
             var lambda = Expression.Lambda<Action<RailBitBuffer, object>>(exBody, exInstance, exParameter0);
             return lambda.Compile();
         }
+        public static Func<RailBitBuffer, object> BuildDecodeCall(MethodInfo method, object compressor)
+        {
+            var exCompressor = Expression.Constant(compressor);
+            var exParameter0 = Expression.Parameter(typeof(RailBitBuffer), "buffer");
+
+            var exBody = Expression.Call(exCompressor, method, exParameter0);
+            var exConvertToObject = Expression.Convert(exBody, typeof(object));
+
+            var lambda = Expression.Lambda<Func<RailBitBuffer, object>>(exConvertToObject, exParameter0);
+            return lambda.Compile();
+        }
+        public static Action<RailBitBuffer, object> BuildEncodeCall(MethodInfo method, object compressor)
+        {
+            var exCompressor = Expression.Constant(compressor);
+            var exParameter0 = Expression.Parameter(typeof(RailBitBuffer), "buffer");
+            var exParameter1 = Expression.Parameter(typeof(object), "p1");
+            var exConvertParam1 = Expression.Convert(exParameter1, method.GetParameters()[1].ParameterType);
+            var exBody = Expression.Call(exCompressor, method, exParameter0, exConvertParam1);
+            var lambda = Expression.Lambda<Action<RailBitBuffer, object>>(exBody, exParameter0, exParameter1);
+            return lambda.Compile();
+        }
 
         public static Type GetUnderlyingType(this MemberInfo member)
         {
