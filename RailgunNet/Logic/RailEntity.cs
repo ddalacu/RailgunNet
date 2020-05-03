@@ -43,9 +43,10 @@ namespace RailgunNet.Logic
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
         /// <summary>
-        /// The current local state.
+        ///     The current local state.
         /// </summary>
         protected abstract RailState StateBase { get; set; }
+
         public Tick RemovedTick { get; protected set; }
 
         /// <summary>
@@ -130,7 +131,7 @@ namespace RailgunNet.Logic
         }
 
         /// <summary>
-        /// Creates a new entity with its corresponding state.
+        ///     Creates a new entity with its corresponding state.
         /// </summary>
         /// <param name="resource"></param>
         /// <param name="factoryType"></param>

@@ -16,19 +16,17 @@ namespace Tests
 
         private class B : A
         {
-            public B()
-            {
-            }
         }
 
         private class C
         {
-            public int i = 0;
+            public int i;
         }
 
         private class D : A
         {
-            public C MyC;
+            public readonly C MyC;
+
             public D(C arg)
             {
                 MyC = arg;
@@ -51,7 +49,7 @@ namespace Tests
                 i = 42
             };
 
-            RailFactory<A> factory = new RailFactory<A>(typeof(D), new object[]{arg});
+            RailFactory<A> factory = new RailFactory<A>(typeof(D), new object[] {arg});
             A createdObj = factory.Create();
             Assert.True(createdObj is D);
             D createdD = createdObj as D;

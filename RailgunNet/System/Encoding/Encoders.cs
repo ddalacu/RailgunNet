@@ -14,57 +14,67 @@ namespace RailgunNet.System.Encoding
             StringAscii_t,
             Float_t // Requires RailFloatCompressor
         }
+
         public static SupportedType ToSupportedType(Type t)
         {
             if (t == typeof(byte))
             {
                 return SupportedType.Byte_t;
             }
-            else if (t == typeof(uint))
+
+            if (t == typeof(uint))
             {
                 return SupportedType.UInt_t;
             }
-            else if (t == typeof(int))
+
+            if (t == typeof(int))
             {
                 return SupportedType.Int_t;
             }
-            else if (t == typeof(bool))
+
+            if (t == typeof(bool))
             {
                 return SupportedType.Byte_t;
             }
-            else if (t == typeof(ushort))
+
+            if (t == typeof(ushort))
             {
                 return SupportedType.UShort_t;
             }
-            else if (t == typeof(string))
+
+            if (t == typeof(string))
             {
                 return SupportedType.StringAscii_t;
             }
-            else if (t == typeof(float))
+
+            if (t == typeof(float))
             {
                 return SupportedType.Float_t;
             }
+
             throw new ArgumentException("Unknown type.", nameof(t));
         }
     }
 
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method)]
     public class EncoderAttribute : Attribute
     {
-        public Encoders.SupportedType Type { get; }
         public EncoderAttribute(Encoders.SupportedType eType)
         {
             Type = eType;
         }
+
+        public Encoders.SupportedType Type { get; }
     }
 
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method)]
     public class DecoderAttribute : Attribute
     {
-        public Encoders.SupportedType Type { get; }
         public DecoderAttribute(Encoders.SupportedType eType)
         {
             Type = eType;
         }
+
+        public Encoders.SupportedType Type { get; }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using RailgunNet.Connection.Traffic;
+using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 
 namespace Tests.Example
@@ -15,15 +16,9 @@ namespace Tests.Example
             return Math.Abs(a - b) < COORDINATE_PRECISION;
         }
     }
+
     public static class Util
     {
-        public static class Compression
-        {
-            public static readonly RailFloatCompressor Coordinate = new RailFloatCompressor(
-                -512.0f,
-                512.0f,
-                GameMath.COORDINATE_PRECISION / 10.0f);
-        }
         public static bool WaitUntil(Func<bool> condition)
         {
             return WaitUntil(condition, TimeSpan.FromMilliseconds(500));
@@ -46,6 +41,28 @@ namespace Tests.Example
                 {
                     return false;
                 }
+            }
+        }
+
+        public class CoordinateCompressor : RailFloatCompressor
+        {
+            public CoordinateCompressor() : base(
+                -512.0f,
+                512.0f,
+                GameMath.COORDINATE_PRECISION / 10.0f)
+            {
+            }
+
+            [Encoder(Encoders.SupportedType.Float_t)]
+            public void Write(RailBitBuffer buffer, float f)
+            {
+                buffer.WriteFloat(this, f);
+            }
+
+            [Decoder(Encoders.SupportedType.Float_t)]
+            public float Read(RailBitBuffer buffer)
+            {
+                return buffer.ReadFloat(this);
             }
         }
 

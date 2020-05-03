@@ -9,11 +9,10 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
-/// <summary>
+    /// <summary>
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
-    public abstract class RailEntityServer<TState>
-        : RailEntityServer
+    public abstract class RailEntityServer<TState> : RailEntityServer
         where TState : RailState
     {
         #region Public API
@@ -23,18 +22,18 @@ namespace RailgunNet.Logic
         [PublicAPI]
         public TState State { get; private set; }
         #endregion
+
         protected override RailState StateBase
         {
             get => State;
-            set => State = (TState)value;
+            set => State = (TState) value;
         }
     }
 
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
-    public abstract class RailEntityServer<TState, TCommand>
-        : RailEntityServer<TState>
+    public abstract class RailEntityServer<TState, TCommand> : RailEntityServer<TState>
         where TState : RailState, new()
         where TCommand : RailCommand
     {
@@ -52,9 +51,10 @@ namespace RailgunNet.Logic
 
         protected sealed override void ApplyControlGeneric(RailCommand toApply)
         {
-            ApplyControl((TCommand)toApply);
+            ApplyControl((TCommand) toApply);
         }
     }
+
     public abstract class RailEntityServer : RailEntity
     {
         private readonly RailDejitterBuffer<RailCommand> incomingCommands;
@@ -118,7 +118,7 @@ namespace RailgunNet.Logic
 
         public void StoreRecord(IRailStateConstruction stateCreator)
         {
-            RailStateRecord record = RailState.CreateRecord(
+            RailStateRecord record = RailStateRecordFactory.Create(
                 stateCreator,
                 Room.Tick,
                 StateBase,
@@ -137,7 +137,7 @@ namespace RailgunNet.Logic
                 destination == Controller || destination == priorController;
             bool includeImmutableData = basisTick.IsValid == false;
 
-            return RailState.CreateDelta(
+            return RailStateDeltaFactory.Create(
                 stateCreator,
                 Id,
                 StateBase,

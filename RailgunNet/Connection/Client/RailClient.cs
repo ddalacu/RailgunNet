@@ -20,7 +20,6 @@
 
 using System;
 using JetBrains.Annotations;
-using RailgunNet.Connection.Server;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -91,6 +90,7 @@ namespace RailgunNet.Connection.Client
                 Connected?.Invoke(serverPeer);
             }
         }
+
         [PublicAPI] public event Action<RailClientPeer> Connected;
         [PublicAPI] public event Action<RailClientPeer> Disconnected;
 

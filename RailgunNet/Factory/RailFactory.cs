@@ -26,9 +26,12 @@ namespace RailgunNet.Factory
                 throw new ArgumentException(
                     $"Cannot create a factory for an abstract type {typeToCreate}.");
             }
+
             if (typeToCreate != typeof(T) && !typeToCreate.IsSubclassOf(typeof(T)))
             {
-                throw new ArgumentException($"{typeToCreate} is not derived from {typeof(T)}.", nameof(typeToCreate));
+                throw new ArgumentException(
+                    $"{typeToCreate} is not derived from {typeof(T)}.",
+                    nameof(typeToCreate));
             }
 
             ConstructorInfo constructor = null;

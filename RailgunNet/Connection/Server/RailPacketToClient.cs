@@ -20,8 +20,6 @@
 
 using System.Collections.Generic;
 using RailgunNet.Factory;
-using RailgunNet.Logic;
-using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
@@ -82,7 +80,7 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 RailConfig.MAXSIZE_ENTITY,
-                (delta, buf) => RailState.EncodeDelta(stateCreator, buf, delta));
+                (delta, buf) => RailStateDeltaSerializer.EncodeDelta(stateCreator, buf, delta));
         }
         #endregion
     }

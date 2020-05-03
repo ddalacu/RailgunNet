@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Moq;
 using RailgunNet.Connection;
@@ -34,7 +33,7 @@ namespace Tests
         public static Mock<IRailStateConstruction> StateConstructionMock()
         {
             Mock<IRailStateConstruction> mock = new Mock<IRailStateConstruction>();
-            mock.Setup(f => f.CreateState(0)).Returns(new State());
+            mock.Setup(f => f.CreateState(0)).Returns(new RailStateGeneric<State>());
             mock.Setup(f => f.CreateDelta()).Returns(new RailStateDelta());
             mock.Setup(f => f.CreateRecord()).Returns(new RailStateRecord());
             mock.Setup(f => f.EntityTypeCompressor).Returns(new RailIntCompressor(0, 2));
@@ -122,74 +121,8 @@ namespace Tests
             }
         }
 
-        public class State : RailState<State>
+        public class State
         {
-            protected override int FlagBits => throw new NotImplementedException();
-
-            public override void ApplyControllerFrom(State source)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void ApplyImmutableFrom(State source)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void ApplyMutableFrom(State source, uint flags)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override uint CompareMutableData(State basis)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void DecodeControllerData(RailBitBuffer buffer)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void DecodeImmutableData(RailBitBuffer buffer)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void DecodeMutableData(RailBitBuffer buffer, uint flags)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void EncodeControllerData(RailBitBuffer buffer)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void EncodeImmutableData(RailBitBuffer buffer)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void EncodeMutableData(RailBitBuffer buffer, uint flags)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override bool IsControllerDataEqual(State basis)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void ResetAllData()
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void ResetControllerData()
-            {
-                throw new NotImplementedException();
-            }
         }
 
         public class RailPacketComparer : IEqualityComparer<RailPacketBase>

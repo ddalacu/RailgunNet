@@ -25,7 +25,6 @@ namespace RailgunNet
 {
     public interface IRailEntity
     {
-
         RailRoom Room { get; }
         bool HasStarted { get; }
         bool IsRemoving { get; }

@@ -18,6 +18,27 @@ namespace RailgunNet.Logic
     public abstract class RailEntityClient<TState> : RailEntityClient
         where TState : RailState
     {
+        private TState authState;
+        private TState nextState;
+
+        protected override RailState StateBase
+        {
+            get => State;
+            set => State = (TState) value;
+        }
+
+        protected override RailState AuthStateBase
+        {
+            get => authState;
+            set => authState = (TState) value;
+        }
+
+        protected override RailState NextAuthStateBase
+        {
+            get => nextState;
+            set => nextState = (TState) value;
+        }
+
         #region Public API
         /// <summary>
         ///     Returns the current local state.
@@ -69,27 +90,6 @@ namespace RailgunNet.Logic
             }
         }
         #endregion
-
-        protected override RailState StateBase
-        {
-            get => State;
-            set => State = (TState)value;
-        }
-
-        protected override RailState AuthStateBase
-        {
-            get => authState;
-            set => authState = (TState)value;
-        }
-
-        protected override RailState NextAuthStateBase
-        {
-            get => nextState;
-            set => nextState = (TState)value;
-        }
-
-        private TState authState;
-        private TState nextState;
     }
 
     /// <summary>
@@ -99,6 +99,16 @@ namespace RailgunNet.Logic
         where TState : RailState, new()
         where TCommand : RailCommand, new()
     {
+        protected sealed override void WriteCommandGeneric(RailCommand toPopulate)
+        {
+            WriteCommand((TCommand) toPopulate);
+        }
+
+        protected sealed override void ApplyControlGeneric(RailCommand toApply)
+        {
+            ApplyControl((TCommand) toApply);
+        }
+
         #region Public API
         /// <summary>
         ///     Populate the provided command instance.
@@ -120,16 +130,6 @@ namespace RailgunNet.Logic
         {
         }
         #endregion
-
-        protected sealed override void WriteCommandGeneric(RailCommand toPopulate)
-        {
-            WriteCommand((TCommand)toPopulate);
-        }
-
-        protected sealed override void ApplyControlGeneric(RailCommand toApply)
-        {
-            ApplyControl((TCommand)toApply);
-        }
     }
 
     public abstract class RailEntityClient : RailEntity

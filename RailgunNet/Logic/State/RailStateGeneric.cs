@@ -38,9 +38,9 @@ namespace RailgunNet.Logic.State
             }
         }
 
-        [PublicAPI]
-        public T Data { get; }
-        protected override int FlagBits => mutable.Count;
+        [PublicAPI] public T Data { get; }
+
+        public override int FlagBits => mutable.Count;
 
         private static uint ToFlag(int index)
         {

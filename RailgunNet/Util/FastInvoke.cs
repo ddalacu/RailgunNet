@@ -8,79 +8,114 @@ namespace RailgunNet.Util
     public static class FastInvoke
     {
         /// <summary>
-        /// https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
+        ///     https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
         /// </summary>
         public static Func<T, object> BuildUntypedGetter<T>(MemberInfo memberInfo)
         {
-            var targetType = memberInfo.DeclaringType;
-            var exInstance = Expression.Parameter(targetType, "t");
+            Type targetType = memberInfo.DeclaringType;
+            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
 
-            var exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);       // t.PropertyName
-            var exConvertToObject = Expression.Convert(exMemberAccess, typeof(object));     // Convert(t.PropertyName, typeof(object))
-            var lambda = Expression.Lambda<Func<T, object>>(exConvertToObject, exInstance);
+            MemberExpression exMemberAccess =
+                Expression.MakeMemberAccess(exInstance, memberInfo); // t.PropertyName
+            UnaryExpression exConvertToObject =
+                Expression.Convert(
+                    exMemberAccess,
+                    typeof(object)); // Convert(t.PropertyName, typeof(object))
+            Expression<Func<T, object>> lambda =
+                Expression.Lambda<Func<T, object>>(exConvertToObject, exInstance);
 
-            var action = lambda.Compile();
+            Func<T, object> action = lambda.Compile();
             return action;
         }
+
         /// <summary>
-        /// https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
+        ///     https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
         /// </summary>
         public static Action<T, object> BuildUntypedSetter<T>(MemberInfo memberInfo)
         {
-            var targetType = memberInfo.DeclaringType;
-            var exInstance = Expression.Parameter(targetType, "t");
+            Type targetType = memberInfo.DeclaringType;
+            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
 
-            var exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);
+            MemberExpression exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);
 
             // t.PropertValue(Convert(p))
-            var exValue = Expression.Parameter(typeof(object), "p");
-            var exConvertedValue = Expression.Convert(exValue, GetUnderlyingType(memberInfo));
-            var exBody = Expression.Assign(exMemberAccess, exConvertedValue);
+            ParameterExpression exValue = Expression.Parameter(typeof(object), "p");
+            UnaryExpression exConvertedValue =
+                Expression.Convert(exValue, GetUnderlyingType(memberInfo));
+            BinaryExpression exBody = Expression.Assign(exMemberAccess, exConvertedValue);
 
-            var lambda = Expression.Lambda<Action<T, object>>(exBody, exInstance, exValue);
-            var action = lambda.Compile();
+            Expression<Action<T, object>> lambda =
+                Expression.Lambda<Action<T, object>>(exBody, exInstance, exValue);
+            Action<T, object> action = lambda.Compile();
             return action;
         }
+
         public static Func<RailBitBuffer, object> BuildDecodeCall(MethodInfo method)
         {
-            var targetType = method.DeclaringType;
-            var exInstance = Expression.Parameter(targetType, "t");
+            Type targetType = method.DeclaringType;
+            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
 
-            var exBody = Expression.Call(exInstance, method);
-            var exConvertToObject = Expression.Convert(exBody, typeof(object));
+            MethodCallExpression exBody = Expression.Call(exInstance, method);
+            UnaryExpression exConvertToObject = Expression.Convert(exBody, typeof(object));
 
-            var lambda = Expression.Lambda<Func<RailBitBuffer, object>>(exConvertToObject, exInstance);
+            Expression<Func<RailBitBuffer, object>> lambda =
+                Expression.Lambda<Func<RailBitBuffer, object>>(exConvertToObject, exInstance);
             return lambda.Compile();
         }
+
         public static Action<RailBitBuffer, object> BuildEncodeCall(MethodInfo method)
         {
-            var targetType = method.DeclaringType;
-            var exInstance = Expression.Parameter(targetType, "t");
-            var exParameter0 = Expression.Parameter(typeof(object), "p");
-            var exConvertParam0 = Expression.Convert(exParameter0, method.GetParameters()[0].ParameterType);
-            var exBody = Expression.Call(exInstance, method, exConvertParam0);
-            var lambda = Expression.Lambda<Action<RailBitBuffer, object>>(exBody, exInstance, exParameter0);
+            Type targetType = method.DeclaringType;
+            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
+            ParameterExpression exParameter0 = Expression.Parameter(typeof(object), "p");
+            UnaryExpression exConvertParam0 = Expression.Convert(
+                exParameter0,
+                method.GetParameters()[0].ParameterType);
+            MethodCallExpression exBody = Expression.Call(exInstance, method, exConvertParam0);
+            Expression<Action<RailBitBuffer, object>> lambda =
+                Expression.Lambda<Action<RailBitBuffer, object>>(exBody, exInstance, exParameter0);
             return lambda.Compile();
         }
-        public static Func<RailBitBuffer, object> BuildDecodeCall(MethodInfo method, object compressor)
+
+        public static Func<RailBitBuffer, object> BuildDecodeCall(
+            MethodInfo method,
+            object compressor)
         {
-            var exCompressor = Expression.Constant(compressor);
-            var exParameter0 = Expression.Parameter(typeof(RailBitBuffer), "buffer");
+            ConstantExpression exCompressor = Expression.Constant(compressor);
+            ParameterExpression exParameter0 = Expression.Parameter(
+                typeof(RailBitBuffer),
+                "buffer");
 
-            var exBody = Expression.Call(exCompressor, method, exParameter0);
-            var exConvertToObject = Expression.Convert(exBody, typeof(object));
+            MethodCallExpression exBody = Expression.Call(exCompressor, method, exParameter0);
+            UnaryExpression exConvertToObject = Expression.Convert(exBody, typeof(object));
 
-            var lambda = Expression.Lambda<Func<RailBitBuffer, object>>(exConvertToObject, exParameter0);
+            Expression<Func<RailBitBuffer, object>> lambda =
+                Expression.Lambda<Func<RailBitBuffer, object>>(exConvertToObject, exParameter0);
             return lambda.Compile();
         }
-        public static Action<RailBitBuffer, object> BuildEncodeCall(MethodInfo method, object compressor)
+
+        public static Action<RailBitBuffer, object> BuildEncodeCall(
+            MethodInfo method,
+            object compressor)
         {
-            var exCompressor = Expression.Constant(compressor);
-            var exParameter0 = Expression.Parameter(typeof(RailBitBuffer), "buffer");
-            var exParameter1 = Expression.Parameter(typeof(object), "p1");
-            var exConvertParam1 = Expression.Convert(exParameter1, method.GetParameters()[1].ParameterType);
-            var exBody = Expression.Call(exCompressor, method, exParameter0, exConvertParam1);
-            var lambda = Expression.Lambda<Action<RailBitBuffer, object>>(exBody, exParameter0, exParameter1);
+            ConstantExpression exCompressor = Expression.Constant(compressor);
+            ParameterExpression exParameter0 = Expression.Parameter(
+                typeof(RailBitBuffer),
+                "buffer");
+            ParameterExpression exParameter1 = Expression.Parameter(typeof(object), "p1");
+            UnaryExpression exConvertParam1 = Expression.Convert(
+                exParameter1,
+                method.GetParameters()[1].ParameterType);
+            MethodCallExpression exBody = Expression.Call(
+                exCompressor,
+                method,
+                exParameter0,
+                exConvertParam1);
+            Expression<Action<RailBitBuffer, object>> lambda =
+                Expression.Lambda<Action<RailBitBuffer, object>>(
+                    exBody,
+                    exParameter0,
+                    exParameter1);
             return lambda.Compile();
         }
 
@@ -89,18 +124,16 @@ namespace RailgunNet.Util
             switch (member.MemberType)
             {
                 case MemberTypes.Event:
-                    return ((EventInfo)member).EventHandlerType;
+                    return ((EventInfo) member).EventHandlerType;
                 case MemberTypes.Field:
-                    return ((FieldInfo)member).FieldType;
+                    return ((FieldInfo) member).FieldType;
                 case MemberTypes.Method:
-                    return ((MethodInfo)member).ReturnType;
+                    return ((MethodInfo) member).ReturnType;
                 case MemberTypes.Property:
-                    return ((PropertyInfo)member).PropertyType;
+                    return ((PropertyInfo) member).PropertyType;
                 default:
-                    throw new ArgumentException
-                    (
-                     "Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo"
-                    );
+                    throw new ArgumentException(
+                        "Input MemberInfo must be if type EventInfo, FieldInfo, MethodInfo, or PropertyInfo");
             }
         }
     }

@@ -39,6 +39,7 @@ namespace RailgunNet.System.Encoding.Compressors
                 buffer.Write(compressor.RequiredBits, compressor.Pack(value));
             }
         }
+
         public static int ReadInt(this RailBitBuffer buffer, RailIntCompressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)

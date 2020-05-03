@@ -252,16 +252,24 @@ namespace RailgunNet.System.Encoding
                 uint chunk = 0;
 
                 if (dataIdx < data.Count)
-                    chunk = (uint)data.Array[dataIdx];
+                {
+                    chunk = data.Array[dataIdx];
+                }
 
                 if (dataIdx + 1 < data.Count)
-                    chunk |= (uint)data.Array[dataIdx + 1] << 8;
+                {
+                    chunk |= (uint) data.Array[dataIdx + 1] << 8;
+                }
 
                 if (dataIdx + 2 < data.Count)
-                    chunk |= (uint)data.Array[dataIdx + 2] << 16;
+                {
+                    chunk |= (uint) data.Array[dataIdx + 2] << 16;
+                }
 
                 if (dataIdx + 3 < data.Count)
-                    chunk |= (uint)data.Array[dataIdx + 3] << 24;
+                {
+                    chunk |= (uint) data.Array[dataIdx + 3] << 24;
+                }
 
                 chunks[i] = chunk;
             }
@@ -434,11 +442,13 @@ namespace RailgunNet.System.Encoding
         {
             Write(8, val);
         }
+
         [Decoder(Encoders.SupportedType.Byte_t)]
         public byte ReadByte()
         {
             return (byte) Read(8);
         }
+
         public byte PeekByte()
         {
             return (byte) Peek(8);
@@ -472,6 +482,7 @@ namespace RailgunNet.System.Encoding
             }
             while (val > 0);
         }
+
         [Decoder(Encoders.SupportedType.UInt_t)]
         public uint ReadUInt()
         {
@@ -510,6 +521,7 @@ namespace RailgunNet.System.Encoding
             uint zigzag = (uint) ((val << 1) ^ (val >> 31));
             WriteUInt(zigzag);
         }
+
         [Decoder(Encoders.SupportedType.Int_t)]
         public int ReadInt()
         {
@@ -532,6 +544,7 @@ namespace RailgunNet.System.Encoding
         {
             Write(1, value ? 1U : 0U);
         }
+
         [Decoder(Encoders.SupportedType.Bool_t)]
         public bool ReadBool()
         {
@@ -550,6 +563,7 @@ namespace RailgunNet.System.Encoding
         {
             Write(16, value);
         }
+
         [Decoder(Encoders.SupportedType.UShort_t)]
         public ushort ReadFullU16()
         {
@@ -563,6 +577,7 @@ namespace RailgunNet.System.Encoding
 
         private static readonly int
             STRING_LENGTH_BITS = RailUtil.Log2(RailConfig.STRING_LENGTH_MAX);
+
         [Encoder(Encoders.SupportedType.StringAscii_t)]
         public void WriteString(string value)
         {
@@ -578,6 +593,7 @@ namespace RailgunNet.System.Encoding
                 Write(ASCII_BITS, ToASCII(value[i]));
             }
         }
+
         [Decoder(Encoders.SupportedType.StringAscii_t)]
         public string ReadString()
         {

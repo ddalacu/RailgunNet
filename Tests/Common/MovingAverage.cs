@@ -3,11 +3,11 @@
     public class MovingAverage
     {
         private readonly int m_iSize;
+
+        private readonly long[] m_Values;
         private int m_iBack;
         private int m_iCount;
         private int m_iFront;
-
-        private readonly long[] m_Values;
 
         public MovingAverage(int iSize)
         {

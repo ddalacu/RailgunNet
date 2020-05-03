@@ -168,10 +168,7 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Queues an event to send directly to this peer.
         /// </summary>
-        public void RaiseEvent(
-            RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true)
+        public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
         {
             SendEvent(evnt, attempts);
             if (freeWhenDone) evnt.Free();

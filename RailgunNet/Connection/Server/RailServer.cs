@@ -96,6 +96,7 @@ namespace RailgunNet.Connection.Server
                 ClientAdded?.Invoke(client);
             }
         }
+
         [PublicAPI] public event Action<RailServerPeer> ClientAdded;
 
         /// <summary>
@@ -115,6 +116,7 @@ namespace RailgunNet.Connection.Server
                 ClientRemoved?.Invoke(client);
             }
         }
+
         [PublicAPI] public event Action<RailServerPeer> ClientRemoved;
 
         /// <summary>

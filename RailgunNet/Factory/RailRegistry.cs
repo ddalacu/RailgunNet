@@ -69,8 +69,7 @@ namespace RailgunNet.Factory
         /// <param name="paramsEntity">Array of parameters for the entity constructor to invoke or null.</param>
         /// <param name="paramsState">Array of parameters for the state constructor to invoke or null.</param>
         [PublicAPI]
-        public void AddEntityType<TEntity, TState>(
-            object[] paramsEntity = null)
+        public void AddEntityType<TEntity, TState>(object[] paramsEntity = null)
             where TEntity : RailEntity
             where TState : class, new()
         {
@@ -107,8 +106,7 @@ namespace RailgunNet.Factory
                 stateType = typeof(RailStateGeneric<TState>);
             }
 
-            entityTypes.Add(
-                new EntityConstructionInfo(entityType, stateType, paramsEntity));
+            entityTypes.Add(new EntityConstructionInfo(entityType, stateType, paramsEntity));
         }
 
         private bool CanBeConstructedWith<T>(object[] parameters)

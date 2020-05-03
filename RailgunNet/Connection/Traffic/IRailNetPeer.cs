@@ -19,7 +19,6 @@
  */
 
 using System;
-using RailgunNet.Logic;
 
 namespace RailgunNet.Connection.Traffic
 {

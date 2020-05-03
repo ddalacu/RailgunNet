@@ -6,10 +6,7 @@ namespace RailgunNet.Factory
     {
         public readonly object[] ConstructorParamsEntity;
 
-        public EntityConstructionInfo(
-            Type entity,
-            Type state,
-            object[] constructorParamsEntity)
+        public EntityConstructionInfo(Type entity, Type state, object[] constructorParamsEntity)
         {
             Entity = entity;
             State = state;

@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using RailgunNet.Factory;
-using RailgunNet.Logic;
-using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;
@@ -42,7 +40,9 @@ namespace RailgunNet.Connection.Client
 
         private void DecodeDeltas(IRailStateConstruction stateCreator, RailBitBuffer buffer)
         {
-            deltas.Decode(buffer, buf => RailState.DecodeDelta(stateCreator, buf, SenderTick));
+            deltas.Decode(
+                buffer,
+                buf => RailStateDeltaSerializer.DecodeDelta(stateCreator, buf, SenderTick));
         }
         #endregion
     }
