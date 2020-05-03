@@ -53,7 +53,7 @@ namespace RailgunNet.Logic.Wrappers
 
             if (flags == FLAGS_NONE && shouldReturn == false) return null;
 
-            RailState deltaState = RailState.Create(stateCreator, current.FactoryType);
+            RailState deltaState = stateCreator.CreateState(current.FactoryType);
             deltaState.Flags = flags;
             deltaState.ApplyMutableFrom(current, deltaState.Flags);
 

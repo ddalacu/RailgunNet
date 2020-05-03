@@ -129,7 +129,9 @@ namespace RailgunNet.Factory
 
         public RailState CreateState(int factoryType)
         {
-            return statePools[factoryType].Allocate();
+            RailState state = statePools[factoryType].Allocate();
+            state.FactoryType = factoryType;
+            return state;
         }
 
         public RailEvent CreateEvent(int factoryType)

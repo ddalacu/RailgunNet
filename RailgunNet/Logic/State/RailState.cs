@@ -26,44 +26,6 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic.State
 {
-    public abstract class RailState<T> : RailState
-        where T : RailState<T>
-    {
-        public abstract void ApplyMutableFrom(T source, uint flags);
-        public abstract void ApplyControllerFrom(T source);
-        public abstract void ApplyImmutableFrom(T source);
-
-        public abstract uint CompareMutableData(T other);
-        public abstract bool IsControllerDataEqual(T other);
-
-        #region Casting Overrides
-        public override void ApplyMutableFrom(RailState source, uint flags)
-        {
-            ApplyMutableFrom((T) source, flags);
-        }
-
-        public override void ApplyControllerFrom(RailState source)
-        {
-            ApplyControllerFrom((T) source);
-        }
-
-        public override void ApplyImmutableFrom(RailState source)
-        {
-            ApplyImmutableFrom((T) source);
-        }
-
-        public override uint CompareMutableData(RailState other)
-        {
-            return CompareMutableData((T) other);
-        }
-
-        public override bool IsControllerDataEqual(RailState other)
-        {
-            return IsControllerDataEqual((T) other);
-        }
-        #endregion
-    }
-
     /// <summary>
     ///     States are the fundamental data management class of Railgun. They
     ///     contain all of the synchronized information that an Entity needs to
@@ -77,25 +39,19 @@ namespace RailgunNet.Logic.State
     ///     Not delta-encoded -- always sent full-encode.
     ///     Immutable Data:
     ///     Sent only once at creation. Can not be changed after.
-    ///     Removal Data (Not currently implemented):
-    ///     Sent when the state is removed. Arrives at the time of removal.
     /// </summary>
     public abstract class RailState : IRailPoolable<RailState>
     {
         private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
 
-        public int FactoryType { get; private set; }
+        public int FactoryType { get; set; }
         public uint Flags { get; set; } // Synchronized
         public bool HasControllerData { get; set; } // Synchronized
         public bool HasImmutableData { get; set; } // Synchronized
-        public RailEntity ProduceEntity(RailResource resource)
-        {
-            return RailEntity.Create(resource, FactoryType);
-        }
 
         public RailState Clone(IRailStateConstruction stateCreator)
         {
-            RailState clone = Create(stateCreator, FactoryType);
+            RailState clone = stateCreator.CreateState(FactoryType);
             clone.OverwriteFrom(this);
             return clone;
         }
@@ -108,14 +64,6 @@ namespace RailgunNet.Logic.State
             ApplyImmutableFrom(source);
             HasControllerData = source.HasControllerData;
             HasImmutableData = source.HasImmutableData;
-        }
-
-        private void Reset()
-        {
-            Flags = 0;
-            HasControllerData = false;
-            HasImmutableData = false;
-            ResetAllData();
         }
 
         [OnlyIn(Component.Client)]
@@ -132,21 +80,15 @@ namespace RailgunNet.Logic.State
             if (deltaState.HasImmutableData) ApplyImmutableFrom(deltaState);
         }
 
-        #region Creation
-        public static RailState Create(IRailStateConstruction creator, int factoryType)
-        {
-            RailState state = creator.CreateState(factoryType);
-            state.FactoryType = factoryType;
-            return state;
-        }
-        #endregion
-
         #region Pooling
         IRailMemoryPool<RailState> IRailPoolable<RailState>.Pool { get; set; }
 
         void IRailPoolable<RailState>.Reset()
         {
-            Reset();
+            Flags = 0;
+            HasControllerData = false;
+            HasImmutableData = false;
+            ResetAllData();
         }
         #endregion
 

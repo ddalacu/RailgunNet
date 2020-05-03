@@ -64,7 +64,7 @@ namespace RailgunNet.Logic.Wrappers
 
         public RailEntity ProduceEntity(RailResource resource)
         {
-            return state.ProduceEntity(resource);
+            return RailEntity.Create(resource, state.FactoryType);
         }
 
         public void Initialize(

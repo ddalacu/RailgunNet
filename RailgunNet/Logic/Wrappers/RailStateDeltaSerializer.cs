@@ -87,7 +87,7 @@ namespace RailgunNet.Logic.Wrappers
             {
                 // Read: [FactoryType]
                 int factoryType = buffer.ReadInt(stateCreator.EntityTypeCompressor);
-                state = RailState.Create(stateCreator, factoryType);
+                state = stateCreator.CreateState(factoryType);
 
                 // Read: [IsRemoved]
                 bool isRemoved = buffer.ReadBool();

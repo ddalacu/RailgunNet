@@ -140,7 +140,7 @@ namespace RailgunNet.Logic
         {
             RailEntity entity = resource.CreateEntity(factoryType);
             entity.CommandCreator = resource;
-            entity.InitState(resource, RailState.Create(resource, factoryType));
+            entity.InitState(resource, resource.CreateState(factoryType));
             return entity;
         }
         #endregion

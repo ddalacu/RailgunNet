@@ -6,7 +6,7 @@ using RailgunNet.System.Encoding;
 
 namespace RailgunNet.Logic.State
 {
-    public class RailStateGeneric<T> : RailState<RailStateGeneric<T>>
+    public class RailStateGeneric<T> : RailState
         where T : class, new()
     {
         private readonly List<IRailStateMember> controller = new List<IRailStateMember>();
@@ -40,31 +40,35 @@ namespace RailgunNet.Logic.State
 
         [PublicAPI] public T Data { get; }
 
-        public override int FlagBits => mutable.Count;
-
         private static uint ToFlag(int index)
         {
             return (uint) 0x1 << index;
         }
 
-        public override void ApplyControllerFrom(RailStateGeneric<T> source)
+        #region Interface
+        public override int FlagBits => mutable.Count;
+
+        public override void ApplyControllerFrom(RailState sourceBase)
         {
+            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < controller.Count; ++i)
             {
                 controller[i].ApplyFrom(source.controller[i]);
             }
         }
 
-        public override void ApplyImmutableFrom(RailStateGeneric<T> source)
+        public override void ApplyImmutableFrom(RailState sourceBase)
         {
+            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < immutable.Count; ++i)
             {
                 immutable[i].ApplyFrom(source.immutable[i]);
             }
         }
 
-        public override void ApplyMutableFrom(RailStateGeneric<T> source, uint flags)
+        public override void ApplyMutableFrom(RailState sourceBase, uint flags)
         {
+            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < mutable.Count; ++i)
             {
                 if ((flags & ToFlag(i)) == ToFlag(i))
@@ -74,8 +78,9 @@ namespace RailgunNet.Logic.State
             }
         }
 
-        public override uint CompareMutableData(RailStateGeneric<T> other)
+        public override uint CompareMutableData(RailState otherBase)
         {
+            RailStateGeneric<T> other = (RailStateGeneric<T>) otherBase;
             uint uiFlags = 0x0;
             for (int i = 0; i < mutable.Count; ++i)
             {
@@ -88,6 +93,34 @@ namespace RailgunNet.Logic.State
             return uiFlags;
         }
 
+        public override bool IsControllerDataEqual(RailState otherBase)
+        {
+            RailStateGeneric<T> other = (RailStateGeneric<T>) otherBase;
+            for (int i = 0; i < controller.Count; ++i)
+            {
+                if (!controller[i].Equals(other.controller[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override void ResetAllData()
+        {
+            mutable.ForEach(c => c.Reset());
+            immutable.ForEach(c => c.Reset());
+            controller.ForEach(c => c.Reset());
+        }
+
+        public override void ResetControllerData()
+        {
+            controller.ForEach(c => c.Reset());
+        }
+        #endregion
+
+        #region Encode & Decode
         public override void DecodeControllerData(RailBitBuffer buffer)
         {
             controller.ForEach(c => c.ReadFrom(buffer));
@@ -129,30 +162,6 @@ namespace RailgunNet.Logic.State
                 }
             }
         }
-
-        public override bool IsControllerDataEqual(RailStateGeneric<T> other)
-        {
-            for (int i = 0; i < controller.Count; ++i)
-            {
-                if (!controller[i].Equals(other.controller[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public override void ResetAllData()
-        {
-            mutable.ForEach(c => c.Reset());
-            immutable.ForEach(c => c.Reset());
-            controller.ForEach(c => c.Reset());
-        }
-
-        public override void ResetControllerData()
-        {
-            controller.ForEach(c => c.Reset());
-        }
+        #endregion
     }
 }
