@@ -72,7 +72,7 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Returns all locally-controlled entities in the room.
         /// </summary>
-        public IEnumerable<IRailEntity> LocalEntities => localPeer.ControlledEntities;
+        public IEnumerable<RailEntityBase> LocalEntities => localPeer.ControlledEntities;
 
         protected override void HandleRemovedEntity(EntityId entityId)
         {

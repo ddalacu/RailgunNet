@@ -35,14 +35,14 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     The entities controlled by this controller.
         /// </summary>
-        private readonly HashSet<RailEntity> controlledEntities;
+        private readonly HashSet<RailEntityBase> controlledEntities;
 
         public RailController(
             IRailStateConstruction stateCreator,
             ExternalEntityVisibility eVisibility,
             [CanBeNull] IRailNetPeer netPeer)
         {
-            controlledEntities = new HashSet<RailEntity>();
+            controlledEntities = new HashSet<RailEntityBase>();
             NetPeer = netPeer;
             Scope = eVisibility == ExternalEntityVisibility.Scoped ?
                 new RailScope(this, stateCreator) :
@@ -60,7 +60,7 @@ namespace RailgunNet.Logic
         public virtual Tick EstimatedRemoteTick =>
             throw new InvalidOperationException("Local controller has no remote tick");
 
-        public IEnumerable<RailEntity> ControlledEntities => controlledEntities;
+        public IEnumerable<RailEntityBase> ControlledEntities => controlledEntities;
 
         /// <summary>
         ///     Used for determining which entity updates to send.
@@ -75,7 +75,7 @@ namespace RailgunNet.Logic
         /// </summary>
         public void Shutdown()
         {
-            foreach (RailEntity entity in controlledEntities)
+            foreach (RailEntityBase entity in controlledEntities)
             {
                 entity.AssignController(null);
             }
@@ -86,7 +86,7 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     Adds an entity to be controlled by this peer.
         /// </summary>
-        public void GrantControlInternal(RailEntity entity)
+        public void GrantControlInternal(RailEntityBase entity)
         {
             if (entity.Controller == this) return;
             RailDebug.Assert(entity.Controller == null);
@@ -98,7 +98,7 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     Remove an entity from being controlled by this peer.
         /// </summary>
-        public void RevokeControlInternal(RailEntity entity)
+        public void RevokeControlInternal(RailEntityBase entity)
         {
             RailDebug.Assert(entity.Controller == this);
 

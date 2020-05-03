@@ -132,7 +132,7 @@ namespace RailgunNet.Logic
         #endregion
     }
 
-    public abstract class RailEntityClient : RailEntity
+    public abstract class RailEntityClient : RailEntityBase
     {
         private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
         private readonly Queue<RailCommand> outgoingCommands;
@@ -150,6 +150,14 @@ namespace RailgunNet.Logic
 
             Reset();
         }
+
+        public override RailRoom RoomBase
+        {
+            get => Room;
+            set => Room = (RailClientRoom) value;
+        }
+
+        [PublicAPI] protected RailClientRoom Room { get; private set; }
 
         /// <summary>
         ///     The authoritative state
@@ -182,7 +190,7 @@ namespace RailgunNet.Logic
         ///     Returns the number of ticks ahead we are, for extrapolation.
         ///     Note that this does not take client-side prediction into account.
         /// </summary>
-        public int TicksAhead => Room.Tick - authTick;
+        public int TicksAhead => RoomBase.Tick - authTick;
 
         public float ComputeInterpolation(float tickDeltaTime, float timeSinceTick)
         {
@@ -193,7 +201,7 @@ namespace RailgunNet.Logic
 
             float curTime = authTick.ToTime(tickDeltaTime);
             float nextTime = nextTick.ToTime(tickDeltaTime);
-            float showTime = Room.Tick.ToTime(tickDeltaTime) + timeSinceTick;
+            float showTime = RoomBase.Tick.ToTime(tickDeltaTime) + timeSinceTick;
 
             float progress = showTime - curTime;
             float span = nextTime - curTime;
@@ -338,7 +346,7 @@ namespace RailgunNet.Logic
             // Apply all un-applied deltas to the auth state
             IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
                 authTick,
-                Room.Tick,
+                RoomBase.Tick,
                 out RailStateDelta next);
 
             RailStateDelta lastDelta = null;
@@ -353,7 +361,7 @@ namespace RailgunNet.Logic
             if (lastDelta != null)
             {
                 // Update the control status based on the most recent delta
-                (Room as RailClientRoom).RequestControlUpdate(this, lastDelta);
+                (RoomBase as RailClientRoom).RequestControlUpdate(this, lastDelta);
             }
 
             // If there was a next state, update the next state

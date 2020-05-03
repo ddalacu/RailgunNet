@@ -31,7 +31,7 @@ namespace RailgunNet.Logic.Scope
         }
 
         public virtual bool Evaluate(
-            IRailEntity entity,
+            RailEntityBase entity,
             int ticksSinceSend,
             int ticksSinceAck,
             out float priority)

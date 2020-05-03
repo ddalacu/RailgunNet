@@ -38,7 +38,7 @@ namespace RailgunNet.Factory
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
 
         private readonly IRailMemoryPool<RailStateDelta> deltaPool;
-        private readonly Dictionary<int, IRailMemoryPool<RailEntity>> entityPools;
+        private readonly Dictionary<int, IRailMemoryPool<RailEntityBase>> entityPools;
 
         private readonly Dictionary<Type, int> entityTypeToKey;
         private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
@@ -56,7 +56,7 @@ namespace RailgunNet.Factory
             eventTypeToKey = new Dictionary<Type, int>();
 
             commandPool = CreateCommandPool(registry);
-            entityPools = new Dictionary<int, IRailMemoryPool<RailEntity>>();
+            entityPools = new Dictionary<int, IRailMemoryPool<RailEntityBase>>();
             statePools = new Dictionary<int, IRailMemoryPool<RailState>>();
             eventPools = new Dictionary<int, IRailMemoryPool<RailEvent>>();
 
@@ -106,8 +106,8 @@ namespace RailgunNet.Factory
             {
                 IRailMemoryPool<RailState> statePool = new RailMemoryPool<RailState>(
                     new RailFactory<RailState>(pair.State));
-                IRailMemoryPool<RailEntity> entityPool = new RailMemoryPool<RailEntity>(
-                    new RailFactory<RailEntity>(pair.Entity, pair.ConstructorParamsEntity));
+                IRailMemoryPool<RailEntityBase> entityPool = new RailMemoryPool<RailEntityBase>(
+                    new RailFactory<RailEntityBase>(pair.Entity, pair.ConstructorParamsEntity));
 
                 int typeKey = statePools.Count + 1; // 0 is an invalid type
                 statePools.Add(typeKey, statePool);
@@ -122,7 +122,7 @@ namespace RailgunNet.Factory
             return commandPool.Allocate();
         }
 
-        public RailEntity CreateEntity(int factoryType)
+        public RailEntityBase CreateEntity(int factoryType)
         {
             return entityPools[factoryType].Allocate();
         }
@@ -136,7 +136,9 @@ namespace RailgunNet.Factory
 
         public RailEvent CreateEvent(int factoryType)
         {
-            return eventPools[factoryType].Allocate();
+            RailEvent instance = eventPools[factoryType].Allocate();
+            instance.FactoryType = factoryType;
+            return instance;
         }
 
         public RailStateDelta CreateDelta()
@@ -157,7 +159,7 @@ namespace RailgunNet.Factory
 
         #region Typed
         public int GetEntityFactoryType<T>()
-            where T : RailEntity
+            where T : RailEntityBase
         {
             return entityTypeToKey[typeof(T)];
         }

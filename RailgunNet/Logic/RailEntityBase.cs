@@ -33,7 +33,7 @@ namespace RailgunNet.Logic
     ///     vehicles, or conceptual objects like scoreboards and teams that
     ///     mainly serve as blackboards for transmitting state data.
     /// </summary>
-    public abstract class RailEntity : IRailPoolable<RailEntity>, IRailEntity
+    public abstract class RailEntityBase : IRailPoolable<RailEntityBase>
     {
         private bool deferNotifyControllerChanged;
 
@@ -52,12 +52,12 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     Whether or not this entity should be removed from a room this tick.
         /// </summary>
-        public bool ShouldRemove => RemovedTick.IsValid && RemovedTick <= Room.Tick;
-
-        public bool CanFreeze => true;
+        public bool ShouldRemove => RemovedTick.IsValid && RemovedTick <= RoomBase.Tick;
 
         // Simulation info
-        public RailRoom Room { get; set; }
+        public abstract RailRoom RoomBase { get; set; }
+
+        public static bool CanFreeze => true;
         public bool HasStarted { get; private set; }
         public bool IsRemoving => RemovedTick.IsValid;
         public bool IsFrozen { get; protected set; }
@@ -78,7 +78,7 @@ namespace RailgunNet.Logic
         {
             // TODO: Is this complete/usable?
 
-            Room = null;
+            RoomBase = null;
             HasStarted = false;
             IsFrozen = false;
             CommandCreator = null;
@@ -116,9 +116,9 @@ namespace RailgunNet.Logic
         }
 
         #region Pooling
-        IRailMemoryPool<RailEntity> IRailPoolable<RailEntity>.Pool { get; set; }
+        IRailMemoryPool<RailEntityBase> IRailPoolable<RailEntityBase>.Pool { get; set; }
 
-        void IRailPoolable<RailEntity>.Reset()
+        void IRailPoolable<RailEntityBase>.Reset()
         {
             Reset();
         }
@@ -136,9 +136,9 @@ namespace RailgunNet.Logic
         /// <param name="resource"></param>
         /// <param name="factoryType"></param>
         /// <returns></returns>
-        public static RailEntity Create(RailResource resource, int factoryType)
+        public static RailEntityBase Create(RailResource resource, int factoryType)
         {
-            RailEntity entity = resource.CreateEntity(factoryType);
+            RailEntityBase entity = resource.CreateEntity(factoryType);
             entity.CommandCreator = resource;
             entity.InitState(resource, resource.CreateState(factoryType));
             return entity;

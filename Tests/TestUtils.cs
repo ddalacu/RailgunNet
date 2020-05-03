@@ -87,37 +87,8 @@ namespace Tests
 
         public class Event : RailEvent<Event>
         {
-            private readonly int initialData;
-            public int Data;
-
-            public Event() : this(0)
+            protected override void Execute(RailRoom room, RailController sender)
             {
-            }
-
-            public Event(int i)
-            {
-                Data = i;
-                initialData = i;
-            }
-
-            protected override void ReadData(RailBitBuffer buffer, Tick packetTick)
-            {
-                Data = buffer.ReadInt();
-            }
-
-            protected override void WriteData(RailBitBuffer buffer, Tick packetTick)
-            {
-                buffer.WriteInt(Data);
-            }
-
-            protected override void ResetData()
-            {
-                Data = initialData;
-            }
-
-            protected override void CopyDataFrom(Event other)
-            {
-                Data = other.Data;
             }
         }
 

@@ -40,19 +40,7 @@ namespace RailgunNet.Logic
     /// </summary>
     public abstract class RailEvent : IRailPoolable<RailEvent>
     {
-        private int factoryType;
-
-        /// <summary>
-        ///     Whether or not this event can be sent to a frozen entity.
-        ///     TODO: NOT FULLY IMPLEMENTED
-        /// </summary>
-        protected virtual bool CanSendToFrozen => false;
-
-        /// <summary>
-        ///     Whether or not this event can be sent by someone other than the
-        ///     controller of the entity. Ignored on clients.
-        /// </summary>
-        protected virtual bool CanProxySend => false;
+        public int FactoryType { get; set; }
 
         // Synchronized
         public SequenceId EventId { get; set; }
@@ -64,22 +52,15 @@ namespace RailgunNet.Logic
 
         private RailController Sender { get; set; }
 
-        private static RailEvent Create(IRailEventConstruction eventCreator, int factoryType)
-        {
-            RailEvent evnt = eventCreator.CreateEvent(factoryType);
-            evnt.factoryType = factoryType;
-            return evnt;
-        }
-
         public TEntity Find<TEntity>(EntityId id, RailPolicy policy)
-            where TEntity : class, IRailEntity
+            where TEntity : RailEntityBase
         {
             if (Room == null) return null;
             if (id.IsValid == false) return null;
 
             if (policy == RailPolicy.NoProxy && Sender == null) return null;
 
-            if (Room.TryGet(id, out IRailEntity entity) == false) return null;
+            if (Room.TryGet(id, out RailEntityBase entity) == false) return null;
 
             if (policy == RailPolicy.NoFrozen && entity.IsFrozen) return null;
 
@@ -100,10 +81,7 @@ namespace RailgunNet.Logic
             return true;
         }
 
-        protected virtual void Execute(RailRoom room, RailController sender)
-        {
-            // Override this to process events
-        }
+        protected abstract void Execute(RailRoom room, RailController sender);
 
         public void Free()
         {
@@ -112,7 +90,7 @@ namespace RailgunNet.Logic
 
         public RailEvent Clone(RailResource resource)
         {
-            RailEvent clone = Create(resource, factoryType);
+            RailEvent clone = resource.CreateEvent(FactoryType);
             clone.EventId = EventId;
             clone.Attempts = Attempts;
             clone.Room = Room;
@@ -165,7 +143,7 @@ namespace RailgunNet.Logic
         public void Encode(RailIntCompressor compressor, RailBitBuffer buffer, Tick packetTick)
         {
             // Write: [EventType]
-            buffer.WriteInt(compressor, factoryType);
+            buffer.WriteInt(compressor, FactoryType);
 
             // Write: [EventId]
             buffer.WriteSequenceId(EventId);
@@ -188,7 +166,7 @@ namespace RailgunNet.Logic
             // Read: [EventType]
             int factoryType = buffer.ReadInt(compressor);
 
-            RailEvent evnt = Create(eventCreator, factoryType);
+            RailEvent evnt = eventCreator.CreateEvent(factoryType);
 
             // Read: [EventId]
             evnt.EventId = buffer.ReadSequenceId();
@@ -202,7 +180,7 @@ namespace RailgunNet.Logic
     }
 
     /// <summary>
-    ///     This is the class to override to attach user-defined data to an entity.
+    ///     This is the class to override to attach user-defined data to an event.
     /// </summary>
     public abstract class RailEvent<TDerived> : RailEvent
         where TDerived : RailEvent<TDerived>, new()
@@ -214,6 +192,20 @@ namespace RailgunNet.Logic
         }
         #endregion
 
-        protected abstract void CopyDataFrom(TDerived other);
+        protected override void ReadData(RailBitBuffer buffer, Tick packetTick)
+        {
+        }
+
+        protected override void WriteData(RailBitBuffer buffer, Tick packetTick)
+        {
+        }
+
+        protected override void ResetData()
+        {
+        }
+
+        protected virtual void CopyDataFrom(TDerived other)
+        {
+        }
     }
 }

@@ -13,7 +13,8 @@ namespace RailgunNet.Util
         /// <typeparam name="TDeclaring">Type of the instance containing the member.</typeparam>
         /// <param name="memberInfo"></param>
         /// <returns></returns>
-        public static Func<TDeclaring, object> CreateUntypedGetter<TDeclaring>(MemberInfo memberInfo)
+        public static Func<TDeclaring, object> CreateUntypedGetter<TDeclaring>(
+            MemberInfo memberInfo)
         {
             Type targetType = memberInfo.DeclaringType;
             if (targetType != typeof(TDeclaring))

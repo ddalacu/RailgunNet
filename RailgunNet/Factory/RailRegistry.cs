@@ -70,7 +70,7 @@ namespace RailgunNet.Factory
         /// <param name="paramsState">Array of parameters for the state constructor to invoke or null.</param>
         [PublicAPI]
         public void AddEntityType<TEntity, TState>(object[] paramsEntity = null)
-            where TEntity : RailEntity
+            where TEntity : RailEntityBase
             where TState : class, new()
         {
             // Type check for TEntity

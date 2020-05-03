@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
 using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
@@ -55,7 +56,7 @@ namespace RailgunNet.Logic
         }
     }
 
-    public abstract class RailEntityServer : RailEntity
+    public abstract class RailEntityServer : RailEntityBase
     {
         private readonly RailDejitterBuffer<RailCommand> incomingCommands;
         private readonly RailQueueBuffer<RailStateRecord> outgoingStates;
@@ -77,11 +78,19 @@ namespace RailgunNet.Logic
             Reset();
         }
 
+        public override RailRoom RoomBase
+        {
+            get => Room;
+            set => Room = (RailServerRoom) value;
+        }
+
+        [PublicAPI] protected RailServerRoom Room { get; private set; }
+
         public void MarkForRemoval()
         {
             // We'll remove on the next tick since we're probably 
             // already mid-way through evaluating this tick
-            RemovedTick = Room.Tick + 1;
+            RemovedTick = RoomBase.Tick + 1;
 
             // Notify our inheritors that we are being removed next tick
             OnSunset();
@@ -120,7 +129,7 @@ namespace RailgunNet.Logic
         {
             RailStateRecord record = RailStateRecordFactory.Create(
                 stateCreator,
-                Room.Tick,
+                RoomBase.Tick,
                 StateBase,
                 outgoingStates.Latest);
             if (record != null) outgoingStates.Store(record);

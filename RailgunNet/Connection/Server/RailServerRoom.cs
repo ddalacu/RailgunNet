@@ -86,7 +86,7 @@ namespace RailgunNet.Connection.Server
         ///     Marks an entity for removal from the room and presumably destruction.
         ///     This is deferred until the next frame.
         /// </summary>
-        public void MarkForRemoval(IRailEntity entity)
+        public void MarkForRemoval(RailEntityBase entity)
         {
             if (entity.IsRemoving == false)
             {

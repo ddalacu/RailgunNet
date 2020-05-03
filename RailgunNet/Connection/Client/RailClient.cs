@@ -118,7 +118,7 @@ namespace RailgunNet.Connection.Client
         }
 
         /// <summary>
-        ///     Queues an event to sent to the server.
+        ///     Queues an event to send to the server.
         /// </summary>
         public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
         {

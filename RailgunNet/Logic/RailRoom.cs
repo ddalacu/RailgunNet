@@ -30,13 +30,13 @@ namespace RailgunNet.Logic
     public abstract class RailRoom
     {
         private readonly RailConnection connection;
-        private readonly Dictionary<EntityId, IRailEntity> entities;
+        private readonly Dictionary<EntityId, RailEntityBase> entities;
 
         protected RailRoom(RailResource resource, RailConnection connection)
         {
             Resource = resource;
             this.connection = connection;
-            entities = new Dictionary<EntityId, IRailEntity>(EntityId.CreateEqualityComparer());
+            entities = new Dictionary<EntityId, RailEntityBase>(EntityId.CreateEqualityComparer());
             Tick = Tick.INVALID;
         }
 
@@ -53,7 +53,7 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     All of the entities currently added to this room.
         /// </summary>
-        public Dictionary<EntityId, IRailEntity>.ValueCollection Entities => entities.Values;
+        public Dictionary<EntityId, RailEntityBase>.ValueCollection Entities => entities.Values;
 
         /// <summary>
         ///     Fired before all entities have updated, for updating global logic.
@@ -68,16 +68,16 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     Notifies that we removed an entity.
         /// </summary>
-        public event Action<IRailEntity> EntityRemoved;
+        public event Action<RailEntityBase> EntityRemoved;
 
         protected virtual void HandleRemovedEntity(EntityId entityId)
         {
         }
 
         public bool TryGet<T>(EntityId id, out T value)
-            where T : class, IRailEntity
+            where T : RailEntityBase
         {
-            if (entities.TryGetValue(id, out IRailEntity entity))
+            if (entities.TryGetValue(id, out RailEntityBase entity))
             {
                 value = entity as T;
                 return true;
@@ -103,24 +103,24 @@ namespace RailgunNet.Logic
         }
 
         protected IEnumerable<T> GetAllEntities<T>()
-            where T : RailEntity
+            where T : RailEntityBase
         {
             return entities.Select(pair => (T) pair.Value).OrderBy(entity => entity.UpdateOrder);
         }
 
-        protected void RegisterEntity(RailEntity entity)
+        protected void RegisterEntity(RailEntityBase entity)
         {
             entities.Add(entity.Id, entity);
-            entity.Room = this;
+            entity.RoomBase = this;
             entity.Added();
         }
 
-        protected void RemoveEntity(RailEntity entity)
+        protected void RemoveEntity(RailEntityBase entity)
         {
             if (entities.ContainsKey(entity.Id))
             {
                 entities.Remove(entity.Id);
-                entity.Room = null;
+                entity.RoomBase = null;
                 entity.Removed();
                 // TODO: Pooling entities?
 

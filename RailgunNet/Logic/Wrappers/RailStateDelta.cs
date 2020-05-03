@@ -62,9 +62,9 @@ namespace RailgunNet.Logic.Wrappers
             return delta;
         }
 
-        public RailEntity ProduceEntity(RailResource resource)
+        public RailEntityBase ProduceEntity(RailResource resource)
         {
-            return RailEntity.Create(resource, state.FactoryType);
+            return RailEntityBase.Create(resource, state.FactoryType);
         }
 
         public void Initialize(

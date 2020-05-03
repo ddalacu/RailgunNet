@@ -54,7 +54,7 @@ namespace RailgunNet.Connection.Client
 
         public event Action<RailPacketFromServer> PacketReceived;
 
-        public void SendPacket(Tick localTick, IEnumerable<IRailEntity> controlledEntities)
+        public void SendPacket(Tick localTick, IEnumerable<RailEntityBase> controlledEntities)
         {
             // TODO: Sort controlledEntities by most recently sent
 
@@ -88,7 +88,7 @@ namespace RailgunNet.Connection.Client
         }
 
         private IEnumerable<RailCommandUpdate> ProduceCommandUpdates(
-            IEnumerable<IRailEntity> entities)
+            IEnumerable<RailEntityBase> entities)
         {
             // If we have too many entities to fit commands for in a packet,
             // we want to round-robin sort them to avoid starvation
