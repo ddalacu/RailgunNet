@@ -19,25 +19,32 @@ namespace RailgunNet.Logic.State
         public RailStateMember(TContainer instanceToWrap, MemberInfo member)
         {
             instance = instanceToWrap;
-            getter = FastInvoke.BuildUntypedGetter<TContainer>(member);
-            setter = FastInvoke.BuildUntypedSetter<TContainer>(member);
+            getter = InvokableFactory.CreateUntypedGetter<TContainer>(member);
+            setter = InvokableFactory.CreateUntypedSetter<TContainer>(member);
             initialValue = (TValue) getter(instance);
 
             CompressorAttribute att = member.GetCustomAttribute<CompressorAttribute>();
             if (att == null)
             {
-                encode = FastInvoke.BuildEncodeCall(
+                encode = InvokableFactory.CreateCall<RailBitBuffer>(
                     GetEncodeMethod(typeof(RailBitBuffer), typeof(TValue)));
-                decode = FastInvoke.BuildDecodeCall(
+                decode = InvokableFactory.CreateCallWithReturn<RailBitBuffer>(
                     GetDecodeMethod(typeof(RailBitBuffer), typeof(TValue)));
             }
             else
             {
                 compressor = att.Compressor.GetConstructor(Type.EmptyTypes).Invoke(null);
-                encode = FastInvoke.BuildEncodeCall(
+                if (compressor == null)
+                {
+                    throw new ArgumentException(
+                        "The declared compressor needs to implement a parameterless default constructor.",
+                        nameof(member));
+                }
+
+                encode = InvokableFactory.CreateCall<RailBitBuffer>(
                     GetEncodeMethod(compressor.GetType(), typeof(TValue)),
                     compressor);
-                decode = FastInvoke.BuildDecodeCall(
+                decode = InvokableFactory.CreateCallWithReturn<RailBitBuffer>(
                     GetDecodeMethod(compressor.GetType(), typeof(TValue)),
                     compressor);
             }
