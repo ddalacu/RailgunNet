@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
+using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.Util;
@@ -104,7 +105,7 @@ namespace RailgunNet.Factory
             foreach (EntityConstructionInfo pair in registry.EntityTypes)
             {
                 IRailMemoryPool<RailState> statePool = new RailMemoryPool<RailState>(
-                    new RailFactory<RailState>(pair.State, pair.ConstructorParamsState));
+                    new RailFactory<RailState>(pair.State));
                 IRailMemoryPool<RailEntity> entityPool = new RailMemoryPool<RailEntity>(
                     new RailFactory<RailEntity>(pair.Entity, pair.ConstructorParamsEntity));
 

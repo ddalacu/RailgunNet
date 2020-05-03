@@ -6,9 +6,9 @@ using RailgunNet.Connection.Client;
 using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.Logic.State;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
-using RailgunNet.System.Types;
 using Xunit;
 using static Tests.Example.Util;
 

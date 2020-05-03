@@ -1,11 +1,6 @@
-﻿using Moq;
-using RailgunNet.Logic;
-using RailgunNet.Logic.State;
-using RailgunNet.Logic.Wrappers;
-using RailgunNet.System.Encoding.Compressors;
-using RailgunNet.System.Types;
+﻿using RailgunNet.System.Encoding.Compressors;
 using Xunit;
-using System.Linq.Expressions;
+using RailgunNet.Logic.State;
 using RailgunNet.System.Encoding;
 using Tests.Example;
 
@@ -56,8 +51,8 @@ namespace Tests
                 MUShortProp = 0,
                 MStringProp = ""
             };
-            RailStateGeneric generic0 = RailStateGenericFactory.Create(data0);
-            RailStateGeneric generic1 = RailStateGenericFactory.Create(data1);
+            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
+            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
             Assert.Equal(data1.MByteProp, data0.MByteProp);
             Assert.Equal(data1.MUIntProp, data0.MUIntProp);
             Assert.Equal(data1.MIntProp, data0.MIntProp);
@@ -105,8 +100,8 @@ namespace Tests
                 MUShortProp = 45,
                 MStringProp = "46"
             };
-            RailStateGeneric generic0 = RailStateGenericFactory.Create(data0);
-            RailStateGeneric generic1 = RailStateGenericFactory.Create(data1);
+            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
+            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
             Assert.NotEqual(data1.MByteProp, data0.MByteProp);
             Assert.NotEqual(data1.MUIntProp, data0.MUIntProp);
             Assert.NotEqual(data1.MIntProp, data0.MIntProp);
@@ -148,8 +143,8 @@ namespace Tests
                 MUShortProp = 45,
                 MStringProp = "46"
             };
-            RailStateGeneric generic0 = RailStateGenericFactory.Create(data0);
-            RailStateGeneric generic1 = RailStateGenericFactory.Create(data1);
+            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
+            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
 
             // Apply state 0 to 1
             generic1.ApplyMutableFrom(generic0, 0xFFFF);
@@ -183,8 +178,8 @@ namespace Tests
                 CompressedInt = 42,
                 CompressedFloat = 43.0f
             };
-            RailStateGeneric generic0 = RailStateGenericFactory.Create(data0);
-            RailStateGeneric generic1 = RailStateGenericFactory.Create(data1);
+            RailStateGeneric<DataWithCompressor> generic0 = new RailStateGeneric<DataWithCompressor>(data0);
+            RailStateGeneric<DataWithCompressor> generic1 = new RailStateGeneric<DataWithCompressor>(data1);
 
             // Transfer data from data1 to data0 via buffer
             uint uiFlagAll = 0xFFFF;

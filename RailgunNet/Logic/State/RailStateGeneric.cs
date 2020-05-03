@@ -1,30 +1,45 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using JetBrains.Annotations;
 using RailgunNet.System.Encoding;
 
-namespace RailgunNet.Logic
+namespace RailgunNet.Logic.State
 {
-    public interface IRailStateMember
+    public class RailStateGeneric<T> : RailState<RailStateGeneric<T>>
+        where T : class, new()
     {
-        void WriteTo(RailBitBuffer buffer);
-        void ReadFrom(RailBitBuffer buffer);
-        void ApplyFrom(IRailStateMember other);
-        bool Equals(IRailStateMember other);
-        void Reset();
-    }
-    public class RailStateGeneric : RailState<RailStateGeneric>
-    {
-        private readonly List<IRailStateMember> mutable;
-        private readonly List<IRailStateMember> immutable;
-        private readonly List<IRailStateMember> controller;
-        public RailStateGeneric(List<IRailStateMember> mutables,
-                                List<IRailStateMember> immutables,
-                                List<IRailStateMember> controllers)
+        private readonly List<IRailStateMember> controller = new List<IRailStateMember>();
+        private readonly List<IRailStateMember> immutable = new List<IRailStateMember>();
+        private readonly List<IRailStateMember> mutable = new List<IRailStateMember>();
+
+        public RailStateGeneric() : this(null)
         {
-            mutable = mutables;
-            immutable = immutables;
-            controller = controllers;
         }
+
+        public RailStateGeneric(T instance)
+        {
+            Data = instance ?? new T();
+            foreach (PropertyInfo prop in typeof(T).GetProperties(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (Attribute.IsDefined(prop, typeof(MutableAttribute)))
+                {
+                    mutable.Add(RailStateMemberFactory.Create(Data, prop));
+                }
+                else if (Attribute.IsDefined(prop, typeof(ImmutableAttribute)))
+                {
+                    immutable.Add(RailStateMemberFactory.Create(Data, prop));
+                }
+                else if (Attribute.IsDefined(prop, typeof(ControllerAttribute)))
+                {
+                    controller.Add(RailStateMemberFactory.Create(Data, prop));
+                }
+            }
+        }
+
+        [PublicAPI]
+        public T Data { get; }
         protected override int FlagBits => mutable.Count;
 
         private static uint ToFlag(int index)
@@ -32,7 +47,7 @@ namespace RailgunNet.Logic
             return (uint) 0x1 << index;
         }
 
-        public override void ApplyControllerFrom(RailStateGeneric source)
+        public override void ApplyControllerFrom(RailStateGeneric<T> source)
         {
             for (int i = 0; i < controller.Count; ++i)
             {
@@ -40,7 +55,7 @@ namespace RailgunNet.Logic
             }
         }
 
-        public override void ApplyImmutableFrom(RailStateGeneric source)
+        public override void ApplyImmutableFrom(RailStateGeneric<T> source)
         {
             for (int i = 0; i < immutable.Count; ++i)
             {
@@ -48,7 +63,7 @@ namespace RailgunNet.Logic
             }
         }
 
-        public override void ApplyMutableFrom(RailStateGeneric source, uint flags)
+        public override void ApplyMutableFrom(RailStateGeneric<T> source, uint flags)
         {
             for (int i = 0; i < mutable.Count; ++i)
             {
@@ -59,16 +74,17 @@ namespace RailgunNet.Logic
             }
         }
 
-        public override uint CompareMutableData(RailStateGeneric other)
+        public override uint CompareMutableData(RailStateGeneric<T> other)
         {
             uint uiFlags = 0x0;
             for (int i = 0; i < mutable.Count; ++i)
             {
-                if(!mutable[i].Equals(other.mutable[i]))
+                if (!mutable[i].Equals(other.mutable[i]))
                 {
                     uiFlags |= ToFlag(i);
                 }
             }
+
             return uiFlags;
         }
 
@@ -114,7 +130,7 @@ namespace RailgunNet.Logic
             }
         }
 
-        public override bool IsControllerDataEqual(RailStateGeneric other)
+        public override bool IsControllerDataEqual(RailStateGeneric<T> other)
         {
             for (int i = 0; i < controller.Count; ++i)
             {

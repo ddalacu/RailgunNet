@@ -27,7 +27,7 @@ using RailgunNet.System.Types;
 using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
-namespace RailgunNet.Logic
+namespace RailgunNet.Logic.State
 {
     public abstract class RailState<T> : RailState
         where T : RailState<T>
@@ -57,12 +57,12 @@ namespace RailgunNet.Logic
 
         public override uint CompareMutableData(RailState other)
         {
-            return CompareMutableData((T)other);
+            return CompareMutableData((T) other);
         }
 
         public override bool IsControllerDataEqual(RailState other)
         {
-            return IsControllerDataEqual((T)other);
+            return IsControllerDataEqual((T) other);
         }
         #endregion
     }

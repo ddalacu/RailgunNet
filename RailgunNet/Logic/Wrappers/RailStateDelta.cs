@@ -19,6 +19,7 @@
  */
 
 using RailgunNet.Factory;
+using RailgunNet.Logic.State;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Pooling;

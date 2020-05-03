@@ -20,6 +20,7 @@
 
 using JetBrains.Annotations;
 using RailgunNet.Factory;
+using RailgunNet.Logic.State;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;

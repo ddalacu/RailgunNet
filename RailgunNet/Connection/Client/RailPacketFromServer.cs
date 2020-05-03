@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;

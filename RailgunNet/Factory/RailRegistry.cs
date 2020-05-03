@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
+using RailgunNet.Logic.State;
 
 namespace RailgunNet.Factory
 {
@@ -69,10 +70,9 @@ namespace RailgunNet.Factory
         /// <param name="paramsState">Array of parameters for the state constructor to invoke or null.</param>
         [PublicAPI]
         public void AddEntityType<TEntity, TState>(
-            object[] paramsEntity = null,
-            object[] paramsState = null)
+            object[] paramsEntity = null)
             where TEntity : RailEntity
-            where TState : RailState
+            where TState : class, new()
         {
             // Type check for TEntity
             Type expectedBaseType;
@@ -102,14 +102,13 @@ namespace RailgunNet.Factory
             }
 
             Type stateType = typeof(TState);
-            if (!CanBeConstructedWith<TState>(paramsState))
+            if (!stateType.IsSubclassOf(typeof(RailState)))
             {
-                throw new ArgumentException(
-                    $"The provided constructor arguments {paramsState} do not match any constructors in {stateType}.");
+                stateType = typeof(RailStateGeneric<TState>);
             }
 
             entityTypes.Add(
-                new EntityConstructionInfo(entityType, stateType, paramsEntity, paramsState));
+                new EntityConstructionInfo(entityType, stateType, paramsEntity));
         }
 
         private bool CanBeConstructedWith<T>(object[] parameters)
