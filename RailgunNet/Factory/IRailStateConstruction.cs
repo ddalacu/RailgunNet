@@ -1,4 +1,4 @@
-﻿using RailgunNet.Logic.State;
+﻿using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding.Compressors;
 

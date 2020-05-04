@@ -1,5 +1,4 @@
 ﻿using RailgunNet.Factory;
-using RailgunNet.Logic.State;
 using RailgunNet.System.Types;
 
 namespace RailgunNet.Logic.Wrappers

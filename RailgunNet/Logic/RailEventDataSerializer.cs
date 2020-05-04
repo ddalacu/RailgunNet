@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using RailgunNet.Logic.State;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
 
@@ -10,7 +9,7 @@ namespace RailgunNet.Logic
     public class RailEventDataSerializer
     {
         private readonly RailEvent eventInstance;
-        private readonly List<IRailStateMember> members = new List<IRailStateMember>();
+        private readonly List<IRailSynchronized> members = new List<IRailSynchronized>();
 
         public RailEventDataSerializer(RailEvent instance)
         {
@@ -29,7 +28,7 @@ namespace RailgunNet.Logic
             {
                 if (Attribute.IsDefined(prop, typeof(EventDataAttribute)))
                 {
-                    members.Add(RailStateMemberFactory.Create(instance, prop));
+                    members.Add(RailSynchronizedFactory.Create(instance, prop));
                 }
             }
         }

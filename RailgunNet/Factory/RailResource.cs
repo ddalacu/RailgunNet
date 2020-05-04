@@ -22,7 +22,6 @@ using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
-using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.Util;

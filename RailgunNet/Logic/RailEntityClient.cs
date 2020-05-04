@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using RailgunNet.Connection.Client;
 using RailgunNet.Factory;
-using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;

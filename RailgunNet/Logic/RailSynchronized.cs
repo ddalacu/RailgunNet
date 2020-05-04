@@ -3,9 +3,18 @@ using System.Reflection;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;
 
-namespace RailgunNet.Logic.State
+namespace RailgunNet.Logic
 {
-    public class RailStateMember<TContainer, TValue> : IRailStateMember
+    public interface IRailSynchronized
+    {
+        void WriteTo(RailBitBuffer buffer);
+        void ReadFrom(RailBitBuffer buffer);
+        void ApplyFrom(IRailSynchronized other);
+        bool Equals(IRailSynchronized other);
+        void Reset();
+    }
+
+    public class RailSynchronized<TContainer, TValue> : IRailSynchronized
     {
         private readonly object compressor;
         private readonly Func<RailBitBuffer, object> decode;
@@ -16,7 +25,7 @@ namespace RailgunNet.Logic.State
         private readonly TContainer instance;
         private readonly Action<TContainer, object> setter;
 
-        public RailStateMember(TContainer instanceToWrap, MemberInfo member)
+        public RailSynchronized(TContainer instanceToWrap, MemberInfo member)
         {
             instance = instanceToWrap;
             getter = InvokableFactory.CreateUntypedGetter<TContainer>(member);
@@ -60,15 +69,17 @@ namespace RailgunNet.Logic.State
             encode(buffer, getter(instance));
         }
 
-        public void ApplyFrom(IRailStateMember from)
+        public void ApplyFrom(IRailSynchronized from)
         {
-            RailStateMember<TContainer, TValue> other = (RailStateMember<TContainer, TValue>) from;
+            RailSynchronized<TContainer, TValue> other =
+                (RailSynchronized<TContainer, TValue>) from;
             setter(instance, getter(other.instance));
         }
 
-        public bool Equals(IRailStateMember from)
+        public bool Equals(IRailSynchronized from)
         {
-            RailStateMember<TContainer, TValue> other = (RailStateMember<TContainer, TValue>) from;
+            RailSynchronized<TContainer, TValue> other =
+                (RailSynchronized<TContainer, TValue>) from;
             return getter(instance).Equals(getter(other.instance));
         }
 

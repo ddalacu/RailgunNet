@@ -4,7 +4,6 @@ using Moq;
 using RailgunNet.Connection;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
-using RailgunNet.Logic.State;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;

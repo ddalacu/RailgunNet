@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Reflection;
 using RailgunNet.System.Encoding;
 
-namespace RailgunNet.Logic.State
+namespace RailgunNet.Logic
 {
     public class RailStateDataSerializer
     {
-        private readonly List<IRailStateMember> controller = new List<IRailStateMember>();
-        private readonly List<IRailStateMember> immutable = new List<IRailStateMember>();
-        private readonly List<IRailStateMember> mutable = new List<IRailStateMember>();
+        private readonly List<IRailSynchronized> controller = new List<IRailSynchronized>();
+        private readonly List<IRailSynchronized> immutable = new List<IRailSynchronized>();
+        private readonly List<IRailSynchronized> mutable = new List<IRailSynchronized>();
         private readonly RailState state;
 
         public RailStateDataSerializer(RailState instance)
@@ -29,15 +29,15 @@ namespace RailgunNet.Logic.State
             {
                 if (Attribute.IsDefined(prop, typeof(MutableAttribute)))
                 {
-                    mutable.Add(RailStateMemberFactory.Create(state, prop));
+                    mutable.Add(RailSynchronizedFactory.Create(state, prop));
                 }
                 else if (Attribute.IsDefined(prop, typeof(ImmutableAttribute)))
                 {
-                    immutable.Add(RailStateMemberFactory.Create(state, prop));
+                    immutable.Add(RailSynchronizedFactory.Create(state, prop));
                 }
                 else if (Attribute.IsDefined(prop, typeof(ControllerAttribute)))
                 {
-                    controller.Add(RailStateMemberFactory.Create(state, prop));
+                    controller.Add(RailSynchronizedFactory.Create(state, prop));
                 }
             }
         }

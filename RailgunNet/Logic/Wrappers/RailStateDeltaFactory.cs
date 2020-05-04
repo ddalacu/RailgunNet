@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using RailgunNet.Factory;
-using RailgunNet.Logic.State;
 using RailgunNet.System.Types;
 using RailgunNet.Util;
 
@@ -59,11 +58,15 @@ namespace RailgunNet.Logic.Wrappers
 
             deltaState.HasControllerData = includeControllerData;
             if (includeControllerData)
+            {
                 deltaState.DataSerializer.ApplyControllerFrom(current.DataSerializer);
+            }
 
             deltaState.HasImmutableData = includeImmutableData;
             if (includeImmutableData)
+            {
                 deltaState.DataSerializer.ApplyImmutableFrom(current.DataSerializer);
+            }
 
             // We don't need to include a tick when sending -- it's in the packet
             RailStateDelta delta = stateCreator.CreateDelta();

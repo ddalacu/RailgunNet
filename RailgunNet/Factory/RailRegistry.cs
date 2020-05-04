@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
-using RailgunNet.Logic.State;
 
 namespace RailgunNet.Factory
 {

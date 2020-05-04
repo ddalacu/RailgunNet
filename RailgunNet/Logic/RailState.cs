@@ -23,20 +23,21 @@ using RailgunNet.Logic.Wrappers;
 using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
-namespace RailgunNet.Logic.State
+namespace RailgunNet.Logic
 {
     /// <summary>
     ///     States are the fundamental data management class of Railgun. They
     ///     contain all of the synchronized information that an Entity needs to
-    ///     function. States have multiple sub-fields that are sent at different
-    ///     cadences, as follows:
-    ///     Mutable Data:
+    ///     function. States have multiple categories that are sent at different
+    ///     cadences. In order to synchronize a property, use the appropriate
+    ///     Attribute. The following attributes can be used:
+    ///     [Mutable]
     ///     Sent whenever the state differs from the client's view.
     ///     Delta-encoded against the client's view.
-    ///     Controller Data:
+    ///     [Controller]
     ///     Sent to the controller of the entity every update.
     ///     Not delta-encoded -- always sent full-encode.
-    ///     Immutable Data:
+    ///     [Immutable]
     ///     Sent only once at creation. Can not be changed after.
     /// </summary>
     public abstract class RailState : IRailPoolable<RailState>
@@ -75,12 +76,17 @@ namespace RailgunNet.Logic.State
 
             DataSerializer.ResetControllerData();
             if (deltaState.HasControllerData)
+            {
                 DataSerializer.ApplyControllerFrom(deltaState.DataSerializer);
+            }
+
             HasControllerData = delta.HasControllerData;
 
             HasImmutableData = delta.HasImmutableData || HasImmutableData;
             if (deltaState.HasImmutableData)
+            {
                 DataSerializer.ApplyImmutableFrom(deltaState.DataSerializer);
+            }
         }
 
         #region Pooling
