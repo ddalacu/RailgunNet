@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RailgunNet.Logic.State
+namespace RailgunNet.Logic
 {
     [AttributeUsage(AttributeTargets.Property)]
     public class MutableAttribute : Attribute
@@ -26,5 +26,10 @@ namespace RailgunNet.Logic.State
         }
 
         public Type Compressor { get; }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    public class EventDataAttribute : Attribute
+    {
     }
 }

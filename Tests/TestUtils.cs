@@ -48,6 +48,10 @@ namespace Tests
             bitBuffer.WriteUInt(uiValue);
             return Tick.Read(bitBuffer);
         }
+        public static SequenceId CreateSequenceId(int iValue)
+        {
+            return SequenceId.Start + iValue;
+        }
 
         public class Command : RailCommand<Command>
         {
@@ -85,7 +89,7 @@ namespace Tests
             }
         }
 
-        public class Event : RailEvent<Event>
+        public class Event : RailEvent
         {
             protected override void Execute(RailRoom room, RailController sender)
             {

@@ -40,6 +40,13 @@ namespace RailgunNet.Logic
     /// </summary>
     public abstract class RailEvent : IRailPoolable<RailEvent>
     {
+        private readonly RailEventDataSerializer DataSerializer;
+
+        public RailEvent()
+        {
+            DataSerializer = new RailEventDataSerializer(this);
+        }
+
         public int FactoryType { get; set; }
 
         // Synchronized
@@ -70,12 +77,6 @@ namespace RailgunNet.Logic
             return null;
         }
 
-        protected abstract void SetDataFrom(RailEvent other);
-
-        protected abstract void WriteData(RailBitBuffer buffer, Tick packetTick);
-        protected abstract void ReadData(RailBitBuffer buffer, Tick packetTick);
-        protected abstract void ResetData();
-
         protected virtual bool Validate()
         {
             return true;
@@ -95,17 +96,8 @@ namespace RailgunNet.Logic
             clone.Attempts = Attempts;
             clone.Room = Room;
             clone.Sender = Sender;
-            clone.SetDataFrom(this);
+            clone.DataSerializer.SetDataFrom(DataSerializer);
             return clone;
-        }
-
-        protected virtual void Reset()
-        {
-            EventId = SequenceId.Invalid;
-            Attempts = 0;
-            Room = null;
-            Sender = null;
-            ResetData();
         }
 
         public void Invoke(RailRoom room, RailController sender)
@@ -130,7 +122,11 @@ namespace RailgunNet.Logic
 
         void IRailPoolable<RailEvent>.Reset()
         {
-            Reset();
+            EventId = SequenceId.Invalid;
+            Attempts = 0;
+            Room = null;
+            Sender = null;
+            DataSerializer.ResetData();
         }
         #endregion
 
@@ -149,7 +145,7 @@ namespace RailgunNet.Logic
             buffer.WriteSequenceId(EventId);
 
             // Write: [EventData]
-            WriteData(buffer, packetTick);
+            DataSerializer.WriteData(buffer, packetTick);
         }
 
         /// <summary>
@@ -172,40 +168,10 @@ namespace RailgunNet.Logic
             evnt.EventId = buffer.ReadSequenceId();
 
             // Read: [EventData]
-            evnt.ReadData(buffer, packetTick);
+            evnt.DataSerializer.ReadData(buffer, packetTick);
 
             return evnt;
         }
         #endregion
-    }
-
-    /// <summary>
-    ///     This is the class to override to attach user-defined data to an event.
-    /// </summary>
-    public abstract class RailEvent<TDerived> : RailEvent
-        where TDerived : RailEvent<TDerived>, new()
-    {
-        #region Casting Overrides
-        protected override void SetDataFrom(RailEvent other)
-        {
-            CopyDataFrom((TDerived) other);
-        }
-        #endregion
-
-        protected override void ReadData(RailBitBuffer buffer, Tick packetTick)
-        {
-        }
-
-        protected override void WriteData(RailBitBuffer buffer, Tick packetTick)
-        {
-        }
-
-        protected override void ResetData()
-        {
-        }
-
-        protected virtual void CopyDataFrom(TDerived other)
-        {
-        }
     }
 }

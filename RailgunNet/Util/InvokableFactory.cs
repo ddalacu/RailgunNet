@@ -8,7 +8,6 @@ namespace RailgunNet.Util
     {
         /// <summary>
         ///     Returns an untyped getter for a property or field in an instance.
-        ///     https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
         /// </summary>
         /// <typeparam name="TDeclaring">Type of the instance containing the member.</typeparam>
         /// <param name="memberInfo"></param>
@@ -16,26 +15,30 @@ namespace RailgunNet.Util
         public static Func<TDeclaring, object> CreateUntypedGetter<TDeclaring>(
             MemberInfo memberInfo)
         {
-            Type targetType = memberInfo.DeclaringType;
-            if (targetType != typeof(TDeclaring))
+            Type instanceType = memberInfo.DeclaringType;
+            ParameterExpression arg0 = Expression.Parameter(typeof(TDeclaring), "arg0");
+
+            // `TDeclaring` might be a base class or interface of `instanceType`.
+            MemberExpression memberAccess = null;
+            if (instanceType == typeof(TDeclaring))
             {
-                throw new ArgumentException(
-                    $"Generic type {typeof(TDeclaring)} does not match declaring type in member info {targetType}.",
-                    nameof(memberInfo));
+                memberAccess = Expression.MakeMemberAccess(arg0, memberInfo);
+            }
+            else
+            {
+                // The member resides in `targetType` => convert
+                UnaryExpression arg0Converted = Expression.Convert(arg0, instanceType);
+                memberAccess = Expression.MakeMemberAccess(arg0Converted, memberInfo);
             }
 
-            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
-            MemberExpression exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);
-
-            UnaryExpression exConvertToObject = Expression.Convert(exMemberAccess, typeof(object));
+            UnaryExpression body = Expression.Convert(memberAccess, typeof(object));
             Expression<Func<TDeclaring, object>> lambda =
-                Expression.Lambda<Func<TDeclaring, object>>(exConvertToObject, exInstance);
+                Expression.Lambda<Func<TDeclaring, object>>(body, arg0);
             return lambda.Compile();
         }
 
         /// <summary>
         ///     Returns an untyped setter for a property or field in an instance.
-        ///     https://stackoverflow.com/questions/17660097/is-it-possible-to-speed-this-method-up/17669142#17669142
         /// </summary>
         /// <typeparam name="TDeclaring">Type of the instance containing the member.</typeparam>
         /// <param name="memberInfo"></param>
@@ -43,24 +46,29 @@ namespace RailgunNet.Util
         public static Action<TDeclaring, object> CreateUntypedSetter<TDeclaring>(
             MemberInfo memberInfo)
         {
-            Type targetType = memberInfo.DeclaringType;
-            if (targetType != typeof(TDeclaring))
+            Type instanceType = memberInfo.DeclaringType;
+            ParameterExpression arg0 = Expression.Parameter(typeof(TDeclaring), "arg0");
+
+            MemberExpression memberAccess = null;
+            // `TDeclaring` might be a base class or interface of `instanceType`.
+            if (instanceType == typeof(TDeclaring))
             {
-                throw new ArgumentException(
-                    $"Generic type {typeof(TDeclaring)} does not match declaring type in member info {targetType}.",
-                    nameof(memberInfo));
+                memberAccess = Expression.MakeMemberAccess(arg0, memberInfo);
+            }
+            else
+            {
+                // The member resides in `targetType` => convert
+                UnaryExpression arg0Converted = Expression.Convert(arg0, instanceType);
+                memberAccess = Expression.MakeMemberAccess(arg0Converted, memberInfo);
             }
 
-            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
-            MemberExpression exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);
-
-            ParameterExpression exParameter0 = Expression.Parameter(typeof(object), "p");
+            ParameterExpression arg1 = Expression.Parameter(typeof(object), "arg1");
             UnaryExpression exConvertToUnderlying = Expression.Convert(
-                exParameter0,
+                arg1,
                 GetUnderlyingType(memberInfo));
-            BinaryExpression exAssign = Expression.Assign(exMemberAccess, exConvertToUnderlying);
+            BinaryExpression body = Expression.Assign(memberAccess, exConvertToUnderlying);
             Expression<Action<TDeclaring, object>> lambda =
-                Expression.Lambda<Action<TDeclaring, object>>(exAssign, exInstance, exParameter0);
+                Expression.Lambda<Action<TDeclaring, object>>(body, arg0, arg1);
             return lambda.Compile();
         }
 
@@ -72,20 +80,26 @@ namespace RailgunNet.Util
         /// <returns></returns>
         public static Func<TDeclaring, object> CreateCallWithReturn<TDeclaring>(MethodInfo method)
         {
-            Type targetType = method.DeclaringType;
-            if (targetType != typeof(TDeclaring))
+            Type instanceType = method.DeclaringType;
+            ParameterExpression arg0 = Expression.Parameter(typeof(TDeclaring), "arg0");
+
+            MethodCallExpression exCall = null;
+            // `TDeclaring` might be a base class or interface of `instanceType`.
+            if (instanceType == typeof(TDeclaring))
             {
-                throw new ArgumentException(
-                    $"Generic type {typeof(TDeclaring)} does not match declaring type in member info {targetType}.",
-                    nameof(method));
+                exCall = Expression.Call(arg0, method);
+            }
+            else
+            {
+                // The member resides in `targetType` => convert
+                UnaryExpression arg0Converted = Expression.Convert(arg0, instanceType);
+                exCall = Expression.Call(arg0Converted, method);
             }
 
-            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
-            MethodCallExpression exCall = Expression.Call(exInstance, method);
-            UnaryExpression exConvertToObject = Expression.Convert(exCall, typeof(object));
+            UnaryExpression body = Expression.Convert(exCall, typeof(object));
 
             Expression<Func<TDeclaring, object>> lambda =
-                Expression.Lambda<Func<TDeclaring, object>>(exConvertToObject, exInstance);
+                Expression.Lambda<Func<TDeclaring, object>>(body, arg0);
             return lambda.Compile();
         }
 
@@ -97,22 +111,29 @@ namespace RailgunNet.Util
         /// <returns></returns>
         public static Action<TDeclaring, object> CreateCall<TDeclaring>(MethodInfo method)
         {
-            Type targetType = method.DeclaringType;
-            if (targetType != typeof(TDeclaring))
+            Type instanceType = method.DeclaringType;
+            ParameterExpression arg0 = Expression.Parameter(typeof(TDeclaring), "arg0");
+            ParameterExpression arg1 = Expression.Parameter(typeof(object), "arg1");
+
+            UnaryExpression exConvertToParam0 = Expression.Convert(
+                arg1,
+                method.GetParameters()[0].ParameterType);
+
+            MethodCallExpression exCall = null;
+            // `TDeclaring` might be a base class or interface of `instanceType`.
+            if (instanceType == typeof(TDeclaring))
             {
-                throw new ArgumentException(
-                    $"Generic type {typeof(TDeclaring)} does not match declaring type in member info {targetType}.",
-                    nameof(method));
+                exCall = Expression.Call(arg0, method, exConvertToParam0);
+            }
+            else
+            {
+                // The member resides in `targetType` => convert
+                UnaryExpression arg0Converted = Expression.Convert(arg0, instanceType);
+                exCall = Expression.Call(arg0Converted, method, exConvertToParam0);
             }
 
-            ParameterExpression exInstance = Expression.Parameter(targetType, "t");
-            ParameterExpression exParameter0 = Expression.Parameter(typeof(object), "p");
-            UnaryExpression exConvertToParam0 = Expression.Convert(
-                exParameter0,
-                method.GetParameters()[0].ParameterType);
-            MethodCallExpression exCall = Expression.Call(exInstance, method, exConvertToParam0);
             Expression<Action<TDeclaring, object>> lambda =
-                Expression.Lambda<Action<TDeclaring, object>>(exCall, exInstance, exParameter0);
+                Expression.Lambda<Action<TDeclaring, object>>(exCall, arg0, arg1);
             return lambda.Compile();
         }
 

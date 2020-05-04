@@ -1,4 +1,5 @@
-﻿using RailgunNet.Logic.State;
+﻿using RailgunNet.Logic;
+using RailgunNet.Logic.State;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 using Tests.Example;
