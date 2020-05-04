@@ -3,6 +3,7 @@ using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using RailgunNet.Util.Pooling;
 using Xunit;
 
 namespace Tests
@@ -21,6 +22,7 @@ namespace Tests
                 ClientTick = Tick.START,
                 IsNewCommand = true
             };
+            ((IRailPoolable<RailCommand>) command).Allocated();
             command.Encode(bitBuffer);
 
             Tick writtenTick = bitBuffer.ReadTick();
@@ -35,8 +37,9 @@ namespace Tests
         [InlineData(int.MaxValue)]
         private void DecodeReadsTickAndCommandData(int iData)
         {
+            RailMemoryPool<RailCommand> pool = new RailMemoryPool<RailCommand>(new RailFactory<TestUtils.Command>());
             Mock<IRailCommandConstruction> mockCreator = new Mock<IRailCommandConstruction>();
-            mockCreator.Setup(m => m.CreateCommand()).Returns(new TestUtils.Command());
+            mockCreator.Setup(m => m.CreateCommand()).Returns(pool.Allocate());
 
             RailBitBuffer bitBuffer = new RailBitBuffer(2);
             Tick writtenTick = Tick.START.GetNext();

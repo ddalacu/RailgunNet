@@ -32,4 +32,9 @@ namespace RailgunNet.Logic
     public class EventDataAttribute : Attribute
     {
     }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    public class CommandDataAttribute : Attribute
+    {
+    }
 }

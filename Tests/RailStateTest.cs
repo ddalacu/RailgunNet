@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Tests
 {
-    public class RailStateGenericTest
+    public class RailStateTest
     {
         private class Data : RailState
         {

@@ -18,7 +18,6 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Encoding;
@@ -28,22 +27,6 @@ using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
 {
-    /// <summary>
-    ///     This is the class to override to attach user-defined data to an entity.
-    /// </summary>
-    public abstract class RailCommand<T> : RailCommand
-        where T : RailCommand<T>, new()
-    {
-        #region Casting Overrides
-        protected override void SetDataFrom(RailCommand other)
-        {
-            CopyDataFrom((T) other);
-        }
-        #endregion
-
-        protected abstract void CopyDataFrom(T other);
-    }
-
     /// <summary>
     ///     Commands contain input data from the client to be applied to entities.
     /// </summary>
@@ -55,24 +38,8 @@ namespace RailgunNet.Logic
         public Tick ClientTick { get; set; } // Synchronized
 
         public bool IsNewCommand { get; set; }
-
-        #region Implementation: IRailTimedValue
+        private RailCommandDataSerializer DataSerializer { get; set; }
         Tick IRailTimedValue.Tick => ClientTick;
-        #endregion
-
-        #region To be implemented by API consumer.
-        [PublicAPI]
-        protected abstract void SetDataFrom(RailCommand other);
-
-        [PublicAPI]
-        protected abstract void EncodeData(RailBitBuffer buffer);
-
-        [PublicAPI]
-        protected abstract void DecodeData(RailBitBuffer buffer);
-
-        [PublicAPI]
-        protected abstract void ResetData();
-        #endregion
 
         #region Implementation: IRailPoolable
         IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
@@ -84,6 +51,7 @@ namespace RailgunNet.Logic
 
         void IRailPoolable<RailCommand>.Allocated()
         {
+            DataSerializer = new RailCommandDataSerializer(this);
         }
         #endregion
 
@@ -91,7 +59,7 @@ namespace RailgunNet.Logic
         private void Reset()
         {
             ClientTick = Tick.INVALID;
-            ResetData();
+            DataSerializer.ResetData();
         }
 
         [OnlyIn(Component.Client)]
@@ -101,7 +69,7 @@ namespace RailgunNet.Logic
             buffer.WriteTick(ClientTick);
 
             // Write: [Command Data]
-            EncodeData(buffer);
+            DataSerializer.EncodeData(buffer);
         }
 
         [OnlyIn(Component.Server)]
@@ -115,7 +83,7 @@ namespace RailgunNet.Logic
             command.ClientTick = buffer.ReadTick();
 
             // Read: [Command Data]
-            command.DecodeData(buffer);
+            command.DataSerializer.DecodeData(buffer);
 
             return command;
         }

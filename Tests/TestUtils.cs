@@ -53,10 +53,9 @@ namespace Tests
             return SequenceId.Start + iValue;
         }
 
-        public class Command : RailCommand<Command>
+        public class Command : RailCommand
         {
-            private readonly int initialData;
-            public int Data;
+            [CommandData] public int Data { get; set; }
 
             public Command() : this(0)
             {
@@ -65,27 +64,6 @@ namespace Tests
             public Command(int i)
             {
                 Data = i;
-                initialData = i;
-            }
-
-            protected override void DecodeData(RailBitBuffer buffer)
-            {
-                Data = buffer.ReadInt();
-            }
-
-            protected override void EncodeData(RailBitBuffer buffer)
-            {
-                buffer.WriteInt(Data);
-            }
-
-            protected override void ResetData()
-            {
-                Data = initialData;
-            }
-
-            protected override void CopyDataFrom(Command other)
-            {
-                Data = other.Data;
             }
         }
 

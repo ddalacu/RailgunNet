@@ -6,8 +6,6 @@ using RailgunNet.Connection.Client;
 using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
-using RailgunNet.System.Encoding;
-using RailgunNet.System.Encoding.Compressors;
 using Xunit;
 using static Tests.Example.Util;
 
@@ -62,40 +60,10 @@ namespace Tests.Example
             [Mutable] [Compressor(typeof(CoordinateCompressor))] public float PosY { get; set; }
         }
 
-        private class Command : RailCommand<Command>
+        private class Command : RailCommand
         {
-            private readonly CoordinateCompressor coordinateCompressor = new CoordinateCompressor();
-            public float PosX;
-            public float PosY;
-
-            public void SetData(float X, float Y)
-            {
-                PosX = X;
-                PosY = Y;
-            }
-
-            protected override void CopyDataFrom(Command other)
-            {
-                SetData(other.PosX, other.PosY);
-            }
-
-            protected override void DecodeData(RailBitBuffer buffer)
-            {
-                SetData(
-                    buffer.ReadFloat(coordinateCompressor),
-                    buffer.ReadFloat(coordinateCompressor));
-            }
-
-            protected override void ResetData()
-            {
-                SetData(0, 0);
-            }
-
-            protected override void EncodeData(RailBitBuffer buffer)
-            {
-                buffer.WriteFloat(coordinateCompressor, PosX);
-                buffer.WriteFloat(coordinateCompressor, PosY);
-            }
+            [CommandData] [Compressor(typeof(CoordinateCompressor))] public float PosX { get; set; }
+            [CommandData] [Compressor(typeof(CoordinateCompressor))] public float PosY { get; set; }
         }
 
         private class EntityClient : RailEntityClient<EntityState>
