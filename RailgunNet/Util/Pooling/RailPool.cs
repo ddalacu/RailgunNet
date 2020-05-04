@@ -69,10 +69,20 @@ namespace RailgunNet.Util.Pooling
 
         public T Allocate()
         {
-            T obj = freeList.Count > 0 ? freeList.Pop() : factory.Create();
-            obj.Pool = this;
-            obj.Reset();
-            return obj;
+            if (freeList.Count > 0)
+            {
+                T obj = freeList.Pop();
+                obj.Pool = this;
+                obj.Reset();
+                return obj;
+            }
+            else
+            {
+                T obj = factory.Create();
+                obj.Pool = this;
+                obj.Allocated();
+                return obj;
+            }
         }
 
         public void Deallocate(T instance)

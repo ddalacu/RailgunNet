@@ -1,44 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using JetBrains.Annotations;
 using RailgunNet.System.Encoding;
 
 namespace RailgunNet.Logic.State
 {
-    public class RailStateGeneric<T> : RailState
-        where T : class, new()
+    public class RailStateDataSerializer
     {
         private readonly List<IRailStateMember> controller = new List<IRailStateMember>();
         private readonly List<IRailStateMember> immutable = new List<IRailStateMember>();
         private readonly List<IRailStateMember> mutable = new List<IRailStateMember>();
+        private readonly RailState state;
 
-        public RailStateGeneric() : this(null)
+        public RailStateDataSerializer(RailState instance)
         {
-        }
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
 
-        public RailStateGeneric(T instance)
-        {
-            Data = instance ?? new T();
-            foreach (PropertyInfo prop in typeof(T).GetProperties(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            state = instance;
+            foreach (PropertyInfo prop in state
+                                          .GetType()
+                                          .GetProperties(
+                                              BindingFlags.Instance |
+                                              BindingFlags.Public |
+                                              BindingFlags.NonPublic))
             {
                 if (Attribute.IsDefined(prop, typeof(MutableAttribute)))
                 {
-                    mutable.Add(RailStateMemberFactory.Create(Data, prop));
+                    mutable.Add(RailStateMemberFactory.Create(state, prop));
                 }
                 else if (Attribute.IsDefined(prop, typeof(ImmutableAttribute)))
                 {
-                    immutable.Add(RailStateMemberFactory.Create(Data, prop));
+                    immutable.Add(RailStateMemberFactory.Create(state, prop));
                 }
                 else if (Attribute.IsDefined(prop, typeof(ControllerAttribute)))
                 {
-                    controller.Add(RailStateMemberFactory.Create(Data, prop));
+                    controller.Add(RailStateMemberFactory.Create(state, prop));
                 }
             }
         }
-
-        [PublicAPI] public T Data { get; }
 
         private static uint ToFlag(int index)
         {
@@ -46,29 +48,26 @@ namespace RailgunNet.Logic.State
         }
 
         #region Interface
-        public override int FlagBits => mutable.Count;
+        public int FlagBits => mutable.Count;
 
-        public override void ApplyControllerFrom(RailState sourceBase)
+        public void ApplyControllerFrom(RailStateDataSerializer source)
         {
-            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < controller.Count; ++i)
             {
                 controller[i].ApplyFrom(source.controller[i]);
             }
         }
 
-        public override void ApplyImmutableFrom(RailState sourceBase)
+        public void ApplyImmutableFrom(RailStateDataSerializer source)
         {
-            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < immutable.Count; ++i)
             {
                 immutable[i].ApplyFrom(source.immutable[i]);
             }
         }
 
-        public override void ApplyMutableFrom(RailState sourceBase, uint flags)
+        public void ApplyMutableFrom(RailStateDataSerializer source, uint flags)
         {
-            RailStateGeneric<T> source = (RailStateGeneric<T>) sourceBase;
             for (int i = 0; i < mutable.Count; ++i)
             {
                 if ((flags & ToFlag(i)) == ToFlag(i))
@@ -78,9 +77,8 @@ namespace RailgunNet.Logic.State
             }
         }
 
-        public override uint CompareMutableData(RailState otherBase)
+        public uint CompareMutableData(RailStateDataSerializer other)
         {
-            RailStateGeneric<T> other = (RailStateGeneric<T>) otherBase;
             uint uiFlags = 0x0;
             for (int i = 0; i < mutable.Count; ++i)
             {
@@ -93,9 +91,8 @@ namespace RailgunNet.Logic.State
             return uiFlags;
         }
 
-        public override bool IsControllerDataEqual(RailState otherBase)
+        public bool IsControllerDataEqual(RailStateDataSerializer other)
         {
-            RailStateGeneric<T> other = (RailStateGeneric<T>) otherBase;
             for (int i = 0; i < controller.Count; ++i)
             {
                 if (!controller[i].Equals(other.controller[i]))
@@ -107,31 +104,31 @@ namespace RailgunNet.Logic.State
             return true;
         }
 
-        public override void ResetAllData()
+        public void ResetAllData()
         {
             mutable.ForEach(c => c.Reset());
             immutable.ForEach(c => c.Reset());
             controller.ForEach(c => c.Reset());
         }
 
-        public override void ResetControllerData()
+        public void ResetControllerData()
         {
             controller.ForEach(c => c.Reset());
         }
         #endregion
 
         #region Encode & Decode
-        public override void DecodeControllerData(RailBitBuffer buffer)
+        public void DecodeControllerData(RailBitBuffer buffer)
         {
             controller.ForEach(c => c.ReadFrom(buffer));
         }
 
-        public override void DecodeImmutableData(RailBitBuffer buffer)
+        public void DecodeImmutableData(RailBitBuffer buffer)
         {
             immutable.ForEach(i => i.ReadFrom(buffer));
         }
 
-        public override void DecodeMutableData(RailBitBuffer buffer, uint flags)
+        public void DecodeMutableData(RailBitBuffer buffer, uint flags)
         {
             for (int i = 0; i < mutable.Count; ++i)
             {
@@ -142,17 +139,17 @@ namespace RailgunNet.Logic.State
             }
         }
 
-        public override void EncodeControllerData(RailBitBuffer buffer)
+        public void EncodeControllerData(RailBitBuffer buffer)
         {
             controller.ForEach(c => c.WriteTo(buffer));
         }
 
-        public override void EncodeImmutableData(RailBitBuffer buffer)
+        public void EncodeImmutableData(RailBitBuffer buffer)
         {
             immutable.ForEach(i => i.WriteTo(buffer));
         }
 
-        public override void EncodeMutableData(RailBitBuffer buffer, uint flags)
+        public void EncodeMutableData(RailBitBuffer buffer, uint flags)
         {
             for (int i = 0; i < mutable.Count; ++i)
             {

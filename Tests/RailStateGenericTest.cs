@@ -2,6 +2,7 @@
 using RailgunNet.Logic.State;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
+using RailgunNet.Util.Pooling;
 using Tests.Example;
 using Xunit;
 
@@ -9,7 +10,7 @@ namespace Tests
 {
     public class RailStateGenericTest
     {
-        private class Data
+        private class Data : RailState
         {
             [Mutable] public int MByteProp { get; set; }
             [Mutable] public uint MUIntProp { get; set; }
@@ -19,7 +20,7 @@ namespace Tests
             [Mutable] public string MStringProp { get; set; }
         }
 
-        private class DataWithCompressor
+        private class DataWithCompressor : RailState
         {
             [Mutable] [Compressor(typeof(MyIntCompressor))] public int CompressedInt { get; set; }
 
@@ -91,8 +92,8 @@ namespace Tests
                 MUShortProp = 45,
                 MStringProp = "46"
             };
-            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
-            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
+            ((IRailPoolable<RailState>) data0).Allocated();
+            ((IRailPoolable<RailState>) data1).Allocated();
             Assert.NotEqual(data1.MByteProp, data0.MByteProp);
             Assert.NotEqual(data1.MUIntProp, data0.MUIntProp);
             Assert.NotEqual(data1.MIntProp, data0.MIntProp);
@@ -101,7 +102,7 @@ namespace Tests
             Assert.NotEqual(data1.MStringProp, data0.MStringProp);
 
             // Apply mutable data
-            generic0.ApplyMutableFrom(generic1, 0xFFFF);
+            data0.DataSerializer.ApplyMutableFrom(data1.DataSerializer, 0xFFFF);
 
             // And now they should be equal
             Assert.Equal(data1.MByteProp, data0.MByteProp);
@@ -134,8 +135,8 @@ namespace Tests
                 MUShortProp = 0,
                 MStringProp = ""
             };
-            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
-            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
+            ((IRailPoolable<RailState>) data0).Allocated();
+            ((IRailPoolable<RailState>) data1).Allocated();
             Assert.Equal(data1.MByteProp, data0.MByteProp);
             Assert.Equal(data1.MUIntProp, data0.MUIntProp);
             Assert.Equal(data1.MIntProp, data0.MIntProp);
@@ -144,21 +145,33 @@ namespace Tests
             Assert.Equal(data1.MStringProp, data0.MStringProp);
 
             // Compare
-            Assert.Equal(0x0U, generic0.CompareMutableData(generic1));
+            Assert.Equal(0x0U, data0.DataSerializer.CompareMutableData(data1.DataSerializer));
 
             // Change fields & compare again
             data1.MByteProp = 42;
-            Assert.Equal(0b0000_0001U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0000_0001U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
             data1.MUIntProp = 43;
-            Assert.Equal(0b0000_0011U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0000_0011U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
             data1.MIntProp = 44;
-            Assert.Equal(0b0000_0111U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0000_0111U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
             data1.MBoolProp = true;
-            Assert.Equal(0b0000_1111U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0000_1111U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
             data1.MUShortProp = 45;
-            Assert.Equal(0b0001_1111U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0001_1111U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
             data1.MStringProp = "46";
-            Assert.Equal(0b0011_1111U, generic0.CompareMutableData(generic1));
+            Assert.Equal(
+                0b0011_1111U,
+                data0.DataSerializer.CompareMutableData(data1.DataSerializer));
         }
 
         [Fact]
@@ -174,16 +187,14 @@ namespace Tests
                 CompressedInt = 42,
                 CompressedFloat = 43.0f
             };
-            RailStateGeneric<DataWithCompressor> generic0 =
-                new RailStateGeneric<DataWithCompressor>(data0);
-            RailStateGeneric<DataWithCompressor> generic1 =
-                new RailStateGeneric<DataWithCompressor>(data1);
+            ((IRailPoolable<RailState>) data0).Allocated();
+            ((IRailPoolable<RailState>) data1).Allocated();
 
             // Transfer data from data1 to data0 via buffer
             uint uiFlagAll = 0xFFFF;
             RailBitBuffer buffer = new RailBitBuffer();
-            generic1.EncodeMutableData(buffer, uiFlagAll);
-            generic0.DecodeMutableData(buffer, uiFlagAll);
+            data1.DataSerializer.EncodeMutableData(buffer, uiFlagAll);
+            data0.DataSerializer.DecodeMutableData(buffer, uiFlagAll);
 
             Assert.Equal(data1.CompressedInt, data0.CompressedInt);
             Assert.Equal(data1.CompressedFloat, data0.CompressedFloat);
@@ -211,11 +222,11 @@ namespace Tests
                 MUShortProp = 45,
                 MStringProp = "46"
             };
-            RailStateGeneric<Data> generic0 = new RailStateGeneric<Data>(data0);
-            RailStateGeneric<Data> generic1 = new RailStateGeneric<Data>(data1);
+            ((IRailPoolable<RailState>) data0).Allocated();
+            ((IRailPoolable<RailState>) data1).Allocated();
 
             // Apply state 0 to 1
-            generic1.ApplyMutableFrom(generic0, 0xFFFF);
+            data1.DataSerializer.ApplyMutableFrom(data0.DataSerializer, 0xFFFF);
             Assert.Equal(0, data1.MByteProp);
             Assert.Equal(0U, data1.MUIntProp);
             Assert.Equal(0, data1.MIntProp);
@@ -224,7 +235,7 @@ namespace Tests
             Assert.Equal("", data1.MStringProp);
 
             // Reset
-            generic1.ResetAllData();
+            data1.DataSerializer.ResetAllData();
             Assert.Equal(42, data1.MByteProp);
             Assert.Equal(43U, data1.MUIntProp);
             Assert.Equal(44, data1.MIntProp);

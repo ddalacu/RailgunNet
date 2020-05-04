@@ -122,6 +122,10 @@ namespace RailgunNet.Logic
         {
             Reset();
         }
+
+        void IRailPoolable<RailEntityBase>.Allocated()
+        {
+        }
         #endregion
 
         #region Creation

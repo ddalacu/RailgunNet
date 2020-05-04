@@ -33,7 +33,7 @@ namespace Tests
         public static Mock<IRailStateConstruction> StateConstructionMock()
         {
             Mock<IRailStateConstruction> mock = new Mock<IRailStateConstruction>();
-            mock.Setup(f => f.CreateState(0)).Returns(new RailStateGeneric<State>());
+            mock.Setup(f => f.CreateState(0)).Returns(new State());
             mock.Setup(f => f.CreateDelta()).Returns(new RailStateDelta());
             mock.Setup(f => f.CreateRecord()).Returns(new RailStateRecord());
             mock.Setup(f => f.EntityTypeCompressor).Returns(new RailIntCompressor(0, 2));
@@ -48,6 +48,7 @@ namespace Tests
             bitBuffer.WriteUInt(uiValue);
             return Tick.Read(bitBuffer);
         }
+
         public static SequenceId CreateSequenceId(int iValue)
         {
             return SequenceId.Start + iValue;
@@ -96,7 +97,7 @@ namespace Tests
             }
         }
 
-        public class State
+        public class State : RailState
         {
         }
 

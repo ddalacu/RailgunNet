@@ -32,6 +32,11 @@ namespace RailgunNet.Util.Pooling
         /// </summary>
         IRailMemoryPool<T> Pool { get; set; }
 
+        /// <summary>
+        ///     Called exactly once after an instance is allocated. Not called when an instance is reused!
+        /// </summary>
+        void Allocated();
+
         void Reset();
     }
 }

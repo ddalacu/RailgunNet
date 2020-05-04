@@ -20,7 +20,6 @@
 
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
-using RailgunNet.System.Encoding;
 using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
@@ -49,6 +48,8 @@ namespace RailgunNet.Logic.State
         public bool HasControllerData { get; set; } // Synchronized
         public bool HasImmutableData { get; set; } // Synchronized
 
+        public RailStateDataSerializer DataSerializer { get; private set; }
+
         public RailState Clone(IRailStateConstruction stateCreator)
         {
             RailState clone = stateCreator.CreateState(FactoryType);
@@ -59,9 +60,9 @@ namespace RailgunNet.Logic.State
         public void OverwriteFrom(RailState source)
         {
             Flags = source.Flags;
-            ApplyMutableFrom(source, FLAGS_ALL);
-            ApplyControllerFrom(source);
-            ApplyImmutableFrom(source);
+            DataSerializer.ApplyMutableFrom(source.DataSerializer, FLAGS_ALL);
+            DataSerializer.ApplyControllerFrom(source.DataSerializer);
+            DataSerializer.ApplyImmutableFrom(source.DataSerializer);
             HasControllerData = source.HasControllerData;
             HasImmutableData = source.HasImmutableData;
         }
@@ -70,14 +71,16 @@ namespace RailgunNet.Logic.State
         public void ApplyDelta(RailStateDelta delta)
         {
             RailState deltaState = delta.State;
-            ApplyMutableFrom(deltaState, deltaState.Flags);
+            DataSerializer.ApplyMutableFrom(deltaState.DataSerializer, deltaState.Flags);
 
-            ResetControllerData();
-            if (deltaState.HasControllerData) ApplyControllerFrom(deltaState);
+            DataSerializer.ResetControllerData();
+            if (deltaState.HasControllerData)
+                DataSerializer.ApplyControllerFrom(deltaState.DataSerializer);
             HasControllerData = delta.HasControllerData;
 
             HasImmutableData = delta.HasImmutableData || HasImmutableData;
-            if (deltaState.HasImmutableData) ApplyImmutableFrom(deltaState);
+            if (deltaState.HasImmutableData)
+                DataSerializer.ApplyImmutableFrom(deltaState.DataSerializer);
         }
 
         #region Pooling
@@ -88,30 +91,13 @@ namespace RailgunNet.Logic.State
             Flags = 0;
             HasControllerData = false;
             HasImmutableData = false;
-            ResetAllData();
+            DataSerializer.ResetAllData();
         }
-        #endregion
 
-        #region Interface
-        public abstract int FlagBits { get; }
-        public abstract void ResetAllData();
-        public abstract void ResetControllerData();
-
-        public abstract void ApplyMutableFrom(RailState source, uint flags);
-        public abstract void ApplyControllerFrom(RailState source);
-        public abstract void ApplyImmutableFrom(RailState source);
-
-        public abstract uint CompareMutableData(RailState basis);
-        public abstract bool IsControllerDataEqual(RailState basis);
-        #endregion
-
-        #region Encode & Decode
-        public abstract void DecodeMutableData(RailBitBuffer buffer, uint flags);
-        public abstract void DecodeControllerData(RailBitBuffer buffer);
-        public abstract void DecodeImmutableData(RailBitBuffer buffer);
-        public abstract void EncodeMutableData(RailBitBuffer buffer, uint flags);
-        public abstract void EncodeControllerData(RailBitBuffer buffer);
-        public abstract void EncodeImmutableData(RailBitBuffer buffer);
+        void IRailPoolable<RailState>.Allocated()
+        {
+            DataSerializer = new RailStateDataSerializer(this);
+        }
         #endregion
     }
 }

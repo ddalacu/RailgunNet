@@ -40,12 +40,7 @@ namespace RailgunNet.Logic
     /// </summary>
     public abstract class RailEvent : IRailPoolable<RailEvent>
     {
-        private readonly RailEventDataSerializer DataSerializer;
-
-        public RailEvent()
-        {
-            DataSerializer = new RailEventDataSerializer(this);
-        }
+        private RailEventDataSerializer DataSerializer;
 
         public int FactoryType { get; set; }
 
@@ -127,6 +122,11 @@ namespace RailgunNet.Logic
             Room = null;
             Sender = null;
             DataSerializer.ResetData();
+        }
+
+        void IRailPoolable<RailEvent>.Allocated()
+        {
+            DataSerializer = new RailEventDataSerializer(this);
         }
         #endregion
 

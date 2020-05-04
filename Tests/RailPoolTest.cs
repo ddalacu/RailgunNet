@@ -19,6 +19,10 @@ namespace Tests
             void IRailPoolable<A>.Reset()
             {
             }
+
+            void IRailPoolable<A>.Allocated()
+            {
+            }
         }
 
         public class B : A

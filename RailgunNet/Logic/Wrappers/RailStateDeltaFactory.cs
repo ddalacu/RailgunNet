@@ -43,7 +43,7 @@ namespace RailgunNet.Logic.Wrappers
             {
                 foreach (RailStateRecord record in basisStates)
                 {
-                    flags |= current.CompareMutableData(record.State);
+                    flags |= current.DataSerializer.CompareMutableData(record.State.DataSerializer);
                 }
             }
             else
@@ -55,13 +55,15 @@ namespace RailgunNet.Logic.Wrappers
 
             RailState deltaState = stateCreator.CreateState(current.FactoryType);
             deltaState.Flags = flags;
-            deltaState.ApplyMutableFrom(current, deltaState.Flags);
+            deltaState.DataSerializer.ApplyMutableFrom(current.DataSerializer, deltaState.Flags);
 
             deltaState.HasControllerData = includeControllerData;
-            if (includeControllerData) deltaState.ApplyControllerFrom(current);
+            if (includeControllerData)
+                deltaState.DataSerializer.ApplyControllerFrom(current.DataSerializer);
 
             deltaState.HasImmutableData = includeImmutableData;
-            if (includeImmutableData) deltaState.ApplyImmutableFrom(current);
+            if (includeImmutableData)
+                deltaState.DataSerializer.ApplyImmutableFrom(current.DataSerializer);
 
             // We don't need to include a tick when sending -- it's in the packet
             RailStateDelta delta = stateCreator.CreateDelta();

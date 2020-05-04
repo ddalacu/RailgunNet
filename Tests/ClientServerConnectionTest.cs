@@ -56,7 +56,7 @@ namespace Tests.Example
             }
         }
 
-        private class EntityState
+        private class EntityState : RailState
         {
             [Mutable] public int EntityId { get; set; }
             [Mutable] [Compressor(typeof(CoordinateCompressor))] public float PosX { get; set; }
@@ -99,11 +99,11 @@ namespace Tests.Example
             }
         }
 
-        private class EntityClient : RailEntityClient<RailStateGeneric<EntityState>>
+        private class EntityClient : RailEntityClient<EntityState>
         {
         }
 
-        private class EntityServer : RailEntityServer<RailStateGeneric<EntityState>>
+        private class EntityServer : RailEntityServer<EntityState>
         {
         }
 
@@ -146,14 +146,14 @@ namespace Tests.Example
             EntityClient entityClientSide = entityProxy as EntityClient;
             Assert.NotNull(entityClientSide);
             Assert.Equal(entityServerSide.Id, entityProxy.Id);
-            Assert.Equal(entityClientSide.State.Data.PosX, entityServerSide.State.Data.PosX);
-            Assert.Equal(entityClientSide.State.Data.PosY, entityServerSide.State.Data.PosY);
+            Assert.Equal(entityClientSide.State.PosX, entityServerSide.State.PosX);
+            Assert.Equal(entityClientSide.State.PosY, entityServerSide.State.PosY);
 
             // Change the entity on the server side and sync it to the client
             float fExpectedPosX = 42;
             float fExpectedPosY = 106;
-            entityServerSide.State.Data.PosX = fExpectedPosX;
-            entityServerSide.State.Data.PosY = fExpectedPosY;
+            entityServerSide.State.PosX = fExpectedPosX;
+            entityServerSide.State.PosY = fExpectedPosY;
 
             // Let the server detect the change and send the packet
             server.Update();
@@ -171,10 +171,10 @@ namespace Tests.Example
                 client.Update();
             }
 
-            Assert.Equal(fExpectedPosX, entityClientSide.State.Data.PosX);
-            Assert.Equal(fExpectedPosY, entityClientSide.State.Data.PosY);
-            Assert.Equal(fExpectedPosX, entityServerSide.State.Data.PosX);
-            Assert.Equal(fExpectedPosY, entityServerSide.State.Data.PosY);
+            Assert.Equal(fExpectedPosX, entityClientSide.State.PosX);
+            Assert.Equal(fExpectedPosY, entityClientSide.State.PosY);
+            Assert.Equal(fExpectedPosX, entityServerSide.State.PosX);
+            Assert.Equal(fExpectedPosY, entityServerSide.State.PosY);
         }
     }
 }

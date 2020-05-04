@@ -85,6 +85,10 @@ namespace RailgunNet.Logic.Wrappers
         {
             Reset();
         }
+
+        void IRailPoolable<RailStateRecord>.Allocated()
+        {
+        }
         #endregion
     }
 }

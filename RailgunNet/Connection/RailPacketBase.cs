@@ -123,6 +123,10 @@ namespace RailgunNet.Connection
         {
             Reset();
         }
+
+        void IRailPoolable<RailPacketBase>.Allocated()
+        {
+        }
         #endregion
     }
 }

@@ -98,6 +98,10 @@ namespace RailgunNet.Logic.Wrappers
         {
             Reset();
         }
+
+        void IRailPoolable<RailStateDelta>.Allocated()
+        {
+        }
         #endregion
     }
 }

@@ -81,6 +81,10 @@ namespace RailgunNet.Logic
         {
             Reset();
         }
+
+        void IRailPoolable<RailCommand>.Allocated()
+        {
+        }
         #endregion
 
         #region Encode/Decode/internals

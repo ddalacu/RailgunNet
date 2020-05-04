@@ -71,7 +71,7 @@ namespace RailgunNet.Factory
         [PublicAPI]
         public void AddEntityType<TEntity, TState>(object[] paramsEntity = null)
             where TEntity : RailEntityBase
-            where TState : class, new()
+            where TState : RailState
         {
             // Type check for TEntity
             Type expectedBaseType;
@@ -100,13 +100,7 @@ namespace RailgunNet.Factory
                     $"The provided constructor arguments {paramsEntity} do not match any constructors in {entityType}.");
             }
 
-            Type stateType = typeof(TState);
-            if (!stateType.IsSubclassOf(typeof(RailState)))
-            {
-                stateType = typeof(RailStateGeneric<TState>);
-            }
-
-            entityTypes.Add(new EntityConstructionInfo(entityType, stateType, paramsEntity));
+            entityTypes.Add(new EntityConstructionInfo(entityType, typeof(TState), paramsEntity));
         }
 
         private bool CanBeConstructedWith<T>(object[] parameters)

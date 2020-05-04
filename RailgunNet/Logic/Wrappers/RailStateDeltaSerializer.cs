@@ -43,15 +43,15 @@ namespace RailgunNet.Logic.Wrappers
                 buffer.WriteBool(state.HasImmutableData);
 
                 // Write: [Flags]
-                buffer.Write(state.FlagBits, state.Flags);
+                buffer.Write(state.DataSerializer.FlagBits, state.Flags);
 
                 // Write: [Mutable Data]
-                state.EncodeMutableData(buffer, state.Flags);
+                state.DataSerializer.EncodeMutableData(buffer, state.Flags);
 
                 if (state.HasControllerData)
                 {
                     // Write: [Controller Data]
-                    state.EncodeControllerData(buffer);
+                    state.DataSerializer.EncodeControllerData(buffer);
 
                     // Write: [Command Ack]
                     buffer.WriteTick(delta.CommandAck);
@@ -60,7 +60,7 @@ namespace RailgunNet.Logic.Wrappers
                 if (state.HasImmutableData)
                     // Write: [Immutable Data]
                 {
-                    state.EncodeImmutableData(buffer);
+                    state.DataSerializer.EncodeImmutableData(buffer);
                 }
             }
         }
@@ -105,15 +105,15 @@ namespace RailgunNet.Logic.Wrappers
                 state.HasImmutableData = buffer.ReadBool();
 
                 // Read: [Flags]
-                state.Flags = buffer.Read(state.FlagBits);
+                state.Flags = buffer.Read(state.DataSerializer.FlagBits);
 
                 // Read: [Mutable Data]
-                state.DecodeMutableData(buffer, state.Flags);
+                state.DataSerializer.DecodeMutableData(buffer, state.Flags);
 
                 if (state.HasControllerData)
                 {
                     // Read: [Controller Data]
-                    state.DecodeControllerData(buffer);
+                    state.DataSerializer.DecodeControllerData(buffer);
 
                     // Read: [Command Ack]
                     commandAck = buffer.ReadTick();
@@ -122,7 +122,7 @@ namespace RailgunNet.Logic.Wrappers
                 if (state.HasImmutableData)
                     // Read: [Immutable Data]
                 {
-                    state.DecodeImmutableData(buffer);
+                    state.DataSerializer.DecodeImmutableData(buffer);
                 }
             }
 

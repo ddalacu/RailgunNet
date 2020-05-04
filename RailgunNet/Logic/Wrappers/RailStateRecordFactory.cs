@@ -20,8 +20,9 @@ namespace RailgunNet.Logic.Wrappers
             if (latestRecord != null)
             {
                 RailState latest = latestRecord.State;
-                bool shouldReturn = current.CompareMutableData(latest) > 0 ||
-                                    current.IsControllerDataEqual(latest) == false;
+                bool shouldReturn =
+                    current.DataSerializer.CompareMutableData(latest.DataSerializer) > 0 ||
+                    current.DataSerializer.IsControllerDataEqual(latest.DataSerializer) == false;
                 if (shouldReturn == false) return null;
             }
 

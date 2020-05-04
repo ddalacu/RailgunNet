@@ -116,6 +116,10 @@ namespace Tests
             public int Data { get; private set; }
             IRailMemoryPool<Foo> IRailPoolable<Foo>.Pool { get; set; }
 
+            void IRailPoolable<Foo>.Allocated()
+            {
+            }
+
             void IRailPoolable<Foo>.Reset()
             {
             }

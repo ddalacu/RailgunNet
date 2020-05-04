@@ -120,6 +120,10 @@ namespace RailgunNet.Logic.Wrappers
         {
             Reset();
         }
+
+        void IRailPoolable<RailCommandUpdate>.Allocated()
+        {
+        }
         #endregion
     }
 }
