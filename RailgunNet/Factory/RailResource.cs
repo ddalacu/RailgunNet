@@ -88,14 +88,14 @@ namespace RailgunNet.Factory
 
         private void RegisterEvents(RailRegistry registry)
         {
-            foreach (Type eventType in registry.EventTypes)
+            foreach (EventConstructionInfo eventInfo in registry.EventTypes)
             {
-                IRailMemoryPool<RailEvent> statePool =
-                    new RailMemoryPool<RailEvent>(new RailFactory<RailEvent>(eventType));
+                IRailMemoryPool<RailEvent> statePool = new RailMemoryPool<RailEvent>(
+                    new RailFactory<RailEvent>(eventInfo.Type, eventInfo.ConstructorParams));
 
                 int typeKey = eventPools.Count + 1; // 0 is an invalid type
                 eventPools.Add(typeKey, statePool);
-                eventTypeToKey.Add(eventType, typeKey);
+                eventTypeToKey.Add(eventInfo.Type, typeKey);
             }
         }
 
@@ -138,6 +138,12 @@ namespace RailgunNet.Factory
             RailEvent instance = eventPools[factoryType].Allocate();
             instance.FactoryType = factoryType;
             return instance;
+        }
+
+        public T CreateEvent<T>()
+            where T : RailEvent
+        {
+            return (T) CreateEvent(eventTypeToKey[typeof(T)]);
         }
 
         public RailStateDelta CreateDelta()

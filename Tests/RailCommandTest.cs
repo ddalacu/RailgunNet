@@ -37,7 +37,8 @@ namespace Tests
         [InlineData(int.MaxValue)]
         private void DecodeReadsTickAndCommandData(int iData)
         {
-            RailMemoryPool<RailCommand> pool = new RailMemoryPool<RailCommand>(new RailFactory<TestUtils.Command>());
+            RailMemoryPool<RailCommand> pool =
+                new RailMemoryPool<RailCommand>(new RailFactory<TestUtils.Command>());
             Mock<IRailCommandConstruction> mockCreator = new Mock<IRailCommandConstruction>();
             mockCreator.Setup(m => m.CreateCommand()).Returns(pool.Allocate());
 

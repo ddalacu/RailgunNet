@@ -120,10 +120,10 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Queues an event to send to the server.
         /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
+        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
         {
             RailDebug.Assert(serverPeer != null);
-            serverPeer?.RaiseEvent(evnt, attempts, freeWhenDone);
+            serverPeer?.RaiseEvent(evnt, attempts);
         }
 
         private void OnPacketReceived(RailPacketFromServer packet)

@@ -83,9 +83,9 @@ namespace RailgunNet.Connection.Client
         ///     Queues an event to broadcast to the server with a number of retries.
         ///     Caller should call Free() on the event when done sending.
         /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
+        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
         {
-            client.RaiseEvent(evnt, attempts, freeWhenDone);
+            client.RaiseEvent(evnt, attempts);
         }
 
         /// <summary>

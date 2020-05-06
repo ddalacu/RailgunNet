@@ -106,14 +106,12 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Queues an event to broadcast to all present clients.
         /// </summary>
-        public void BroadcastEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
+        public void BroadcastEvent(RailEvent evnt, ushort attempts = 3)
         {
             foreach (RailPeer client in clients)
             {
                 client.SendEvent(evnt, attempts);
             }
-
-            if (freeWhenDone) evnt.Free();
         }
 
         public void AddClient(RailPeer client)

@@ -168,10 +168,9 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Queues an event to send directly to this peer.
         /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3, bool freeWhenDone = true)
+        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
         {
             SendEvent(evnt, attempts);
-            if (freeWhenDone) evnt.Free();
         }
 
         /// <summary>
@@ -180,12 +179,10 @@ namespace RailgunNet.Connection
         public void SendEvent(RailEvent evnt, ushort attempts)
         {
             // TODO: Event scoping
-            RailEvent clone = evnt.Clone(Resource);
+            evnt.EventId = lastQueuedEventId;
+            evnt.Attempts = attempts;
 
-            clone.EventId = lastQueuedEventId;
-            clone.Attempts = attempts;
-
-            outgoingEvents.Enqueue(clone);
+            outgoingEvents.Enqueue(evnt);
             lastQueuedEventId = lastQueuedEventId.Next;
         }
 

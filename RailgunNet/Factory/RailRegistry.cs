@@ -29,20 +29,20 @@ namespace RailgunNet.Factory
     public class RailRegistry
     {
         private readonly List<EntityConstructionInfo> entityTypes;
-        private readonly List<Type> eventTypes;
+        private readonly List<EventConstructionInfo> eventTypes;
 
         public RailRegistry(Component eComponent)
         {
             Component = eComponent;
             CommandType = null;
-            eventTypes = new List<Type>();
+            eventTypes = new List<EventConstructionInfo>();
             entityTypes = new List<EntityConstructionInfo>();
         }
 
         public Component Component { get; }
         public Type CommandType { get; private set; }
 
-        public IEnumerable<Type> EventTypes => eventTypes;
+        public IEnumerable<EventConstructionInfo> EventTypes => eventTypes;
 
         public IEnumerable<EntityConstructionInfo> EntityTypes => entityTypes;
 
@@ -54,10 +54,17 @@ namespace RailgunNet.Factory
         }
 
         [PublicAPI]
-        public void AddEventType<TEvent>()
+        public void AddEventType<TEvent>(object[] constructorParams = null)
             where TEvent : RailEvent
         {
-            eventTypes.Add(typeof(TEvent));
+            Type eventType = typeof(TEvent);
+            if (!CanBeConstructedWith<TEvent>(constructorParams))
+            {
+                throw new ArgumentException(
+                    $"The provided constructor arguments {constructorParams} do not match any constructors in {eventType}.");
+            }
+
+            eventTypes.Add(new EventConstructionInfo(eventType, constructorParams));
         }
 
         /// <summary>

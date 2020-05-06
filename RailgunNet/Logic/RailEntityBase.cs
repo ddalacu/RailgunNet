@@ -38,6 +38,8 @@ namespace RailgunNet.Logic
 
         protected IRailCommandConstruction CommandCreator { get; private set; }
 
+        [PublicAPI] protected IRailEventConstruction EventCreator { get; private set; }
+
         // Configuration
         public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
 
@@ -143,6 +145,7 @@ namespace RailgunNet.Logic
         {
             RailEntityBase entity = resource.CreateEntity(factoryType);
             entity.CommandCreator = resource;
+            entity.EventCreator = resource;
             entity.InitState(resource, resource.CreateState(factoryType));
             return entity;
         }

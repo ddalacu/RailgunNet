@@ -55,8 +55,6 @@ namespace Tests
 
         public class Command : RailCommand
         {
-            [CommandData] public int Data { get; set; }
-
             public Command() : this(0)
             {
             }
@@ -65,6 +63,8 @@ namespace Tests
             {
                 Data = i;
             }
+
+            [CommandData] public int Data { get; set; }
         }
 
         public class Event : RailEvent

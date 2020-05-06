@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using JetBrains.Annotations;
 using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 
@@ -118,6 +119,7 @@ namespace RailgunNet.System.Encoding.Compressors
         private readonly float minValue;
         private readonly float precision;
 
+        [PublicAPI]
         public RailFloatCompressor(float minValue, float maxValue, float precision)
         {
             this.minValue = minValue;

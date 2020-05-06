@@ -251,22 +251,22 @@ namespace RailgunNet.System.Encoding
                 int dataIdx = i * 4 + data.Offset;
                 uint chunk = 0;
 
-                if (dataIdx < data.Count)
+                if (dataIdx < data.Array.Length)
                 {
                     chunk = data.Array[dataIdx];
                 }
 
-                if (dataIdx + 1 < data.Count)
+                if (dataIdx + 1 < data.Array.Length)
                 {
                     chunk |= (uint) data.Array[dataIdx + 1] << 8;
                 }
 
-                if (dataIdx + 2 < data.Count)
+                if (dataIdx + 2 < data.Array.Length)
                 {
                     chunk |= (uint) data.Array[dataIdx + 2] << 16;
                 }
 
-                if (dataIdx + 3 < data.Count)
+                if (dataIdx + 3 < data.Array.Length)
                 {
                     chunk |= (uint) data.Array[dataIdx + 3] << 24;
                 }

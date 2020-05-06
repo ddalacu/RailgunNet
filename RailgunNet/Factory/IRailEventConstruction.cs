@@ -7,5 +7,8 @@ namespace RailgunNet.Factory
     {
         RailIntCompressor EventTypeCompressor { get; }
         RailEvent CreateEvent(int iFactoryType);
+
+        T CreateEvent<T>()
+            where T : RailEvent;
     }
 }

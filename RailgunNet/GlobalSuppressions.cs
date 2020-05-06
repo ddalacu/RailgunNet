@@ -19,3 +19,10 @@ using System.Diagnostics.CodeAnalysis;
         Justification = "<Pending>",
         Scope = "member",
         Target = "~F:RailgunNet.Factory.EntityConstructionInfo.ConstructorParamsState")]
+[assembly:
+    SuppressMessage(
+        "Design",
+        "CA1051:Do not declare visible instance fields",
+        Justification = "<Pending>",
+        Scope = "member",
+        Target = "~F:RailgunNet.Factory.EventConstructionInfo.ConstructorParams")]
