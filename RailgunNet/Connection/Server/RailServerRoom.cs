@@ -74,12 +74,25 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
-        public T AddNewEntity<T>()
+        public T AddNewEntity<T>(Action<T> initializer = null)
             where T : RailEntityServer
         {
             T entity = CreateEntity<T>();
+            initializer?.Invoke(entity);
             RegisterEntity(entity);
             return entity;
+        }
+
+        /// <summary>
+        ///     Marks an entity for removal from the room and presumably destruction.
+        ///     This is deferred until the next frame.
+        /// </summary>
+        public void MarkForRemoval(EntityId id)
+        {
+            if(TryGet(id, out RailEntityBase entity))
+            {
+                MarkForRemoval(entity);
+            }
         }
 
         /// <summary>

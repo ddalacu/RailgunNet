@@ -105,7 +105,7 @@ namespace RailgunNet.Logic
 
         protected sealed override void ApplyControlGeneric(RailCommand toApply)
         {
-            ApplyControl((TCommand) toApply);
+            ApplyCommand((TCommand) toApply);
         }
 
         #region Public API
@@ -125,7 +125,7 @@ namespace RailgunNet.Logic
         /// </summary>
         /// <param name="toApply"></param>
         [PublicAPI]
-        protected virtual void ApplyControl(TCommand toApply)
+        protected virtual void ApplyCommand(TCommand toApply)
         {
         }
         #endregion

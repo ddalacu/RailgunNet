@@ -93,7 +93,7 @@ namespace RailgunNet.Connection.Client
             // If we have too many entities to fit commands for in a packet,
             // we want to round-robin sort them to avoid starvation
             return entities.Select(e => e as RailEntityClient)
-                           .OrderBy(e => e.LastSentCommandTick)
+                           .OrderBy(e => e.LastSentCommandTick, Tick.CreateComparer())
                            .Select(e => RailCommandUpdate.Create(Resource, e, e.OutgoingCommands));
         }
     }
