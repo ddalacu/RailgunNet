@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using RailgunNet.System.Types;
 using RailgunNet.Util;
 
 namespace RailgunNet.Logic
@@ -42,6 +43,11 @@ namespace RailgunNet.Logic
             if (t == typeof(float))
             {
                 return new RailSynchronized<T, float>(instance, info);
+            }
+
+            if (t == typeof(EntityId))
+            {
+                return new RailSynchronized<T, EntityId>(instance, info);
             }
 
             throw new ArgumentException("Member type not supported.", nameof(info));

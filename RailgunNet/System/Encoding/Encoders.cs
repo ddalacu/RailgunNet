@@ -1,4 +1,5 @@
 ﻿using System;
+using RailgunNet.System.Types;
 
 namespace RailgunNet.System.Encoding
 {
@@ -12,7 +13,8 @@ namespace RailgunNet.System.Encoding
             Bool_t,
             UShort_t,
             StringAscii_t,
-            Float_t // Requires RailFloatCompressor
+            Float_t, // Requires RailFloatCompressor
+            EntityId_t
         }
 
         public static SupportedType ToSupportedType(Type t)
@@ -50,6 +52,11 @@ namespace RailgunNet.System.Encoding
             if (t == typeof(float))
             {
                 return SupportedType.Float_t;
+            }
+
+            if (t == typeof(EntityId))
+            {
+                return SupportedType.EntityId_t;
             }
 
             throw new ArgumentException("Unknown type.", nameof(t));

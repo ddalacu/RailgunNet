@@ -53,8 +53,11 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private readonly Dictionary<EntityId, RailEntityClient> pendingEntities;
 
+        private readonly IRailEventConstruction eventCreator;
+
         public RailClientRoom(RailResource resource, RailClient client) : base(resource, client)
         {
+            eventCreator = resource;
             ToUpdate = new List<RailEntityClient>();
             ToRemove = new List<RailEntityClient>();
 
@@ -81,11 +84,20 @@ namespace RailgunNet.Connection.Client
 
         /// <summary>
         ///     Queues an event to broadcast to the server with a number of retries.
-        ///     Caller should call Free() on the event when done sending.
         /// </summary>
         public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
         {
             client.RaiseEvent(evnt, attempts);
+        }
+
+        /// <summary>
+        ///     Queues an event to broadcast to the server with a number of retries.
+        /// </summary>
+        public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3) where T : RailEvent
+        {
+            var evnt = eventCreator.CreateEvent<T>();
+            initializer(evnt);
+            RaiseEvent(evnt, attempts);
         }
 
         /// <summary>

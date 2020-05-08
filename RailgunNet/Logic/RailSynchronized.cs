@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;
 
@@ -101,6 +104,15 @@ namespace RailgunNet.Logic
                 }
             }
 
+            foreach (MethodInfo method in bitBufferExtensions.Value)
+            {
+                EncoderAttribute att = method.GetCustomAttribute<EncoderAttribute>();
+                if (att != null && att.Type == eType)
+                {
+                    return method;
+                }
+            }
+
             throw new ArgumentException(
                 $"{encoder} does not contain an encoder method for value type {value}.");
         }
@@ -117,8 +129,30 @@ namespace RailgunNet.Logic
                 }
             }
 
+            foreach (MethodInfo method in bitBufferExtensions.Value)
+            {
+                DecoderAttribute att = method.GetCustomAttribute<DecoderAttribute>();
+                if (att != null && att.Type == eType)
+                {
+                    return method;
+                }
+            }
+
             throw new ArgumentException(
                 $"{decoder} does not contain a decoder method for value type {value}.");
+        }
+
+        private static Lazy<List<MethodInfo>> bitBufferExtensions = new Lazy<List<MethodInfo>>(FindExtensionMethods);
+
+        private static List<MethodInfo> FindExtensionMethods()
+        {
+            var query = from t in Assembly.GetExecutingAssembly().GetTypes()
+                        where !t.IsGenericType && !t.IsNested
+                        from m in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                        where m.IsDefined(typeof(ExtensionAttribute), false)
+                        where m.GetParameters()[0].ParameterType == typeof(RailBitBuffer)
+                        select m;
+            return query.ToList();
         }
     }
 }

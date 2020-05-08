@@ -79,7 +79,7 @@ namespace RailgunNet.Factory
         public RailIntCompressor EventTypeCompressor { get; }
         public RailIntCompressor EntityTypeCompressor { get; }
 
-        private IRailMemoryPool<RailCommand> CreateCommandPool(RailRegistry registry)
+        private static IRailMemoryPool<RailCommand> CreateCommandPool(RailRegistry registry)
         {
             return registry.CommandType == null ?
                 null :

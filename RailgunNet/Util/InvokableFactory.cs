@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace RailgunNet.Util
 {
@@ -89,6 +90,10 @@ namespace RailgunNet.Util
             {
                 exCall = Expression.Call(arg0, method);
             }
+            else if(method.IsDefined(typeof(ExtensionAttribute),false))
+            {
+                exCall = Expression.Call(null, method, arg0);
+            }
             else
             {
                 // The member resides in `targetType` => convert
@@ -124,6 +129,13 @@ namespace RailgunNet.Util
             if (instanceType == typeof(TDeclaring))
             {
                 exCall = Expression.Call(arg0, method, exConvertToParam0);
+            }
+            else if(method.IsDefined(typeof(ExtensionAttribute),false))
+            {
+                UnaryExpression exConvertToParam1 = Expression.Convert(
+                    arg1,
+                    method.GetParameters()[1].ParameterType);
+                exCall = Expression.Call(null, method, arg0, exConvertToParam1);
             }
             else
             {
@@ -184,6 +196,17 @@ namespace RailgunNet.Util
             Expression<Action<TDeclaring, object>> lambda =
                 Expression.Lambda<Action<TDeclaring, object>>(exBody, exParameter0, exParameter1);
             return lambda.Compile();
+        }
+
+        public static Func<TValue> CreateGetter<TValue>(
+            MemberInfo memberInfo,
+            object instance)
+        {
+            Type instanceType = memberInfo.DeclaringType;
+            ConstantExpression exInstance = Expression.Constant(instance);
+            MemberExpression exMemberAccess = Expression.MakeMemberAccess(exInstance, memberInfo);
+            UnaryExpression body = Expression.Convert(exMemberAccess, typeof(TValue));
+            return Expression.Lambda<Func<TValue>>(body).Compile();
         }
 
         public static Type GetUnderlyingType(this MemberInfo member)

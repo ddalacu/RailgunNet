@@ -109,7 +109,7 @@ namespace RailgunNet.Factory
             entityTypes.Add(new EntityConstructionInfo(entityType, typeof(TState), paramsEntity));
         }
 
-        private bool CanBeConstructedWith<T>(object[] parameters)
+        private static bool CanBeConstructedWith<T>(object[] parameters)
         {
             if (parameters == null || parameters.Length == 0)
             {
