@@ -7,7 +7,8 @@ namespace RailgunNet.Util
         AttributeTargets.Field |
         AttributeTargets.Class |
         AttributeTargets.Method |
-        AttributeTargets.Parameter)]
+        AttributeTargets.Parameter |
+        AttributeTargets.Constructor)]
     public class OnlyInAttribute : Attribute
     {
         public OnlyInAttribute(Component eComponent)
