@@ -54,22 +54,29 @@ namespace RailgunNet.Logic
 
         private RailController Sender { get; set; }
 
-        public TEntity Find<TEntity>(EntityId id, RailPolicy policy)
+        public TEntity Find<TEntity>(EntityId id, RailPolicy? policy = null)
             where TEntity : RailEntityBase
         {
             if (Room == null) return null;
             if (id.IsValid == false) return null;
 
-            if (policy == RailPolicy.NoProxy && Sender == null) return null;
+            if (policy.HasValue && policy == RailPolicy.NoProxy && Sender == null) return null;
 
             if (Room.TryGet(id, out RailEntityBase entity) == false) return null;
 
-            if (policy == RailPolicy.NoFrozen && entity.IsFrozen) return null;
+            if (policy.HasValue && policy == RailPolicy.NoFrozen && entity.IsFrozen) return null;
 
-            if (policy == RailPolicy.NoProxy && entity.Controller != Sender) return null;
+            if (policy.HasValue && policy == RailPolicy.NoProxy && entity.Controller != Sender) return null;
 
             if (entity is TEntity cast) return cast;
             return null;
+        }
+
+        public bool TryFind<TEntity>(EntityId id, out TEntity entity, RailPolicy? policy = null)
+            where TEntity : RailEntityBase
+        {
+            entity = Find<TEntity>(id, policy);
+            return entity != null;
         }
 
         protected virtual bool Validate()
