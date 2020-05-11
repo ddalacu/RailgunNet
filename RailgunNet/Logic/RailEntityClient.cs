@@ -20,6 +20,11 @@ namespace RailgunNet.Logic
         private TState authState;
         private TState nextState;
 
+        protected RailEntityClient()
+        {
+            ProducesCommands = false;
+        }
+
         protected override RailState StateBase
         {
             get => State;
@@ -173,6 +178,7 @@ namespace RailgunNet.Logic
             set;
         } // The last local tick we sent our commands to the server
 
+        public bool ProducesCommands { get; protected set; } = true;
         public bool IsControlled => Controller != null;
 
         /// <summary>
@@ -221,7 +227,7 @@ namespace RailgunNet.Logic
                 {
                     UpdateProxy();
                 }
-                else
+                else if (ProducesCommands)
                 {
                     nextTick = Tick.INVALID;
                     UpdateControlled(localTick);

@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;
 
@@ -75,15 +72,13 @@ namespace RailgunNet.Logic
 
         public void ApplyFrom(IRailSynchronized from)
         {
-            RailSynchronized<TContainer> other = 
-                (RailSynchronized<TContainer>) from;
+            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
             setter(instance, getter(other.instance));
         }
 
         public bool Equals(IRailSynchronized from)
         {
-            RailSynchronized<TContainer> other =
-                (RailSynchronized<TContainer>) from;
+            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
             return getter(instance).Equals(getter(other.instance));
         }
 
@@ -109,13 +104,14 @@ namespace RailgunNet.Logic
                 }
             }
 
-            if (RailSynchronizedFactory.Encoders.TryGetValue(toBeEncoded, out MethodInfo encoderMethod))
+            if (RailSynchronizedFactory.Encoders.TryGetValue(
+                toBeEncoded,
+                out MethodInfo encoderMethod))
             {
                 return encoderMethod;
             }
 
-            throw new ArgumentException(
-                $"Cannot find an encoder method for type {toBeEncoded}.");
+            throw new ArgumentException($"Cannot find an encoder method for type {toBeEncoded}.");
         }
 
         private static MethodInfo GetDecodeMethod(Type decoder, Type toBeDecoded)
@@ -123,20 +119,21 @@ namespace RailgunNet.Logic
             foreach (MethodInfo method in decoder.GetMethods())
             {
                 DecoderAttribute att = method.GetCustomAttribute<DecoderAttribute>();
-                
+
                 if (att != null && method.ReturnType == toBeDecoded)
                 {
                     return method;
                 }
             }
 
-            if (RailSynchronizedFactory.Decoders.TryGetValue(toBeDecoded, out MethodInfo decoderMethod))
+            if (RailSynchronizedFactory.Decoders.TryGetValue(
+                toBeDecoded,
+                out MethodInfo decoderMethod))
             {
                 return decoderMethod;
             }
 
-            throw new ArgumentException(
-                $"Cannot find a decoder method for type {toBeDecoded}.");
+            throw new ArgumentException($"Cannot find a decoder method for type {toBeDecoded}.");
         }
     }
 }

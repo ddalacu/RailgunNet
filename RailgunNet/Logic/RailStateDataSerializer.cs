@@ -42,6 +42,8 @@ namespace RailgunNet.Logic
             }
         }
 
+        public bool HasControllerData => controller.Count == 0;
+
         private static uint ToFlag(int index)
         {
             return (uint) 0x1 << index;

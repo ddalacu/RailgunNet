@@ -90,7 +90,7 @@ namespace RailgunNet.Util
             {
                 exCall = Expression.Call(arg0, method);
             }
-            else if(method.IsDefined(typeof(ExtensionAttribute),false))
+            else if (method.IsDefined(typeof(ExtensionAttribute), false))
             {
                 exCall = Expression.Call(null, method, arg0);
             }
@@ -130,7 +130,7 @@ namespace RailgunNet.Util
             {
                 exCall = Expression.Call(arg0, method, exConvertToParam0);
             }
-            else if(method.IsDefined(typeof(ExtensionAttribute),false))
+            else if (method.IsDefined(typeof(ExtensionAttribute), false))
             {
                 UnaryExpression exConvertToParam1 = Expression.Convert(
                     arg1,
@@ -198,9 +198,7 @@ namespace RailgunNet.Util
             return lambda.Compile();
         }
 
-        public static Func<TValue> CreateGetter<TValue>(
-            MemberInfo memberInfo,
-            object instance)
+        public static Func<TValue> CreateGetter<TValue>(MemberInfo memberInfo, object instance)
         {
             Type instanceType = memberInfo.DeclaringType;
             ConstantExpression exInstance = Expression.Constant(instance);

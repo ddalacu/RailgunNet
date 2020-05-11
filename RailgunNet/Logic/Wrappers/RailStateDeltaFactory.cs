@@ -28,7 +28,7 @@ namespace RailgunNet.Logic.Wrappers
             bool forceAllMutable)
         {
             bool shouldReturn = forceAllMutable ||
-                                includeControllerData ||
+                                includeControllerData && current.HasControllerData ||
                                 includeImmutableData ||
                                 removedTick.IsValid;
 
@@ -50,7 +50,7 @@ namespace RailgunNet.Logic.Wrappers
                 flags = FLAGS_ALL;
             }
 
-            if (flags == FLAGS_NONE && shouldReturn == false) return null;
+            if (flags == FLAGS_NONE && !shouldReturn) return null;
 
             RailState deltaState = stateCreator.CreateState(current.FactoryType);
             deltaState.Flags = flags;
