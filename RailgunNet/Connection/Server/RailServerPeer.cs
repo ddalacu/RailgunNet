@@ -77,14 +77,15 @@ namespace RailgunNet.Connection.Server
             Scope.IntegrateAcked(clientPacket.View);
             PacketReceived?.Invoke(this, clientPacket);
         }
+
         public void GrantControl(RailEntityServer entity)
         {
-            this.GrantControlInternal(entity);
+            GrantControlInternal(entity);
         }
 
         public void RevokeControl(RailEntityServer entity)
         {
-            this.RevokeControlInternal(entity);
+            RevokeControlInternal(entity);
         }
     }
 }

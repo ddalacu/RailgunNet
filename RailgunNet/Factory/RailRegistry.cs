@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
 
@@ -37,6 +38,8 @@ namespace RailgunNet.Factory
             CommandType = null;
             eventTypes = new List<EventConstructionInfo>();
             entityTypes = new List<EntityConstructionInfo>();
+            RailSynchronizedFactory.Detect(Assembly.GetCallingAssembly());
+            RailSynchronizedFactory.Detect(Assembly.GetExecutingAssembly());
         }
 
         public Component Component { get; }

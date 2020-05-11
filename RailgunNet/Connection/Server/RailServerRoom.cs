@@ -89,7 +89,7 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         public void MarkForRemoval(EntityId id)
         {
-            if(TryGet(id, out RailEntityBase entity))
+            if (TryGet(id, out RailEntityBase entity))
             {
                 MarkForRemoval(entity);
             }

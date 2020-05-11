@@ -1,7 +1,10 @@
-﻿using RailgunNet.Logic;
+﻿using RailgunNet;
+using RailgunNet.Factory;
+using RailgunNet.Logic;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.Util.Pooling;
+using System.Reflection;
 using Tests.Example;
 using Xunit;
 
@@ -27,6 +30,11 @@ namespace Tests
             [Compressor(typeof(MyFloatCompressor))]
             public float CompressedFloat { get; set; }
         }
+        
+        private class DataWithCustomField : RailState
+        {
+            [Mutable] public Foo Data { get; set; }
+        }
 
         private class MyIntCompressor : RailIntCompressor
         {
@@ -34,13 +42,13 @@ namespace Tests
             {
             }
 
-            [Encoder(Encoders.SupportedType.Int_t)]
+            [Encoder]
             public void Write(RailBitBuffer buffer, int i)
             {
                 buffer.WriteInt(this, i);
             }
 
-            [Decoder(Encoders.SupportedType.Int_t)]
+            [Decoder]
             public int Read(RailBitBuffer buffer)
             {
                 return buffer.ReadInt(this);
@@ -56,13 +64,13 @@ namespace Tests
             {
             }
 
-            [Encoder(Encoders.SupportedType.Float_t)]
+            [Encoder]
             public void Write(RailBitBuffer buffer, float f)
             {
                 buffer.WriteFloat(this, f);
             }
 
-            [Decoder(Encoders.SupportedType.Float_t)]
+            [Decoder]
             public float Read(RailBitBuffer buffer)
             {
                 return buffer.ReadFloat(this);
@@ -200,6 +208,39 @@ namespace Tests
         }
 
         [Fact]
+        private void CustomData()
+        {
+            RailSynchronizedFactory.Detect(Assembly.GetExecutingAssembly());
+            DataWithCustomField data0 = new DataWithCustomField
+            {
+                Data = new Foo()
+                {
+                    A = 0,
+                    B = 0
+                }
+            };
+            DataWithCustomField data1 = new DataWithCustomField
+            {
+                Data = new Foo()
+                {
+                    A = 42,
+                    B = 43
+                }
+            };
+            ((IRailPoolable<RailState>) data0).Allocated();
+            ((IRailPoolable<RailState>) data1).Allocated();
+
+            // Transfer data from data1 to data0 via buffer
+            uint uiFlagAll = 0xFFFF;
+            RailBitBuffer buffer = new RailBitBuffer();
+            data1.DataSerializer.EncodeMutableData(buffer, uiFlagAll);
+            data0.DataSerializer.DecodeMutableData(buffer, uiFlagAll);
+
+            Assert.Equal(data1.Data.A, data0.Data.A);
+            Assert.Equal(data1.Data.B, data0.Data.B);
+        }
+
+        [Fact]
         private void Reset()
         {
             // Setup 2 different states
@@ -241,6 +282,30 @@ namespace Tests
             Assert.True(data1.MBoolProp);
             Assert.Equal(45, data1.MUShortProp);
             Assert.Equal("46", data1.MStringProp);
+        }
+    }
+    public class Foo
+    {
+        public int A = 0;
+        public int B = 0;
+    }
+
+    public static class FooSerializer
+    {
+        [Encoder]
+        public static void Encode(this RailBitBuffer buffer, Foo instance)
+        {
+            buffer.WriteInt(instance.A);
+            buffer.WriteInt(instance.B);
+        }
+        [Decoder]
+        public static Foo Decode(this RailBitBuffer buffer)
+        {
+            return new Foo()
+            {
+                A = buffer.ReadInt(),
+                B = buffer.ReadInt()
+            };
         }
     }
 }

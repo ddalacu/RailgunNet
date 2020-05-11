@@ -437,13 +437,13 @@ namespace RailgunNet.System.Encoding
 
         #region Encode/Decode
         #region Byte
-        [Encoder(Encoders.SupportedType.Byte_t)]
+        [Encoder]
         public void WriteByte(byte val)
         {
             Write(8, val);
         }
 
-        [Decoder(Encoders.SupportedType.Byte_t)]
+        [Decoder]
         public byte ReadByte()
         {
             return (byte) Read(8);
@@ -465,7 +465,7 @@ namespace RailgunNet.System.Encoding
         ///     22-28  2097152    268435455   0x0FFFFFFF  4 bytes
         ///     28-32  268435456  4294967295  0xFFFFFFFF  5 bytes
         /// </summary>
-        [Encoder(Encoders.SupportedType.UInt_t)]
+        [Encoder]
         public void WriteUInt(uint val)
         {
             do
@@ -483,7 +483,7 @@ namespace RailgunNet.System.Encoding
             while (val > 0);
         }
 
-        [Decoder(Encoders.SupportedType.UInt_t)]
+        [Decoder]
         public uint ReadUInt()
         {
             uint buffer;
@@ -515,14 +515,14 @@ namespace RailgunNet.System.Encoding
         #endregion
 
         #region Int
-        [Encoder(Encoders.SupportedType.Int_t)]
+        [Encoder]
         public void WriteInt(int val)
         {
             uint zigzag = (uint) ((val << 1) ^ (val >> 31));
             WriteUInt(zigzag);
         }
 
-        [Decoder(Encoders.SupportedType.Int_t)]
+        [Decoder]
         public int ReadInt()
         {
             uint val = ReadUInt();
@@ -539,13 +539,13 @@ namespace RailgunNet.System.Encoding
         #endregion
 
         #region Bool
-        [Encoder(Encoders.SupportedType.Bool_t)]
+        [Encoder]
         public void WriteBool(bool value)
         {
             Write(1, value ? 1U : 0U);
         }
 
-        [Decoder(Encoders.SupportedType.Bool_t)]
+        [Decoder]
         public bool ReadBool()
         {
             return Read(1) > 0;
@@ -558,13 +558,13 @@ namespace RailgunNet.System.Encoding
         #endregion
 
         #region UShort
-        [Encoder(Encoders.SupportedType.UShort_t)]
+        [Encoder]
         public void WriteFull(ushort value)
         {
             Write(16, value);
         }
 
-        [Decoder(Encoders.SupportedType.UShort_t)]
+        [Decoder]
         public ushort ReadFullU16()
         {
             return (ushort) Read(16);
@@ -578,7 +578,7 @@ namespace RailgunNet.System.Encoding
         private static readonly int
             STRING_LENGTH_BITS = RailUtil.Log2(RailConfig.STRING_LENGTH_MAX);
 
-        [Encoder(Encoders.SupportedType.StringAscii_t)]
+        [Encoder]
         public void WriteString(string value)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
@@ -594,7 +594,7 @@ namespace RailgunNet.System.Encoding
             }
         }
 
-        [Decoder(Encoders.SupportedType.StringAscii_t)]
+        [Decoder]
         public string ReadString()
         {
             StringBuilder builder = new StringBuilder("");

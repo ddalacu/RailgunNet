@@ -37,6 +37,8 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private readonly RailClient client;
 
+        private readonly IRailEventConstruction eventCreator;
+
         /// <summary>
         ///     All known entities, either in-world or pending.
         /// </summary>
@@ -52,8 +54,6 @@ namespace RailgunNet.Connection.Client
         ///     Entities that are waiting to be added to the world.
         /// </summary>
         private readonly Dictionary<EntityId, RailEntityClient> pendingEntities;
-
-        private readonly IRailEventConstruction eventCreator;
 
         public RailClientRoom(RailResource resource, RailClient client) : base(resource, client)
         {
@@ -93,9 +93,10 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Queues an event to broadcast to the server with a number of retries.
         /// </summary>
-        public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3) where T : RailEvent
+        public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3)
+            where T : RailEvent
         {
-            var evnt = eventCreator.CreateEvent<T>();
+            T evnt = eventCreator.CreateEvent<T>();
             initializer(evnt);
             RaiseEvent(evnt, attempts);
         }

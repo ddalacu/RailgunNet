@@ -66,22 +66,10 @@ namespace RailgunNet.System.Encoding
     [AttributeUsage(AttributeTargets.Method)]
     public class EncoderAttribute : Attribute
     {
-        public EncoderAttribute(Encoders.SupportedType eType)
-        {
-            Type = eType;
-        }
-
-        public Encoders.SupportedType Type { get; }
     }
 
     [AttributeUsage(AttributeTargets.Method)]
     public class DecoderAttribute : Attribute
     {
-        public DecoderAttribute(Encoders.SupportedType eType)
-        {
-            Type = eType;
-        }
-
-        public Encoders.SupportedType Type { get; }
     }
 }

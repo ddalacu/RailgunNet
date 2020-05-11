@@ -53,13 +53,13 @@ namespace Tests.Example
             {
             }
 
-            [Encoder(Encoders.SupportedType.Float_t)]
+            [Encoder]
             public void Write(RailBitBuffer buffer, float f)
             {
                 buffer.WriteFloat(this, f);
             }
 
-            [Decoder(Encoders.SupportedType.Float_t)]
+            [Decoder]
             public float Read(RailBitBuffer buffer)
             {
                 return buffer.ReadFloat(this);

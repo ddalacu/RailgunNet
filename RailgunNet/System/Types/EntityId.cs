@@ -25,12 +25,13 @@ namespace RailgunNet.System.Types
 {
     public static class EntityIdExtensions
     {
-        [Encoder(Encoders.SupportedType.EntityId_t)]
+        [Encoder]
         public static void WriteEntityId(this RailBitBuffer buffer, EntityId entityId)
         {
             entityId.Write(buffer);
         }
-        [Decoder(Encoders.SupportedType.EntityId_t)]
+
+        [Decoder]
         public static EntityId ReadEntityId(this RailBitBuffer buffer)
         {
             return EntityId.Read(buffer);

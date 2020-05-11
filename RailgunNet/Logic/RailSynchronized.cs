@@ -17,14 +17,14 @@ namespace RailgunNet.Logic
         void Reset();
     }
 
-    public class RailSynchronized<TContainer, TValue> : IRailSynchronized
+    public class RailSynchronized<TContainer> : IRailSynchronized
     {
         private readonly object compressor;
         private readonly Func<RailBitBuffer, object> decode;
         private readonly Action<RailBitBuffer, object> encode;
 
         private readonly Func<TContainer, object> getter;
-        private readonly TValue initialValue;
+        private readonly object initialValue;
         private readonly TContainer instance;
         private readonly Action<TContainer, object> setter;
 
@@ -33,15 +33,16 @@ namespace RailgunNet.Logic
             instance = instanceToWrap;
             getter = InvokableFactory.CreateUntypedGetter<TContainer>(member);
             setter = InvokableFactory.CreateUntypedSetter<TContainer>(member);
-            initialValue = (TValue) getter(instance);
+            initialValue = getter(instance);
+            Type underlyingType = member.GetUnderlyingType();
 
             CompressorAttribute att = member.GetCustomAttribute<CompressorAttribute>();
             if (att == null)
             {
                 encode = InvokableFactory.CreateCall<RailBitBuffer>(
-                    GetEncodeMethod(typeof(RailBitBuffer), typeof(TValue)));
+                    GetEncodeMethod(typeof(RailBitBuffer), underlyingType));
                 decode = InvokableFactory.CreateCallWithReturn<RailBitBuffer>(
-                    GetDecodeMethod(typeof(RailBitBuffer), typeof(TValue)));
+                    GetDecodeMethod(typeof(RailBitBuffer), underlyingType));
             }
             else
             {
@@ -54,10 +55,10 @@ namespace RailgunNet.Logic
                 }
 
                 encode = InvokableFactory.CreateCall<RailBitBuffer>(
-                    GetEncodeMethod(compressor.GetType(), typeof(TValue)),
+                    GetEncodeMethod(compressor.GetType(), underlyingType),
                     compressor);
                 decode = InvokableFactory.CreateCallWithReturn<RailBitBuffer>(
-                    GetDecodeMethod(compressor.GetType(), typeof(TValue)),
+                    GetDecodeMethod(compressor.GetType(), underlyingType),
                     compressor);
             }
         }
@@ -74,15 +75,15 @@ namespace RailgunNet.Logic
 
         public void ApplyFrom(IRailSynchronized from)
         {
-            RailSynchronized<TContainer, TValue> other =
-                (RailSynchronized<TContainer, TValue>) from;
+            RailSynchronized<TContainer> other = 
+                (RailSynchronized<TContainer>) from;
             setter(instance, getter(other.instance));
         }
 
         public bool Equals(IRailSynchronized from)
         {
-            RailSynchronized<TContainer, TValue> other =
-                (RailSynchronized<TContainer, TValue>) from;
+            RailSynchronized<TContainer> other =
+                (RailSynchronized<TContainer>) from;
             return getter(instance).Equals(getter(other.instance));
         }
 
@@ -91,68 +92,51 @@ namespace RailgunNet.Logic
             setter(instance, initialValue);
         }
 
-        private static MethodInfo GetEncodeMethod(Type encoder, Type value)
+        private static MethodInfo GetEncodeMethod(Type encoder, Type toBeEncoded)
         {
-            Encoders.SupportedType eType = Encoders.ToSupportedType(value);
             foreach (MethodInfo method in encoder.GetMethods(
                 BindingFlags.Public | BindingFlags.Instance))
             {
                 EncoderAttribute att = method.GetCustomAttribute<EncoderAttribute>();
-                if (att != null && att.Type == eType)
+                if (att != null)
                 {
-                    return method;
+                    ParameterInfo[] parameters = method.GetParameters();
+                    if (parameters.Length > 0 && parameters[0].ParameterType == toBeEncoded ||
+                        parameters.Length > 1 && parameters[1].ParameterType == toBeEncoded)
+                    {
+                        return method;
+                    }
                 }
             }
 
-            foreach (MethodInfo method in bitBufferExtensions.Value)
+            if (RailSynchronizedFactory.Encoders.TryGetValue(toBeEncoded, out MethodInfo encoderMethod))
             {
-                EncoderAttribute att = method.GetCustomAttribute<EncoderAttribute>();
-                if (att != null && att.Type == eType)
-                {
-                    return method;
-                }
+                return encoderMethod;
             }
 
             throw new ArgumentException(
-                $"{encoder} does not contain an encoder method for value type {value}.");
+                $"Cannot find an encoder method for type {toBeEncoded}.");
         }
 
-        private static MethodInfo GetDecodeMethod(Type decoder, Type value)
+        private static MethodInfo GetDecodeMethod(Type decoder, Type toBeDecoded)
         {
-            Encoders.SupportedType eType = Encoders.ToSupportedType(value);
             foreach (MethodInfo method in decoder.GetMethods())
             {
                 DecoderAttribute att = method.GetCustomAttribute<DecoderAttribute>();
-                if (att != null && att.Type == eType)
+                
+                if (att != null && method.ReturnType == toBeDecoded)
                 {
                     return method;
                 }
             }
 
-            foreach (MethodInfo method in bitBufferExtensions.Value)
+            if (RailSynchronizedFactory.Decoders.TryGetValue(toBeDecoded, out MethodInfo decoderMethod))
             {
-                DecoderAttribute att = method.GetCustomAttribute<DecoderAttribute>();
-                if (att != null && att.Type == eType)
-                {
-                    return method;
-                }
+                return decoderMethod;
             }
 
             throw new ArgumentException(
-                $"{decoder} does not contain a decoder method for value type {value}.");
-        }
-
-        private static Lazy<List<MethodInfo>> bitBufferExtensions = new Lazy<List<MethodInfo>>(FindExtensionMethods);
-
-        private static List<MethodInfo> FindExtensionMethods()
-        {
-            var query = from t in Assembly.GetExecutingAssembly().GetTypes()
-                        where !t.IsGenericType && !t.IsNested
-                        from m in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                        where m.IsDefined(typeof(ExtensionAttribute), false)
-                        where m.GetParameters()[0].ParameterType == typeof(RailBitBuffer)
-                        select m;
-            return query.ToList();
+                $"Cannot find a decoder method for type {toBeDecoded}.");
         }
     }
 }
