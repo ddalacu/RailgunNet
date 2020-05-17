@@ -14,13 +14,13 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
-    public abstract class RailEntityClient<TState> : RailEntityClient
+    public class RailEntityClient<TState> : RailEntityClient
         where TState : RailState
     {
         private TState authState;
         private TState nextState;
 
-        protected RailEntityClient()
+        public RailEntityClient()
         {
             ProducesCommands = false;
         }
@@ -99,7 +99,7 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
-    public abstract class RailEntityClient<TState, TCommand> : RailEntityClient<TState>
+    public class RailEntityClient<TState, TCommand> : RailEntityClient<TState>
         where TState : RailState, new()
         where TCommand : RailCommand, new()
     {

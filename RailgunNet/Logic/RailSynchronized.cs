@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util;
@@ -14,23 +15,18 @@ namespace RailgunNet.Logic
         void Reset();
     }
 
-    public class RailSynchronized<TContainer> : IRailSynchronized
+    public class RailGenericField
     {
-        private readonly object compressor;
-        private readonly Func<RailBitBuffer, object> decode;
-        private readonly Action<RailBitBuffer, object> encode;
+        private object compressor;
+        public Func<RailBitBuffer, object> decode { get; }
+        public Action<RailBitBuffer, object> encode { get; }
+        public Func<object, object> getter { get; }
+        public Action<object, object> setter { get; }
 
-        private readonly Func<TContainer, object> getter;
-        private readonly object initialValue;
-        private readonly TContainer instance;
-        private readonly Action<TContainer, object> setter;
-
-        public RailSynchronized(TContainer instanceToWrap, MemberInfo member)
+        public RailGenericField(MemberInfo member)
         {
-            instance = instanceToWrap;
-            getter = InvokableFactory.CreateUntypedGetter<TContainer>(member);
-            setter = InvokableFactory.CreateUntypedSetter<TContainer>(member);
-            initialValue = getter(instance);
+            getter = InvokableFactory.CreateUntypedGetter<object>(member);
+            setter = InvokableFactory.CreateUntypedSetter<object>(member);
             Type underlyingType = member.GetUnderlyingType();
 
             CompressorAttribute att = member.GetCustomAttribute<CompressorAttribute>();
@@ -59,34 +55,6 @@ namespace RailgunNet.Logic
                     compressor);
             }
         }
-
-        public void ReadFrom(RailBitBuffer buffer)
-        {
-            setter(instance, decode(buffer));
-        }
-
-        public void WriteTo(RailBitBuffer buffer)
-        {
-            encode(buffer, getter(instance));
-        }
-
-        public void ApplyFrom(IRailSynchronized from)
-        {
-            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
-            setter(instance, getter(other.instance));
-        }
-
-        public bool Equals(IRailSynchronized from)
-        {
-            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
-            return getter(instance).Equals(getter(other.instance));
-        }
-
-        public void Reset()
-        {
-            setter(instance, initialValue);
-        }
-
         private static MethodInfo GetEncodeMethod(Type encoder, Type toBeEncoded)
         {
             foreach (MethodInfo method in encoder.GetMethods(
@@ -135,5 +103,54 @@ namespace RailgunNet.Logic
 
             throw new ArgumentException($"Cannot find a decoder method for type {toBeDecoded}.");
         }
+    }
+
+    public class RailSynchronized<TContainer> : IRailSynchronized
+    {
+        private static Dictionary<MemberInfo, RailGenericField> fieldCache = new Dictionary<MemberInfo, RailGenericField>();
+        private readonly object initialValue;
+        private readonly TContainer instance;
+        private readonly RailGenericField field;
+
+        public RailSynchronized(TContainer instanceToWrap, MemberInfo member)
+        {
+            if (!fieldCache.ContainsKey(member))
+            {
+                fieldCache[member] = new RailGenericField(member);
+            }
+            field = fieldCache[member];
+            
+            instance = instanceToWrap;
+            initialValue = field.getter(instance);
+        }
+
+        public void ReadFrom(RailBitBuffer buffer)
+        {
+            field.setter(instance, field.decode(buffer));
+        }
+
+        public void WriteTo(RailBitBuffer buffer)
+        {
+            field.encode(buffer, field.getter(instance));
+        }
+
+        public void ApplyFrom(IRailSynchronized from)
+        {
+            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
+            field.setter(instance, field.getter(other.instance));
+        }
+
+        public bool Equals(IRailSynchronized from)
+        {
+            RailSynchronized<TContainer> other = (RailSynchronized<TContainer>) from;
+            return field.getter(instance).Equals(field.getter(other.instance));
+        }
+
+        public void Reset()
+        {
+            field.setter(instance, initialValue);
+        }
+
+        
     }
 }

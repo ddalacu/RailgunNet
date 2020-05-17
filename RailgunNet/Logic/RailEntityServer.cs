@@ -12,7 +12,7 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Handy shortcut class for auto-casting the state.
     /// </summary>
-    public abstract class RailEntityServer<TState> : RailEntityServer
+    public class RailEntityServer<TState> : RailEntityServer
         where TState : RailState
     {
         #region Public API
@@ -33,7 +33,7 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
-    public abstract class RailEntityServer<TState, TCommand> : RailEntityServer<TState>
+    public class RailEntityServer<TState, TCommand> : RailEntityServer<TState>
         where TState : RailState, new()
         where TCommand : RailCommand
     {
@@ -66,7 +66,7 @@ namespace RailgunNet.Logic
         // The controller at the time of entity removal
         private RailController priorController;
 
-        protected RailEntityServer()
+        public RailEntityServer()
         {
             // We use no divisor for storing commands because commands are sent in
             // batches that we can use to fill in the holes between send ticks
