@@ -43,11 +43,11 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     The peer for our connection to the server.
         /// </summary>
-        private RailClientPeer serverPeer;
+        [PublicAPI] [CanBeNull] public RailClientPeer ServerPeer { get; private set; }
 
         public RailClient(RailRegistry registry) : base(registry)
         {
-            serverPeer = null;
+            ServerPeer = null;
             localTick = Tick.START;
             Room = null;
         }
@@ -72,22 +72,22 @@ namespace RailgunNet.Connection.Client
         {
             if (netPeer == null)
             {
-                if (serverPeer != null)
+                if (ServerPeer != null)
                 {
-                    serverPeer.PacketReceived -= OnPacketReceived;
-                    serverPeer.EventReceived -= OnEventReceived;
-                    Disconnected?.Invoke(serverPeer);
+                    ServerPeer.PacketReceived -= OnPacketReceived;
+                    ServerPeer.EventReceived -= OnEventReceived;
+                    Disconnected?.Invoke(ServerPeer);
                 }
 
-                serverPeer = null;
+                ServerPeer = null;
             }
             else
             {
-                RailDebug.Assert(serverPeer == null, "Overwriting peer");
-                serverPeer = new RailClientPeer(Resource, netPeer, Interpreter);
-                serverPeer.PacketReceived += OnPacketReceived;
-                serverPeer.EventReceived += OnEventReceived;
-                Connected?.Invoke(serverPeer);
+                RailDebug.Assert(ServerPeer == null, "Overwriting peer");
+                ServerPeer = new RailClientPeer(Resource, netPeer, Interpreter);
+                ServerPeer.PacketReceived += OnPacketReceived;
+                ServerPeer.EventReceived += OnEventReceived;
+                Connected?.Invoke(ServerPeer);
             }
         }
 
@@ -97,19 +97,19 @@ namespace RailgunNet.Connection.Client
         [PublicAPI]
         public override void Update()
         {
-            if (serverPeer != null)
+            if (ServerPeer != null)
             {
                 DoStart();
-                serverPeer.Update(localTick);
+                ServerPeer.Update(localTick);
 
                 if (Room != null)
                 {
-                    Room.ClientUpdate(localTick, serverPeer.EstimatedRemoteTick);
+                    Room.ClientUpdate(localTick, ServerPeer.EstimatedRemoteTick);
 
                     int sendRate = RailConfig.CLIENT_SEND_RATE;
                     if (localTick.IsSendTick(sendRate))
                     {
-                        serverPeer.SendPacket(localTick, Room.LocalEntities);
+                        ServerPeer.SendPacket(localTick, Room.LocalEntities);
                     }
 
                     localTick++;
@@ -122,8 +122,8 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
         {
-            RailDebug.Assert(serverPeer != null);
-            serverPeer?.RaiseEvent(evnt, attempts);
+            RailDebug.Assert(ServerPeer != null);
+            ServerPeer?.RaiseEvent(evnt, attempts);
         }
 
         private void OnPacketReceived(RailPacketFromServer packet)

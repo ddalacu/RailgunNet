@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -43,7 +44,7 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     An estimator for the remote peer's current tick.
         /// </summary>
-        private readonly RailClock remoteClock;
+        [PublicAPI] [NotNull] public RailClock RemoteClock { get; private set; }
 
         private readonly RailPacketIncoming reusableIncoming;
         private readonly RailPacketOutgoing reusableOutgoing;
@@ -51,7 +52,7 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Our local tick. Set during update.
         /// </summary>
-        private Tick localTick;
+        [PublicAPI] public Tick LocalTick { get; private set; }
 
         protected RailPeer(
             RailResource resource,
@@ -63,7 +64,7 @@ namespace RailgunNet.Connection
             RailPacketOutgoing reusableOutgoing) : base(resource, visibility, netPeer)
         {
             Resource = resource;
-            remoteClock = new RailClock(remoteSendRate);
+            RemoteClock = new RailClock(remoteSendRate);
             this.interpreter = interpreter;
 
             outgoingEvents = new Queue<RailEvent>();
@@ -72,20 +73,20 @@ namespace RailgunNet.Connection
             lastQueuedEventId = SequenceId.Start.Next;
             eventHistory = new RailHistory(RailConfig.HISTORY_CHUNKS);
 
-            localTick = Tick.START;
+            LocalTick = Tick.START;
             netPeer.PayloadReceived += OnPayloadReceived;
         }
 
         protected RailResource Resource { get; }
 
-        public override Tick EstimatedRemoteTick => remoteClock.EstimatedRemote;
+        public override Tick EstimatedRemoteTick => RemoteClock.EstimatedRemote;
 
         public event EventReceived EventReceived;
 
         public virtual void Update(Tick localTick)
         {
-            remoteClock.Update();
-            this.localTick = localTick;
+            RemoteClock.Update();
+            this.LocalTick = localTick;
         }
 
         protected void SendPacket(RailPacketOutgoing packet)
@@ -103,7 +104,7 @@ namespace RailgunNet.Connection
 
                 if (bitBuffer.IsFinished)
                 {
-                    ProcessPacket(reusableIncoming, localTick);
+                    ProcessPacket(reusableIncoming, LocalTick);
                 }
                 else
                 {
@@ -127,7 +128,7 @@ namespace RailgunNet.Connection
             reusableOutgoing.Reset();
             reusableOutgoing.Initialize(
                 localTick,
-                remoteClock.LatestRemote,
+                RemoteClock.LatestRemote,
                 eventHistory.Latest,
                 FilterOutgoingEvents());
             return (T) reusableOutgoing;
@@ -138,7 +139,7 @@ namespace RailgunNet.Connection
         /// </summary>
         protected virtual void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
         {
-            remoteClock.UpdateLatest(packetBase.SenderTick);
+            RemoteClock.UpdateLatest(packetBase.SenderTick);
             foreach (RailEvent evnt in FilterIncomingEvents(packetBase.Events))
             {
                 ProcessEvent(evnt);

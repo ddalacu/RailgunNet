@@ -43,20 +43,22 @@ namespace RailgunNet.Connection.Server
         /// <summary>
         ///     Collection of all participating clients.
         /// </summary>
-        private readonly Dictionary<IRailNetPeer, RailServerPeer> clients;
+        private readonly Dictionary<IRailNetPeer, RailServerPeer> clients = new Dictionary<IRailNetPeer, RailServerPeer>();
+
+        /// <summary>
+        ///     Collection of all participating clients.
+        /// </summary>
+        [PublicAPI] [NotNull] public IReadOnlyCollection<RailServerPeer> ConnectedClients => clients.Values;
 
         /// <summary>
         ///     Entities that have been removed or are about to be.
         /// </summary>
-        private readonly Dictionary<EntityId, RailEntityServer> removedEntities;
+        private readonly Dictionary<EntityId, RailEntityServer> removedEntities = new Dictionary<EntityId, RailEntityServer>();
 
-        private readonly List<RailEntityServer> toRemove; // Pre-allocated list for reuse
+        private readonly List<RailEntityServer> toRemove = new List<RailEntityServer>(); // Pre-allocated list for reuse
 
         public RailServer(RailRegistry registry) : base(registry)
         {
-            clients = new Dictionary<IRailNetPeer, RailServerPeer>();
-            removedEntities = new Dictionary<EntityId, RailEntityServer>();
-            toRemove = new List<RailEntityServer>();
         }
 
         /// <summary>
