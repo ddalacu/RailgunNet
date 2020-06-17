@@ -41,24 +41,14 @@ namespace RailgunNet.Connection
         /// </summary>
         private readonly RailInterpreter interpreter;
 
-        /// <summary>
-        ///     An estimator for the remote peer's current tick.
-        /// </summary>
-        [PublicAPI] [NotNull] public RailClock RemoteClock { get; private set; }
-
         private readonly RailPacketIncoming reusableIncoming;
         private readonly RailPacketOutgoing reusableOutgoing;
-
-        /// <summary>
-        ///     Our local tick. Set during update.
-        /// </summary>
-        [PublicAPI] public Tick LocalTick { get; private set; }
 
         protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
             ExternalEntityVisibility visibility,
-            int remoteSendRate,
+            uint remoteSendRate,
             RailInterpreter interpreter,
             RailPacketIncoming reusableIncoming,
             RailPacketOutgoing reusableOutgoing) : base(resource, visibility, netPeer)
@@ -77,6 +67,19 @@ namespace RailgunNet.Connection
             netPeer.PayloadReceived += OnPayloadReceived;
         }
 
+        /// <summary>
+        ///     An estimator for the remote peer's current tick.
+        /// </summary>
+        [PublicAPI]
+        [NotNull]
+        public RailClock RemoteClock { get; private set; }
+
+        /// <summary>
+        ///     Our local tick. Set during update.
+        /// </summary>
+        [PublicAPI]
+        public Tick LocalTick { get; private set; }
+
         protected RailResource Resource { get; }
 
         public override Tick EstimatedRemoteTick => RemoteClock.EstimatedRemote;
@@ -86,7 +89,7 @@ namespace RailgunNet.Connection
         public virtual void Update(Tick localTick)
         {
             RemoteClock.Update();
-            this.LocalTick = localTick;
+            LocalTick = localTick;
         }
 
         protected void SendPacket(RailPacketOutgoing packet)
@@ -292,7 +295,7 @@ namespace RailgunNet.Connection
             RailResource resource,
             IRailNetPeer netPeer,
             ExternalEntityVisibility visibility,
-            int remoteSendRate,
+            uint remoteSendRate,
             RailInterpreter interpreter) : base(
             resource,
             netPeer,

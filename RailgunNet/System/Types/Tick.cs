@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using System.Collections.Generic;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util.Debug;
@@ -124,10 +125,9 @@ namespace RailgunNet.System.Types
             return new TickComparer();
         }
 
-        public static Tick Subtract(Tick a, int b, bool warnClamp = false)
+        public static Tick Subtract(Tick a, uint b, bool warnClamp = false)
         {
-            RailDebug.Assert(b >= 0);
-            long result = a.tickValue - b;
+            long result = a.tickValue - (int) b;
             if (result < 1)
             {
                 if (warnClamp) RailDebug.LogWarning("Clamping tick subtraction");
@@ -189,13 +189,30 @@ namespace RailgunNet.System.Types
             return (int) difference;
         }
 
+        public static int operator +(Tick a, Tick b)
+        {
+            RailDebug.Assert(a.IsValid && b.IsValid);
+            long sum = a.tickValue + (long) b.tickValue;
+            return (int) sum;
+        }
+
         public static Tick operator +(Tick a, uint b)
         {
             RailDebug.Assert(a.IsValid);
             return new Tick(a.tickValue + b);
         }
 
-        public static Tick operator -(Tick a, int b)
+        public static Tick operator +(Tick a, int b)
+        {
+            if (b < 0)
+            {
+                return a - (uint) Math.Abs(b);
+            }
+
+            return a + (uint) b;
+        }
+
+        public static Tick operator -(Tick a, uint b)
         {
             return Subtract(a, b, true);
         }

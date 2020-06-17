@@ -18,6 +18,7 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System;
 using RailgunNet.System.Types;
 
 namespace RailgunNet
@@ -27,29 +28,46 @@ namespace RailgunNet
     /// </summary>
     public class RailClock
     {
-        private const int DELAY_MIN = 3;
-        private const int DELAY_MAX = 9;
-        private readonly int delayDesired;
-        private readonly int delayMax;
-        private readonly int delayMin;
+        public enum EDesiredDelay
+        {
+            Minimal,
+            Midpoint
+        }
 
+        private const uint DELAY_MIN = 2;
+        private const uint DELAY_MAX = 20;
+        private readonly uint delayMax;
+        private readonly uint delayMin;
         private readonly int remoteRate;
-
         private bool shouldUpdateEstimate;
 
-        public RailClock(int remoteSendRate, int delayMin = DELAY_MIN, int delayMax = DELAY_MAX)
+        public RailClock(
+            uint remoteSendRate,
+            EDesiredDelay eDelay = EDesiredDelay.Minimal,
+            uint delayMin = DELAY_MIN,
+            uint delayMax = DELAY_MAX)
         {
-            remoteRate = remoteSendRate;
+            remoteRate = (int) remoteSendRate;
             EstimatedRemote = Tick.INVALID;
             LatestRemote = Tick.INVALID;
 
             this.delayMin = delayMin;
             this.delayMax = delayMax;
-            delayDesired = (delayMax - delayMin) / 2 + delayMin;
+            switch (eDelay)
+            {
+                case EDesiredDelay.Midpoint:
+                    DelayDesired = (delayMax - delayMin) / 2 + delayMin;
+                    break;
+                case EDesiredDelay.Minimal:
+                    DelayDesired = delayMin;
+                    break;
+            }
 
             shouldUpdateEstimate = false;
             ShouldTick = false;
         }
+
+        public uint DelayDesired { get; }
 
         private bool ShouldTick { get; set; }
         public Tick EstimatedRemote { get; private set; }
@@ -60,7 +78,7 @@ namespace RailgunNet
             if (LatestRemote.IsValid == false) LatestRemote = latestTick;
             if (EstimatedRemote.IsValid == false)
             {
-                EstimatedRemote = Tick.Subtract(LatestRemote, delayDesired);
+                EstimatedRemote = Tick.Subtract(LatestRemote, DelayDesired);
             }
 
             if (latestTick > LatestRemote)
@@ -74,35 +92,32 @@ namespace RailgunNet
         // See http://www.gamedev.net/topic/652186-de-jitter-buffer-on-both-the-client-and-server/
         public void Update()
         {
-            if (ShouldTick == false) return; // 0;
+            if (!ShouldTick) return;
 
-            EstimatedRemote = EstimatedRemote + 1;
-            if (shouldUpdateEstimate == false) return; // 1;
+            ++EstimatedRemote;
+            if (!shouldUpdateEstimate) return;
 
             int delta = LatestRemote - EstimatedRemote;
 
             if (ShouldSnapTick(delta))
             {
-                // Reset
-                EstimatedRemote = LatestRemote - delayDesired;
-                return; // 0;
+                EstimatedRemote = LatestRemote - DelayDesired;
+                return;
             }
 
-            if (delta > delayMax)
-            {
-                // Jump 1
-                EstimatedRemote = EstimatedRemote + 1;
-                return; // 2;
-            }
-
-            if (delta < delayMin)
-            {
-                // Stall 1
-                EstimatedRemote = EstimatedRemote - 1;
-                return; // 0;
-            }
-
+            EstimatedRemote += ComputeOffset(delta, DelayDesired);
             shouldUpdateEstimate = false;
+        }
+
+        private static int ComputeOffset(int current, uint desired)
+        {
+            long delta = current - desired;
+            if (Math.Abs(delta) <= 1)
+            {
+                return (int) delta;
+            }
+
+            return (int) Math.Round(delta / 2.0);
         }
 
         private bool ShouldSnapTick(float delta)
