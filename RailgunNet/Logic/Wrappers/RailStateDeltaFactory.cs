@@ -53,6 +53,13 @@ namespace RailgunNet.Logic.Wrappers
             if (flags == FLAGS_NONE && !shouldReturn) return null;
 
             RailState deltaState = stateCreator.CreateState(current.FactoryType);
+
+            deltaState.HasImmutableData = includeImmutableData;
+            if (includeImmutableData)
+            {
+                deltaState.DataSerializer.ApplyImmutableFrom(current.DataSerializer);
+            }
+
             deltaState.Flags = flags;
             deltaState.DataSerializer.ApplyMutableFrom(current.DataSerializer, deltaState.Flags);
 
@@ -60,12 +67,6 @@ namespace RailgunNet.Logic.Wrappers
             if (includeControllerData)
             {
                 deltaState.DataSerializer.ApplyControllerFrom(current.DataSerializer);
-            }
-
-            deltaState.HasImmutableData = includeImmutableData;
-            if (includeImmutableData)
-            {
-                deltaState.DataSerializer.ApplyImmutableFrom(current.DataSerializer);
             }
 
             // We don't need to include a tick when sending -- it's in the packet

@@ -108,8 +108,8 @@ namespace RailgunNet.Logic
 
         public void ResetAllData()
         {
-            mutable.ForEach(c => c.Reset());
             immutable.ForEach(c => c.Reset());
+            mutable.ForEach(c => c.Reset());
             controller.ForEach(c => c.Reset());
         }
 

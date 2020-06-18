@@ -41,6 +41,12 @@ namespace RailgunNet.Logic.Wrappers
                 // Write: [HasImmutableData]
                 buffer.WriteBool(state.HasImmutableData);
 
+                if (state.HasImmutableData)
+                    // Write: [Immutable Data]
+                {
+                    state.DataSerializer.EncodeImmutableData(buffer);
+                }
+
                 // Write: [Flags]
                 buffer.Write(state.DataSerializer.FlagBits, state.Flags);
 
@@ -54,12 +60,6 @@ namespace RailgunNet.Logic.Wrappers
 
                     // Write: [Command Ack]
                     buffer.WriteTick(delta.CommandAck);
-                }
-
-                if (state.HasImmutableData)
-                    // Write: [Immutable Data]
-                {
-                    state.DataSerializer.EncodeImmutableData(buffer);
                 }
             }
         }
@@ -103,6 +103,12 @@ namespace RailgunNet.Logic.Wrappers
                 // Read: [HasImmutableData]
                 state.HasImmutableData = buffer.ReadBool();
 
+                if (state.HasImmutableData)
+                    // Read: [Immutable Data]
+                {
+                    state.DataSerializer.DecodeImmutableData(buffer);
+                }
+
                 // Read: [Flags]
                 state.Flags = buffer.Read(state.DataSerializer.FlagBits);
 
@@ -116,12 +122,6 @@ namespace RailgunNet.Logic.Wrappers
 
                     // Read: [Command Ack]
                     commandAck = buffer.ReadTick();
-                }
-
-                if (state.HasImmutableData)
-                    // Read: [Immutable Data]
-                {
-                    state.DataSerializer.DecodeImmutableData(buffer);
                 }
             }
 

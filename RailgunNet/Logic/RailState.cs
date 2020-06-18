@@ -31,14 +31,14 @@ namespace RailgunNet.Logic
     ///     function. States have multiple categories that are sent at different
     ///     cadences. In order to synchronize a property, use the appropriate
     ///     Attribute. The following attributes can be used:
+    ///     [Immutable]
+    ///     Sent only once at creation. Can not be changed after.
     ///     [Mutable]
     ///     Sent whenever the state differs from the client's view.
     ///     Delta-encoded against the client's view.
     ///     [Controller]
     ///     Sent to the controller of the entity every update.
     ///     Not delta-encoded -- always sent full-encode.
-    ///     [Immutable]
-    ///     Sent only once at creation. Can not be changed after.
     /// </summary>
     public abstract class RailState : IRailPoolable<RailState>
     {
@@ -60,10 +60,10 @@ namespace RailgunNet.Logic
 
         public void OverwriteFrom(RailState source)
         {
+            DataSerializer.ApplyImmutableFrom(source.DataSerializer);
             Flags = source.Flags;
             DataSerializer.ApplyMutableFrom(source.DataSerializer, FLAGS_ALL);
             DataSerializer.ApplyControllerFrom(source.DataSerializer);
-            DataSerializer.ApplyImmutableFrom(source.DataSerializer);
             HasControllerData = source.HasControllerData;
             HasImmutableData = source.HasImmutableData;
         }
@@ -72,6 +72,12 @@ namespace RailgunNet.Logic
         public void ApplyDelta(RailStateDelta delta)
         {
             RailState deltaState = delta.State;
+            HasImmutableData = delta.HasImmutableData || HasImmutableData;
+            if (deltaState.HasImmutableData)
+            {
+                DataSerializer.ApplyImmutableFrom(deltaState.DataSerializer);
+            }
+
             DataSerializer.ApplyMutableFrom(deltaState.DataSerializer, deltaState.Flags);
 
             DataSerializer.ResetControllerData();
@@ -81,12 +87,6 @@ namespace RailgunNet.Logic
             }
 
             HasControllerData = delta.HasControllerData;
-
-            HasImmutableData = delta.HasImmutableData || HasImmutableData;
-            if (deltaState.HasImmutableData)
-            {
-                DataSerializer.ApplyImmutableFrom(deltaState.DataSerializer);
-            }
         }
 
         #region Pooling
