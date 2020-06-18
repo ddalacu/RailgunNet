@@ -351,7 +351,7 @@ namespace RailgunNet.Logic
             // Apply all un-applied deltas to the auth state
             IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
                 authTick,
-                RoomBase.Tick,
+                IsRemoving ? RemovedTick : Room.Tick,
                 out RailStateDelta next);
 
             RailStateDelta lastDelta = null;
@@ -363,10 +363,10 @@ namespace RailgunNet.Logic
                 lastDelta = delta;
             }
 
-            if (lastDelta != null)
+            if (!IsRemoving && lastDelta != null)
             {
                 // Update the control status based on the most recent delta
-                (RoomBase as RailClientRoom).RequestControlUpdate(this, lastDelta);
+                Room.RequestControlUpdate(this, lastDelta);
             }
 
             // If there was a next state, update the next state
