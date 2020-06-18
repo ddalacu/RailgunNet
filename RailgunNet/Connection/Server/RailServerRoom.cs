@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.System.Types;
@@ -118,12 +119,27 @@ namespace RailgunNet.Connection.Server
 
         /// <summary>
         ///     Queues an event to broadcast to all present clients.
+        ///     Notice that due to the internal object pooling, the event will be cloned and managed
+        ///     internally in each client peer. The <paramref name="evnt" /> will be freed if
+        ///     <paramref name="freeWhenDone" /> is true, otherwise the caller is responsible to
+        ///     free the memory.
         /// </summary>
-        public void BroadcastEvent(RailEvent evnt, ushort attempts = 3)
+        /// <param name="evnt"></param>
+        /// <param name="attempts"></param>
+        /// <param name="freeWhenDone"></param>
+        public void BroadcastEvent(
+            [NotNull] RailEvent evnt,
+            ushort attempts = 3,
+            bool freeWhenDone = true)
         {
             foreach (RailPeer client in clients)
             {
                 client.SendEvent(evnt, attempts);
+            }
+
+            if (freeWhenDone)
+            {
+                evnt.Free();
             }
         }
 

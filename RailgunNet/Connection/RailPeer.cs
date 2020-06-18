@@ -180,13 +180,14 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
-        public void SendEvent(RailEvent evnt, ushort attempts)
+        public void SendEvent([NotNull] RailEvent evnt, ushort attempts)
         {
             // TODO: Event scoping
-            evnt.EventId = lastQueuedEventId;
-            evnt.Attempts = attempts;
+            RailEvent clone = evnt.Clone(Resource);
+            clone.EventId = lastQueuedEventId;
+            clone.Attempts = attempts;
 
-            outgoingEvents.Enqueue(evnt);
+            outgoingEvents.Enqueue(clone);
             lastQueuedEventId = lastQueuedEventId.Next;
         }
 
