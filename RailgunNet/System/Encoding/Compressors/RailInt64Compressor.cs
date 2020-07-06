@@ -18,81 +18,80 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
-using JetBrains.Annotations;
 using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 
 namespace RailgunNet.System.Encoding.Compressors
 {
-    public static class RailFloatCompressorExtensions
+    public static class RailInt64CompressorExtensions
     {
-        public static void WriteFloat(
+        public static void WriteInt64(
             this RailBitBuffer buffer,
-            RailFloatCompressor compressor,
-            float value)
+            RailInt64Compressor compressor,
+            long value)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
             {
-                buffer.WriteUInt(compressor.Pack(value));
+                buffer.WriteUInt64(compressor.Pack(value));
             }
             else
             {
-                buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+                buffer.Write(compressor.RequiredBits, (uint)compressor.Pack(value));
             }
         }
 
-        public static float ReadFloat(this RailBitBuffer buffer, RailFloatCompressor compressor)
+        public static long ReadInt64(this RailBitBuffer buffer, RailInt64Compressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
             {
-                return compressor.Unpack(buffer.ReadUInt());
+                return compressor.Unpack(buffer.ReadUInt64());
             }
 
             return compressor.Unpack(buffer.Read(compressor.RequiredBits));
         }
 
-        public static float PeekFloat(this RailBitBuffer buffer, RailFloatCompressor compressor)
+        public static long PeekInt64(this RailBitBuffer buffer, RailInt64Compressor compressor)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
             {
-                return compressor.Unpack(buffer.PeekUInt());
+                return compressor.Unpack(buffer.PeekUInt64());
             }
 
             return compressor.Unpack(buffer.Peek(compressor.RequiredBits));
         }
 
         #region Array
-        public static void WriteFloats(
+        public static void WriteInt64s(
             this RailBitBuffer buffer,
-            RailFloatCompressor compressor,
-            float[] values)
+            RailInt64Compressor compressor,
+            long[] values)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
             {
-                foreach (float value in values)
+                foreach (long value in values)
                 {
-                    buffer.WriteUInt(compressor.Pack(value));
+                    buffer.WriteUInt64(compressor.Pack(value));
                 }
             }
             else
             {
-                foreach (float value in values)
+                foreach (long value in values)
                 {
-                    buffer.Write(compressor.RequiredBits, compressor.Pack(value));
+                    buffer.Write(compressor.RequiredBits, (uint)compressor.Pack(value));
                 }
             }
         }
 
-        public static void ReadFloats(
+        public static void ReadInt64s(
             this RailBitBuffer buffer,
-            RailFloatCompressor compressor,
-            float[] toStore)
+            RailInt64Compressor compressor,
+            long[] toStore)
         {
             if (compressor.RequiredBits > RailConfig.VARINT_FALLBACK_SIZE)
             {
                 for (int i = 0; i < toStore.Length; i++)
                 {
-                    toStore[i] = compressor.Unpack(buffer.ReadUInt());
+                    toStore[i] = compressor.Unpack(buffer.ReadUInt64());
                 }
             }
             else
@@ -106,37 +105,26 @@ namespace RailgunNet.System.Encoding.Compressors
         #endregion
     }
 
-    /// <summary>
-    ///     Compresses floats to a given range with a given precision.
-    ///     http://stackoverflow.com/questions/8382629/compress-floating-point-numbers-with-specified-range-and-precision
-    /// </summary>
-    public class RailFloatCompressor
+    public class RailInt64Compressor
     {
-        private readonly float invPrecision;
-        private readonly uint mask;
-        private readonly float maxValue;
+        private readonly ulong mask;
+        private readonly long maxValue;
+        private readonly long minValue;
 
-        private readonly float minValue;
-        private readonly float precision;
-
-        [PublicAPI]
-        public RailFloatCompressor(float minValue, float maxValue, float precision)
+        public RailInt64Compressor(long minValue, long maxValue)
         {
             this.minValue = minValue;
             this.maxValue = maxValue;
-            this.precision = precision;
 
-            invPrecision = 1.0f / precision;
             RequiredBits = ComputeRequiredBits();
-            mask = (uint) ((1L << RequiredBits) - 1);
+            mask = RequiredBits < 64 ? 1UL << RequiredBits - 1 : ulong.MaxValue;
         }
 
         public int RequiredBits { get; }
 
-        public uint Pack(float value)
+        public ulong Pack(long value)
         {
-            float newValue = RailUtil.Clamp(value, minValue, maxValue);
-            if (newValue != value)
+            if (value < minValue || value > maxValue)
             {
                 RailDebug.LogWarning(
                     "Clamping value for send! " +
@@ -148,21 +136,23 @@ namespace RailgunNet.System.Encoding.Compressors
                     "]");
             }
 
-            float adjusted = (value - minValue) * invPrecision;
-            return (uint) (adjusted + 0.5f) & mask;
+            return (ulong)(value - minValue) & mask;
         }
 
-        public float Unpack(uint data)
+        public long Unpack(ulong data)
         {
-            float adjusted = data * precision + minValue;
-            return RailUtil.Clamp(adjusted, minValue, maxValue);
+            return (long)data + minValue;
         }
 
         private int ComputeRequiredBits()
         {
-            float range = maxValue - minValue;
-            float maxVal = range * (1.0f / precision);
-            return RailUtil.Log2((ulong) (maxVal + 0.5f)) + 1;
+            if (minValue >= maxValue) return 0;
+
+            unchecked
+            {
+                ulong range = (ulong)(maxValue - minValue);
+                return RailUtil.Log2(range) + 1;
+            }
         }
     }
 }

@@ -18,56 +18,32 @@
  *  3. This notice may not be removed or altered from any source distribution.
  */
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace RailgunNet.Util
 {
     public static class RailUtil
     {
-        // http://stackoverflow.com/questions/15967240/fastest-implementation-of-log2int-and-log2float
-        private static readonly int[] DeBruijnLookup = new int[32]
-        {
-            0,
-            9,
-            1,
-            10,
-            13,
-            21,
-            2,
-            29,
-            11,
-            14,
-            16,
-            18,
-            22,
-            25,
-            3,
-            30,
-            8,
-            12,
-            20,
-            28,
-            15,
-            17,
-            24,
-            7,
-            19,
-            27,
-            23,
-            6,
-            26,
-            5,
-            4,
-            31
-        };
+        // http://stackoverflow.com/questions/15967240/fastest-implementation-of-log2int-and-log2float#answer-58497416
 
-        public static int Log2(uint v)
+        [StructLayout(LayoutKind.Explicit)]
+        private struct Double2Long
         {
-            v |= v >> 1; // Round down to one less than a power of 2 
-            v |= v >> 2;
-            v |= v >> 4;
-            v |= v >> 8;
-            v |= v >> 16;
+            [FieldOffset(0)] public ulong asLong;
+            [FieldOffset(0)] public double asDouble;
+        }
 
-            return DeBruijnLookup[(v * 0x07C4ACDDU) >> 27];
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static int Log2(ulong val)
+        {
+            if (val == 0) return 0;
+
+            Double2Long a;
+            a.asLong = 0;
+            a.asDouble = val;
+
+            return (int)((a.asLong >> 52) + 1) & 0xFF;
         }
 
         public static float Clamp(float value, float min, float max)
