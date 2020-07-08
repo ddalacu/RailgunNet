@@ -34,6 +34,7 @@ namespace RailgunNet.System.Encoding
         private const int GROW_FACTOR = 2;
         private const int MIN_GROW = 1;
         private const int DEFAULT_CAPACITY = 8;
+        public const int MAX_LIST_COUNT = 255;
 
         /// <summary>
         ///     Buffer of chunks for storing data.
@@ -65,7 +66,7 @@ namespace RailgunNet.System.Encoding
         /// <summary>
         ///     Size the buffer will require in bytes.
         /// </summary>
-        private int ByteSize => ((writePos - 1) >> 3) + 1;
+        public int ByteSize => ((writePos - 1) >> 3) + 1;
 
         /// <summary>
         ///     Returns true iff we have read everything off of the buffer.
@@ -78,12 +79,12 @@ namespace RailgunNet.System.Encoding
 
             while (value > 0x7Fu)
             {
-                buffer[start] = (byte) (value | 0x80u);
+                buffer[start] = (byte)(value | 0x80u);
                 value >>= 7;
                 start++;
             }
 
-            buffer[start] = (byte) value;
+            buffer[start] = (byte)value;
             return start - first + 1;
         }
 
@@ -170,10 +171,10 @@ namespace RailgunNet.System.Encoding
 
             ulong chunkMask = (1UL << used) - 1;
             ulong scratch = chunks[index] & chunkMask;
-            ulong result = scratch | ((ulong) value << used);
+            ulong result = scratch | ((ulong)value << used);
 
-            chunks[index] = (uint) result;
-            chunks[index + 1] = (uint) (result >> 32);
+            chunks[index] = (uint)result;
+            chunks[index + 1] = (uint)(result >> 32);
 
             writePos += numBits;
         }
@@ -208,10 +209,10 @@ namespace RailgunNet.System.Encoding
 
             ulong chunkMask = ((1UL << numBits) - 1) << used;
             ulong scratch = chunks[index];
-            if (index + 1 < chunks.Length) scratch |= (ulong) chunks[index + 1] << 32;
+            if (index + 1 < chunks.Length) scratch |= (ulong)chunks[index + 1] << 32;
             ulong result = (scratch & chunkMask) >> used;
 
-            return (uint) result;
+            return (uint)result;
         }
 
         /// <summary>
@@ -229,10 +230,10 @@ namespace RailgunNet.System.Encoding
             {
                 int dataIdx = i * 4;
                 uint chunk = chunks[i];
-                data[dataIdx] = (byte) chunk;
-                data[dataIdx + 1] = (byte) (chunk >> 8);
-                data[dataIdx + 2] = (byte) (chunk >> 16);
-                data[dataIdx + 3] = (byte) (chunk >> 24);
+                data[dataIdx] = (byte)chunk;
+                data[dataIdx + 1] = (byte)(chunk >> 8);
+                data[dataIdx + 2] = (byte)(chunk >> 16);
+                data[dataIdx + 3] = (byte)(chunk >> 24);
             }
 
             return ByteSize;
@@ -258,17 +259,17 @@ namespace RailgunNet.System.Encoding
 
                 if (dataIdx + 1 < data.Array.Length)
                 {
-                    chunk |= (uint) data.Array[dataIdx + 1] << 8;
+                    chunk |= (uint)data.Array[dataIdx + 1] << 8;
                 }
 
                 if (dataIdx + 2 < data.Array.Length)
                 {
-                    chunk |= (uint) data.Array[dataIdx + 2] << 16;
+                    chunk |= (uint)data.Array[dataIdx + 2] << 16;
                 }
 
                 if (dataIdx + 3 < data.Array.Length)
                 {
-                    chunk |= (uint) data.Array[dataIdx + 3] << 24;
+                    chunk |= (uint)data.Array[dataIdx + 3] << 24;
                 }
 
                 chunks[i] = chunk;
@@ -302,11 +303,11 @@ namespace RailgunNet.System.Encoding
 
             ulong valueMask = (1UL << numBits) - 1;
             ulong prepared = (value & valueMask) << used;
-            ulong scratch = chunks[index] | ((ulong) chunks[index + 1] << 32);
+            ulong scratch = chunks[index] | ((ulong)chunks[index + 1] << 32);
             ulong result = scratch | prepared;
 
-            chunks[index] = (uint) result;
-            chunks[index + 1] = (uint) (result >> 32);
+            chunks[index] = (uint)result;
+            chunks[index + 1] = (uint)(result >> 32);
         }
 
         private void ExpandArray()
@@ -339,7 +340,7 @@ namespace RailgunNet.System.Encoding
         #region Enumerables
         /// <summary>
         ///     Packs all elements of an enumerable.
-        ///     Max 255 elements.
+        ///     Max MAX_LIST_COUNT elements, by default 255.
         /// </summary>
         public byte
             PackAll<T>(IEnumerable<T> elements, Action<T> encode) // TODO: Make this take a buffer!
@@ -353,7 +354,7 @@ namespace RailgunNet.System.Encoding
             // Write: [Elements]
             foreach (T val in elements)
             {
-                if (count == 255) break;
+                if (count == MAX_LIST_COUNT) break;
 
                 encode.Invoke(val);
                 count++;
@@ -366,7 +367,7 @@ namespace RailgunNet.System.Encoding
 
         /// <summary>
         ///     Packs all elements of an enumerable up to a given size.
-        ///     Max 255 elements.
+        ///     Max MAX_LIST_COUNT elements, by default 255.
         /// </summary>
         public byte PackToSize<T>(
             int maxTotalBytes,
@@ -375,7 +376,6 @@ namespace RailgunNet.System.Encoding
             Action<T, RailBitBuffer> encode,
             Action<T> packed = null)
         {
-            const int MAX_SIZE = 255;
             const int SIZE_BITS = 8;
 
             maxTotalBytes -= 1; // Sentinel bit can blow this up
@@ -388,7 +388,7 @@ namespace RailgunNet.System.Encoding
             // Write: [Elements]
             foreach (T val in elements)
             {
-                if (count == MAX_SIZE) break;
+                if (count == MAX_LIST_COUNT) break;
                 int rollback = writePos;
                 int startByteSize = ByteSize;
 
@@ -420,7 +420,7 @@ namespace RailgunNet.System.Encoding
 
         /// <summary>
         ///     Decodes all packed items.
-        ///     Max 255 elements.
+        ///     Max MAX_LIST_COUNT elements, by default 255.
         /// </summary>
         public IEnumerable<T> UnpackAll<T>(Func<RailBitBuffer, T> decode)
         {
@@ -446,12 +446,12 @@ namespace RailgunNet.System.Encoding
         [Decoder]
         public byte ReadByte()
         {
-            return (byte) Read(8);
+            return (byte)Read(8);
         }
 
         public byte PeekByte()
         {
-            return (byte) Peek(8);
+            return (byte)Peek(8);
         }
         #endregion
 
@@ -518,7 +518,7 @@ namespace RailgunNet.System.Encoding
         [Encoder]
         public void WriteInt(int val)
         {
-            uint zigzag = (uint) ((val << 1) ^ (val >> 31));
+            uint zigzag = (uint)((val << 1) ^ (val >> 31));
             WriteUInt(zigzag);
         }
 
@@ -526,14 +526,14 @@ namespace RailgunNet.System.Encoding
         public int ReadInt()
         {
             uint val = ReadUInt();
-            int zagzig = (int) ((val >> 1) ^ -(val & 1));
+            int zagzig = (int)((val >> 1) ^ -(val & 1));
             return zagzig;
         }
 
         public int PeekInt()
         {
             uint val = PeekUInt();
-            int zagzig = (int) ((val >> 1) ^ -(val & 1));
+            int zagzig = (int)((val >> 1) ^ -(val & 1));
             return zagzig;
         }
         #endregion
@@ -567,7 +567,7 @@ namespace RailgunNet.System.Encoding
         [Decoder]
         public ushort ReadFullU16()
         {
-            return (ushort) Read(16);
+            return (ushort)Read(16);
         }
         #endregion
 
@@ -583,7 +583,7 @@ namespace RailgunNet.System.Encoding
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
 
-            uint length = (uint) value.Length;
+            uint length = (uint)value.Length;
             RailDebug.Assert(length <= RailConfig.STRING_LENGTH_MAX, value);
             if (value.Length > RailConfig.STRING_LENGTH_MAX) length = RailConfig.STRING_LENGTH_MAX;
 
@@ -601,10 +601,93 @@ namespace RailgunNet.System.Encoding
             uint length = Read(STRING_LENGTH_BITS);
             for (int i = 0; i < length; i++)
             {
-                builder.Append((char) Read(ASCII_BITS));
+                builder.Append((char)Read(ASCII_BITS));
             }
 
             return builder.ToString();
+        }
+        #endregion
+
+        #region UInt64
+        /// <summary>
+        ///     Writes using an elastic number of bytes based on number size:
+        ///     Bits   Min Dec    Max Dec     Max Hex     Bytes Used
+        ///     0-7    0          127         0x0000007F  1 byte
+        ///     8-14   128        1023        0x00003FFF  2 bytes
+        ///     15-21  1024       2097151     0x001FFFFF  3 bytes
+        ///     22-28  2097152    268435455   0x0FFFFFFF  4 bytes
+        ///     28-32  268435456  4294967295  0xFFFFFFFF  5 bytes
+        /// </summary>
+        [Encoder]
+        public void WriteUInt64(ulong val)
+        {
+            do
+            {
+                // Take the lowest 7 bits
+                uint buffer = (uint)(val & 0x7FL);
+                val >>= 7;
+
+                // If there is more data, set the 8th bit to true
+                if (val > 0) buffer |= 0x80u;
+
+                // Store the next byte
+                Write(8, buffer);
+            }
+            while (val > 0);
+        }
+
+        [Decoder]
+        public ulong ReadUInt64()
+        {
+            uint buffer;
+            ulong val = 0x0L;
+            int s = 0;
+
+            do
+            {
+                buffer = Read(8);
+
+                // Add back in the shifted 7 bits
+                val |= (ulong)(buffer & 0x7Fu) << s;
+                s += 7;
+
+                // Continue if we're flagged for more
+            }
+            while ((buffer & 0x80u) > 0);
+
+            return val;
+        }
+
+        public ulong PeekUInt64()
+        {
+            int tempPosition = readPos;
+            ulong val = ReadUInt64();
+            readPos = tempPosition;
+            return val;
+        }
+        #endregion
+
+        #region Int64
+        [Encoder]
+        public void WriteInt64(long val)
+        {
+            ulong zigzag = (ulong)((val << 1) ^ (val >> 63));
+            WriteUInt64(zigzag);
+        }
+
+        [Decoder]
+        public long ReadInt64()
+        {
+            ulong val = ReadUInt64();
+            long zagzig = (long)(val >> 1) ^ -(long)(val & 1);
+            return zagzig;
+        }
+
+        public long PeekInt64()
+        {
+            ulong val = PeekUInt64();
+            long zagzig = (long)(val >> 1) ^ -(long)(val & 1);
+            return zagzig;
         }
         #endregion
         #endregion

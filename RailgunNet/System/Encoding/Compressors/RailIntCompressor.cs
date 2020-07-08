@@ -117,7 +117,7 @@ namespace RailgunNet.System.Encoding.Compressors
             this.maxValue = maxValue;
 
             RequiredBits = ComputeRequiredBits();
-            mask = (uint) ((1L << RequiredBits) - 1);
+            mask = (uint)((1UL << RequiredBits) - 1);
         }
 
         public int RequiredBits { get; }
@@ -136,22 +136,23 @@ namespace RailgunNet.System.Encoding.Compressors
                     "]");
             }
 
-            return (uint) (value - minValue) & mask;
+            return (uint)(value - minValue) & mask;
         }
 
         public int Unpack(uint data)
         {
-            return (int) (data + minValue);
+            return (int)(data + minValue);
         }
 
         private int ComputeRequiredBits()
         {
             if (minValue >= maxValue) return 0;
 
-            long minLong = minValue;
-            long maxLong = maxValue;
-            uint range = (uint) (maxLong - minLong);
-            return RailUtil.Log2(range) + 1;
+            unchecked
+            {
+                uint range = (uint)(maxValue - minValue);
+                return RailUtil.Log2(range) + 1;
+            }
         }
     }
 }
