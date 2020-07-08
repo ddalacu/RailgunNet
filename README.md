@@ -4,6 +4,11 @@ Alexander Shoulson, Ph.D. - http://ashoulson.com
 
 ![Example 1](https://raw.githubusercontent.com/ashoulson/RailgunNet/master/Images/example1.gif) &nbsp; ![Example 2](https://raw.githubusercontent.com/ashoulson/RailgunNet/master/Images/example2.gif) &nbsp; ![Example 3](https://raw.githubusercontent.com/ashoulson/RailgunNet/master/Images/example3.gif)
 
+**Modifications to [ashoulson/RailgunNet](https://github.com/ashoulson/RailgunNet)** 
+- Removed conditional compilation flags for `SERVER` and `CLIENT`. Uses a runtime flag in `RailRegistry` instead.
+- Implemented runtime IL generation for states, events and commands.
+- Added unit tests. 
+
 ---
 
 Based loosely on the [Quake 3](https://github.com/id-Software/Quake-III-Arena) and [Valve/Source](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking) networking models.
