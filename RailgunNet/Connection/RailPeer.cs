@@ -166,28 +166,22 @@ namespace RailgunNet.Connection
         ///     A history buffer of received events.
         /// </summary>
         private readonly RailHistory eventHistory;
-        #endregion
-
-        #region Events
-        /// <summary>
-        ///     Queues an event to send directly to this peer.
-        /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
-        {
-            SendEvent(evnt, attempts);
-        }
-
+        
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
-        public void SendEvent([NotNull] RailEvent evnt, ushort attempts)
+        internal void SendEvent([NotNull] RailEvent evnt, ushort attempts, bool bMakeCopy)
         {
             // TODO: Event scoping
-            RailEvent clone = evnt.Clone(Resource);
-            clone.EventId = lastQueuedEventId;
-            clone.Attempts = attempts;
+            RailEvent toSend = evnt;
+            if (bMakeCopy)
+            {
+                toSend = evnt.Clone(Resource);
+            }
+            toSend.EventId = lastQueuedEventId;
+            toSend.Attempts = attempts;
 
-            outgoingEvents.Enqueue(clone);
+            outgoingEvents.Enqueue(toSend);
             lastQueuedEventId = lastQueuedEventId.Next;
         }
 

@@ -117,15 +117,6 @@ namespace RailgunNet.Connection.Client
             }
         }
 
-        /// <summary>
-        ///     Queues an event to send to the server.
-        /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
-        {
-            RailDebug.Assert(ServerPeer != null);
-            ServerPeer?.RaiseEvent(evnt, attempts);
-        }
-
         private void OnPacketReceived(RailPacketFromServer packet)
         {
             if (Room == null)
@@ -144,6 +135,11 @@ namespace RailgunNet.Connection.Client
                         RailPool.Free(delta);
                     }
                 }
+            }
+
+            foreach (RailEvent @event in packet.Events)
+            {
+                @event.Free();
             }
         }
     }

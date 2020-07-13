@@ -65,5 +65,18 @@ namespace Tests
             Assert.IsType<Event>(instance0);
             Assert.Equal(instance0.Data, ((Event) instance1Base).Data);
         }
+
+        [Fact]
+        private void EventSequenceComparatorsWrap()
+        {
+            var first = SequenceId.Start;
+            var second = first.Next;
+            for (int i = 0; i < 10000; ++i)
+            {
+                Assert.True(first < second);
+                first = second;
+                second = second.Next;
+            }
+        }
     }
 }

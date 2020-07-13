@@ -85,20 +85,16 @@ namespace RailgunNet.Connection.Client
         /// <summary>
         ///     Queues an event to broadcast to the server with a number of retries.
         /// </summary>
-        public void RaiseEvent(RailEvent evnt, ushort attempts = 3)
-        {
-            client.RaiseEvent(evnt, attempts);
-        }
-
-        /// <summary>
-        ///     Queues an event to broadcast to the server with a number of retries.
-        /// </summary>
         public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3)
             where T : RailEvent
         {
-            T evnt = eventCreator.CreateEvent<T>();
-            initializer(evnt);
-            RaiseEvent(evnt, attempts);
+            RailDebug.Assert(client.ServerPeer != null);
+            if (client.ServerPeer != null)
+            {
+                T evnt = eventCreator.CreateEvent<T>();
+                initializer(evnt);
+                client.ServerPeer.SendEvent(evnt, attempts, false);
+            }
         }
 
         /// <summary>

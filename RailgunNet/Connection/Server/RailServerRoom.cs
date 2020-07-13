@@ -134,7 +134,7 @@ namespace RailgunNet.Connection.Server
         {
             foreach (RailPeer client in clients)
             {
-                client.SendEvent(evnt, attempts);
+                client.SendEvent(evnt, attempts, true);
             }
 
             if (freeWhenDone)
