@@ -40,9 +40,6 @@ namespace RailgunNet.Logic
 
         [PublicAPI] protected IRailEventConstruction EventCreator { get; private set; }
 
-        // Configuration
-        public virtual RailConfig.RailUpdateOrder UpdateOrder => RailConfig.RailUpdateOrder.Normal;
-
         /// <summary>
         ///     The current local state.
         /// </summary>

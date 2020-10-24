@@ -162,8 +162,9 @@ namespace RailgunNet.Connection.Server
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntityServer entity in GetAllEntities<RailEntityServer>())
+            foreach (RailEntityBase railEntityBase in Entities)
             {
+                RailEntityServer entity = (RailEntityServer) railEntityBase;
                 if (entity.ShouldRemove)
                 {
                     ToRemove.Add(entity);

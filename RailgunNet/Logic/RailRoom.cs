@@ -102,12 +102,6 @@ namespace RailgunNet.Logic
             PostRoomUpdate?.Invoke(tick);
         }
 
-        protected IEnumerable<T> GetAllEntities<T>()
-            where T : RailEntityBase
-        {
-            return entities.Select(pair => (T) pair.Value).OrderBy(entity => entity.UpdateOrder);
-        }
-
         protected void RegisterEntity(RailEntityBase entity)
         {
             entities.Add(entity.Id, entity);

@@ -43,17 +43,6 @@ namespace RailgunNet
         }
 
         /// <summary>
-        ///     Use this to control which entities update relative to one another.
-        /// </summary>
-        public enum RailUpdateOrder
-        {
-            Early,
-            Normal,
-            Late,
-            VeryLate
-        }
-
-        /// <summary>
         ///     Network send rate in ticks/packet.
         /// </summary>
         public const int SERVER_SEND_RATE = 1;
@@ -89,15 +78,6 @@ namespace RailgunNet
         ///     max history length will be EVENT_HISTORY_CHUNKS * 32.
         /// </summary>
         public const int HISTORY_CHUNKS = 6;
-
-        // Pre-cache the array for iterating over.
-        public static readonly RailUpdateOrder[] Orders =
-        {
-            RailUpdateOrder.Early,
-            RailUpdateOrder.Normal,
-            RailUpdateOrder.Late,
-            RailUpdateOrder.VeryLate
-        };
 
         #region Message Sizes
         /// <summary>

@@ -109,8 +109,9 @@ namespace RailgunNet.Connection.Client
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntityClient entity in GetAllEntities<RailEntityClient>())
+            foreach (RailEntityBase railEntityBase in Entities)
             {
+                RailEntityClient entity = (RailEntityClient) railEntityBase;
                 if (entity.ShouldRemove)
                 {
                     ToRemove.Add(entity);
