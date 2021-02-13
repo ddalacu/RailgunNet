@@ -38,8 +38,11 @@ namespace RailgunNet.Factory
             CommandType = null;
             eventTypes = new List<EventConstructionInfo>();
             entityTypes = new List<EntityConstructionInfo>();
-            RailSynchronizedFactory.Detect(Assembly.GetCallingAssembly());
-            RailSynchronizedFactory.Detect(Assembly.GetExecutingAssembly());
+            Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (Assembly assembly in loadedAssemblies)
+            {
+                RailSynchronizedFactory.Detect(assembly);
+            }
         }
 
         public Component Component { get; }
