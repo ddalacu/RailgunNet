@@ -24,9 +24,11 @@ using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.Logic.Scope;
 using RailgunNet.System;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
 
@@ -47,11 +49,10 @@ namespace RailgunNet.Connection
         protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
-            ExternalEntityVisibility visibility,
             uint remoteSendRate,
             RailInterpreter interpreter,
             RailPacketIncoming reusableIncoming,
-            RailPacketOutgoing reusableOutgoing) : base(resource, visibility, netPeer)
+            RailPacketOutgoing reusableOutgoing) : base(netPeer)
         {
             Resource = resource;
             RemoteClock = new RailClock(remoteSendRate);
@@ -134,7 +135,7 @@ namespace RailgunNet.Connection
                 RemoteClock.LatestRemote,
                 eventHistory.Latest,
                 FilterOutgoingEvents());
-            return (T) reusableOutgoing;
+            return (T)reusableOutgoing;
         }
 
         /// <summary>
@@ -166,7 +167,7 @@ namespace RailgunNet.Connection
         ///     A history buffer of received events.
         /// </summary>
         private readonly RailHistory eventHistory;
-        
+
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
@@ -209,6 +210,8 @@ namespace RailgunNet.Connection
             }
         }
 
+        public abstract bool ShouldSendEvent(RailEvent railEvent);
+
         /// <summary>
         ///     Selects outgoing events to send.
         /// </summary>
@@ -236,10 +239,8 @@ namespace RailgunNet.Connection
                 // Ignore dead events, they'll be cleaned up eventually
                 if (evnt.Attempts <= 0) continue;
 
-                // Don't send an event if it's out of scope for this peer
-                if (Scope != null && Scope.Includes(evnt) == false)
+                if (ShouldSendEvent(evnt) == false)
                 {
-                    // Skipping due to out of scope counts as an attempt
                     evnt.RegisterSkip();
                     continue;
                 }
@@ -282,19 +283,17 @@ namespace RailgunNet.Connection
         #endregion
     }
 
-    public class RailPeer<TIncoming, TOutgoing> : RailPeer
+    public abstract class RailPeer<TIncoming, TOutgoing> : RailPeer
         where TIncoming : RailPacketIncoming, new()
         where TOutgoing : RailPacketOutgoing, new()
     {
         protected RailPeer(
             RailResource resource,
             IRailNetPeer netPeer,
-            ExternalEntityVisibility visibility,
             uint remoteSendRate,
             RailInterpreter interpreter) : base(
             resource,
             netPeer,
-            visibility,
             remoteSendRate,
             interpreter,
             new TIncoming(),

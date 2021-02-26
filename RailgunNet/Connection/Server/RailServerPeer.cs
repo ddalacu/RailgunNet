@@ -20,9 +20,11 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.Logic.Scope;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
 using RailgunNet.Util;
@@ -35,16 +37,18 @@ namespace RailgunNet.Connection.Server
     [OnlyIn(Component.Server)]
     public class RailServerPeer : RailPeer<RailPacketFromClient, RailPacketToClient>
     {
+        public RailScope Scope { get; }
+
         public RailServerPeer(
             RailResource resource,
             IRailNetPeer netPeer,
             RailInterpreter interpreter) : base(
             resource,
             netPeer,
-            ExternalEntityVisibility.Scoped,
             RailConfig.CLIENT_SEND_RATE,
             interpreter)
         {
+            Scope = new RailScope(this, resource);
         }
 
         /// <summary>
@@ -73,9 +77,18 @@ namespace RailgunNet.Connection.Server
         {
             base.ProcessPacket(packetBase, localTick);
 
-            RailPacketFromClient clientPacket = (RailPacketFromClient) packetBase;
+            RailPacketFromClient clientPacket = (RailPacketFromClient)packetBase;
             Scope.IntegrateAcked(clientPacket.View);
             PacketReceived?.Invoke(this, clientPacket);
+        }
+
+        public override bool ShouldSendEvent(RailEvent railEvent)
+        {
+            // Don't send an event if it's out of scope for this peer
+            if (Scope.Includes(railEvent) == false)
+                return false;
+
+            return true;
         }
 
         public void GrantControl(RailEntityServer entity)

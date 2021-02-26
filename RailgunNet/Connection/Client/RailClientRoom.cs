@@ -65,7 +65,7 @@ namespace RailgunNet.Connection.Client
 
             pendingEntities = new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
             knownEntities = new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
-            localPeer = new RailController(resource, ExternalEntityVisibility.All, null);
+            localPeer = new RailController(null);
             this.client = client;
         }
 
@@ -111,7 +111,7 @@ namespace RailgunNet.Connection.Client
             // separate them out for either update or removal
             foreach (RailEntityBase railEntityBase in Entities)
             {
-                RailEntityClient entity = (RailEntityClient) railEntityBase;
+                RailEntityClient entity = (RailEntityClient)railEntityBase;
                 if (entity.ShouldRemove)
                 {
                     ToRemove.Add(entity);

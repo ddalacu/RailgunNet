@@ -45,7 +45,6 @@ namespace RailgunNet.Connection.Client
             RailInterpreter interpreter) : base(
             resource,
             netPeer,
-            ExternalEntityVisibility.All,
             RailConfig.SERVER_SEND_RATE,
             interpreter)
         {
@@ -86,6 +85,8 @@ namespace RailgunNet.Connection.Client
 
             PacketReceived?.Invoke(packetFromServer);
         }
+
+        public override bool ShouldSendEvent(RailEvent railEvent) => true;
 
         private IEnumerable<RailCommandUpdate> ProduceCommandUpdates(
             IEnumerable<RailEntityBase> entities)

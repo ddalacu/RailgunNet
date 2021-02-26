@@ -37,16 +37,10 @@ namespace RailgunNet.Logic
         /// </summary>
         private readonly HashSet<RailEntityBase> controlledEntities;
 
-        public RailController(
-            IRailStateConstruction stateCreator,
-            ExternalEntityVisibility eVisibility,
-            [CanBeNull] IRailNetPeer netPeer)
+        public RailController([CanBeNull] IRailNetPeer netPeer)
         {
             controlledEntities = new HashSet<RailEntityBase>();
             NetPeer = netPeer;
-            Scope = eVisibility == ExternalEntityVisibility.Scoped ?
-                new RailScope(this, stateCreator) :
-                null;
         }
 
         /// <summary>
@@ -61,13 +55,6 @@ namespace RailgunNet.Logic
             throw new InvalidOperationException("Local controller has no remote tick");
 
         public IEnumerable<RailEntityBase> ControlledEntities => controlledEntities;
-
-        /// <summary>
-        ///     Used for determining which entity updates to send.
-        /// </summary>
-        [CanBeNull]
-        [OnlyIn(Component.Server)]
-        public RailScope Scope { get; }
 
         #region Controller
         /// <summary>
