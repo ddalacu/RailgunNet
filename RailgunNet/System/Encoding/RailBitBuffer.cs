@@ -454,6 +454,36 @@ namespace RailgunNet.System.Encoding
             return (byte)Peek(8);
         }
         #endregion
+        
+        #region Byte array
+        [Encoder]
+        public void WriteByteArray(byte[] val)
+        {
+            // Length
+            WriteUInt((uint) val.Length);
+            
+            // Content
+            foreach (byte b in val)
+            {
+                WriteByte(b);
+            }
+        }
+
+        [Decoder]
+        public byte[] ReadByteArray()
+        {
+            // Length
+            uint count = ReadUInt();
+            
+            // Content
+            byte[] bytes = new byte[count];
+            for (uint i = 0; i < count; i++)
+            {
+                bytes[i] = ReadByte();
+            }
+            return bytes;
+        }
+        #endregion
 
         #region UInt
         /// <summary>
