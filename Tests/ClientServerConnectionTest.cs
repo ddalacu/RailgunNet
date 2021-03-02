@@ -81,7 +81,7 @@ namespace Tests.Example
             RailClientRoom clientRoom = client.StartRoom();
             RailServerRoom serverRoom = server.StartRoom();
             EntityServer entityServerSide = serverRoom.AddNewEntity<EntityServer>();
-            server.AddClient(peerServerSide.Object, "");
+            server.AddClient(peerServerSide.Object, "", out _);
             client.SetPeer(peerClientSide.Object);
 
             // Nothing has been sent or received yet
