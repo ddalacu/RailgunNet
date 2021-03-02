@@ -61,13 +61,17 @@ namespace RailgunNet.Connection.Server
 
         private void DecodeView(RailBitBuffer buffer)
         {
-            IEnumerable<KeyValuePair<EntityId, RailViewEntry>> decoded = buffer.UnpackAll(
-                buf => new KeyValuePair<EntityId, RailViewEntry>(
-                    buf.ReadEntityId(), // Read: [EntityId] 
-                    new RailViewEntry(
-                        buf.ReadTick(), // Read: [LastReceivedTick]
-                        Tick.INVALID, // (Local tick not transmitted)
-                        buf.ReadBool())) // Read: [IsFrozen]
+            var decoded = buffer.UnpackAll(
+                buf =>
+                {
+                    var entityId = buf.ReadEntityId(); // Read: [EntityId] 
+                    var tick = buf.ReadTick(); // Read: [Tick] 
+                    var isFrozen = buf.ReadBool();// Read: [IsFrozen]
+
+                    var railViewEntry = new RailViewEntry(tick, Tick.INVALID, isFrozen);
+
+                    return new KeyValuePair<EntityId, RailViewEntry>(entityId, railViewEntry);
+                }
             );
 
             foreach (KeyValuePair<EntityId, RailViewEntry> pair in decoded)
