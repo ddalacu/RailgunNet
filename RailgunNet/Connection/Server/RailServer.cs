@@ -83,11 +83,11 @@ namespace RailgunNet.Connection.Server
         ///     from the network API wrapper.
         /// </summary>
         [PublicAPI]
-        public void AddClient(IRailNetPeer netPeer, string identifier)
+        public bool AddClient(IRailNetPeer netPeer, string identifier,out RailServerPeer client)
         {
             if (clients.ContainsKey(netPeer) == false)
             {
-                RailServerPeer client = new RailServerPeer(Resource, netPeer, Interpreter)
+                client = new RailServerPeer(Resource, netPeer, Interpreter)
                 {
                     Identifier = identifier
                 };
@@ -96,7 +96,11 @@ namespace RailgunNet.Connection.Server
                 clients.Add(netPeer, client);
                 Room.AddClient(client);
                 ClientAdded?.Invoke(client);
+                return true;
             }
+
+            client = default;
+            return false;
         }
 
         [PublicAPI] public event Action<RailServerPeer> ClientAdded;

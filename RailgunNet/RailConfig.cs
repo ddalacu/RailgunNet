@@ -30,12 +30,6 @@ namespace RailgunNet
 
     public static class RailConfig
     {
-        public enum RailApplication
-        {
-            Client,
-            Server
-        }
-
         /// <summary>
         ///     Network send rate in ticks/packet.
         /// </summary>

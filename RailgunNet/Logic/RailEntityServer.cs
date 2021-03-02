@@ -26,32 +26,28 @@ namespace RailgunNet.Logic
         protected override RailState StateBase
         {
             get => State;
-            set => State = (TState) value;
+            set => State = (TState)value;
         }
     }
 
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
-    public class RailEntityServer<TState, TCommand> : RailEntityServer<TState>
+    public abstract class RailEntityServer<TState, TCommand> : RailEntityServer<TState>
         where TState : RailState, new()
         where TCommand : RailCommand
     {
-        #region Public API
         /// <summary>
         ///     Applies a command to this instance.
         ///     Called on controller and server.
         /// </summary>
         /// <param name="toApply"></param>
         [PublicAPI]
-        protected virtual void ApplyCommand(TCommand toApply)
-        {
-        }
-        #endregion
+        protected abstract void ApplyCommand(TCommand toApply);
 
         protected sealed override void ApplyControlGeneric(RailCommand toApply)
         {
-            ApplyCommand((TCommand) toApply);
+            ApplyCommand((TCommand)toApply);
         }
     }
 
@@ -80,7 +76,7 @@ namespace RailgunNet.Logic
         public override RailRoom RoomBase
         {
             get => Room;
-            set => Room = (RailServerRoom) value;
+            set => Room = (RailServerRoom)value;
         }
 
         [PublicAPI] protected RailServerRoom Room { get; private set; }
@@ -121,7 +117,7 @@ namespace RailgunNet.Logic
             where T : RailEntityServer
         {
             int factoryType = resource.GetEntityFactoryType<T>();
-            return (T) Create(resource, factoryType);
+            return (T)Create(resource, factoryType);
         }
 
         public void StoreRecord(IRailStateConstruction stateCreator)

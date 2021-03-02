@@ -28,19 +28,19 @@ namespace RailgunNet.Logic
         protected override RailState StateBase
         {
             get => State;
-            set => State = (TState) value;
+            set => State = (TState)value;
         }
 
         protected override RailState AuthStateBase
         {
             get => authState;
-            set => authState = (TState) value;
+            set => authState = (TState)value;
         }
 
         protected override RailState NextAuthStateBase
         {
             get => nextState;
-            set => nextState = (TState) value;
+            set => nextState = (TState)value;
         }
 
         #region Public API
@@ -99,30 +99,27 @@ namespace RailgunNet.Logic
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
     /// </summary>
-    public class RailEntityClient<TState, TCommand> : RailEntityClient<TState>
+    public abstract class RailEntityClient<TState, TCommand> : RailEntityClient<TState>
         where TState : RailState, new()
         where TCommand : RailCommand, new()
     {
         protected sealed override void WriteCommandGeneric(RailCommand toPopulate)
         {
-            WriteCommand((TCommand) toPopulate);
+            WriteCommand((TCommand)toPopulate);
         }
 
         protected sealed override void ApplyControlGeneric(RailCommand toApply)
         {
-            ApplyCommand((TCommand) toApply);
+            ApplyCommand((TCommand)toApply);
         }
 
-        #region Public API
         /// <summary>
         ///     Populate the provided command instance.
         ///     Called on client controller.
         /// </summary>
         /// <param name="toPopulate"></param>
         [PublicAPI]
-        protected virtual void WriteCommand(TCommand toPopulate)
-        {
-        }
+        protected abstract void WriteCommand(TCommand toPopulate);
 
         /// <summary>
         ///     Applies a command to this instance.
@@ -130,10 +127,8 @@ namespace RailgunNet.Logic
         /// </summary>
         /// <param name="toApply"></param>
         [PublicAPI]
-        protected virtual void ApplyCommand(TCommand toApply)
-        {
-        }
-        #endregion
+        protected abstract void ApplyCommand(TCommand toApply);
+
     }
 
     public abstract class RailEntityClient : RailEntityBase
@@ -158,7 +153,7 @@ namespace RailgunNet.Logic
         public override RailRoom RoomBase
         {
             get => Room;
-            set => Room = (RailClientRoom) value;
+            set => Room = (RailClientRoom)value;
         }
 
         [PublicAPI] protected RailClientRoom Room { get; private set; }
