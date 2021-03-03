@@ -52,6 +52,8 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         private readonly List<RailEntityServer> removedEntities = new List<RailEntityServer>();
 
+        public IReadOnlyList<RailServerPeer> Clients => clients;
+
         public RailServerRoom(RailResource resource, RailServer server) : base(resource, server)
         {
             updateBuffer = new List<RailEntityServer>();
