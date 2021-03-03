@@ -36,7 +36,7 @@ namespace RailgunNet.Connection.Server
         ///     All client controllers involved in this room.
         ///     Does not include the server's controller.
         /// </summary>
-        private readonly HashSet<RailServerPeer> clients;
+        private readonly List<RailServerPeer> clients;
 
         /// <summary>
         ///     Used for creating new entities and assigning them unique ids.
@@ -57,7 +57,7 @@ namespace RailgunNet.Connection.Server
             updateBuffer = new List<RailEntityServer>();
             removeBuffer = new List<RailEntityServer>();
 
-            clients = new HashSet<RailServerPeer>();
+            clients = new List<RailServerPeer>();
         }
 
         /// <summary>
@@ -147,8 +147,11 @@ namespace RailgunNet.Connection.Server
 
         public void AddClient(RailServerPeer client)
         {
-            if (clients.Add(client))
+            var index = clients.IndexOf(client);
+
+            if (index == -1)
             {
+                clients.Add(client);
                 ClientJoined?.Invoke(client);
             }
         }
@@ -186,18 +189,24 @@ namespace RailgunNet.Connection.Server
 
             foreach (var railEntityServer in removeBuffer)
                 RemoveEntity(railEntityServer);
+            removeBuffer.Clear();
+
+            int updateBufferCount = updateBuffer.Count;
 
             // Wave 1: Start/initialize all entities
-            updateBuffer.ForEach(e => e.PreUpdate());
+            for (var index = 0; index < updateBufferCount; index++)
+                updateBuffer[index].PreUpdate();
 
             // Wave 2: Update all entities
-            updateBuffer.ForEach(e => e.ServerUpdate());
+            for (var index = 0; index < updateBufferCount; index++)
+                updateBuffer[index].ServerUpdate();
 
             // Wave 3: Post-update all entities
-            updateBuffer.ForEach(e => e.PostUpdate());
+            for (var index = 0; index < updateBufferCount; index++)
+                updateBuffer[index].PostUpdate();
 
-            removeBuffer.Clear();
             updateBuffer.Clear();
+
             OnPostRoomUpdate(Tick);
         }
 

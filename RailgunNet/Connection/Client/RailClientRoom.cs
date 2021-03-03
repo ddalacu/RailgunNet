@@ -55,11 +55,14 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private readonly Dictionary<EntityId, RailEntityClient> pendingEntities;
 
+        private List<RailEntityClient> toRemoveBuffer; // Pre-allocated removal list
+        private List<RailEntityClient> toUpdateBuffer; // Pre-allocated update list
+
         public RailClientRoom(RailResource resource, RailClient client) : base(resource, client)
         {
             eventCreator = resource;
-            ToUpdate = new List<RailEntityClient>();
-            ToRemove = new List<RailEntityClient>();
+            toUpdateBuffer = new List<RailEntityClient>();
+            toRemoveBuffer = new List<RailEntityClient>();
 
             IEqualityComparer<EntityId> entityIdComparer = EntityId.CreateEqualityComparer();
 
@@ -68,9 +71,6 @@ namespace RailgunNet.Connection.Client
             localPeer = new RailController(null);
             this.client = client;
         }
-
-        private List<RailEntityClient> ToRemove { get; } // Pre-allocated removal list
-        private List<RailEntityClient> ToUpdate { get; } // Pre-allocated update list
 
         /// <summary>
         ///     Returns all locally-controlled entities in the room.
@@ -109,32 +109,37 @@ namespace RailgunNet.Connection.Client
                 RailEntityClient entity = (RailEntityClient)railEntityBase;
                 if (entity.ShouldRemove)
                 {
-                    ToRemove.Add(entity);
+                    toRemoveBuffer.Add(entity);
                 }
                 else
                 {
-                    ToUpdate.Add(entity);
+                    toUpdateBuffer.Add(entity);
                 }
             }
 
             // Wave 0: Remove all sunsetted entities
-            foreach (var railEntityClient in ToRemove)
+            foreach (var railEntityClient in toRemoveBuffer)
             {
                 if (RemoveEntity(railEntityClient))
                     knownEntities.Remove(railEntityClient.Id);
             }
 
+            toRemoveBuffer.Clear();
+
             // Wave 1: Start/initialize all entities
-            ToUpdate.ForEach(e => e.PreUpdate());
+            int updateCount = toUpdateBuffer.Count;
+            for (var index = 0; index < updateCount; index++) 
+                toUpdateBuffer[index].PreUpdate();
 
             // Wave 2: Update all entities
-            ToUpdate.ForEach(e => e.ClientUpdate(localTick));
+            for (var index = 0; index < updateCount; index++)
+                toUpdateBuffer[index].ClientUpdate(localTick);
 
             // Wave 3: Post-update all entities
-            ToUpdate.ForEach(e => e.PostUpdate());
+            for (var index = 0; index < updateCount; index++)
+                toUpdateBuffer[index].PostUpdate();
 
-            ToRemove.Clear();
-            ToUpdate.Clear();
+            toUpdateBuffer.Clear();
             OnPostRoomUpdate(estimatedServerTick);
         }
 
@@ -178,7 +183,7 @@ namespace RailgunNet.Connection.Client
                 if (!entity.HasReadyState(serverTick)) continue;
 
                 // Note: We're using ToRemove here to remove from the *pending* list
-                ToRemove.Add(entity);
+                toRemoveBuffer.Add(entity);
 
                 // If the entity was removed while pending, forget about it
                 Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
@@ -192,12 +197,12 @@ namespace RailgunNet.Connection.Client
                 }
             }
 
-            foreach (RailEntityClient entity in ToRemove)
+            foreach (RailEntityClient entity in toRemoveBuffer)
             {
                 pendingEntities.Remove(entity.Id);
             }
 
-            ToRemove.Clear();
+            toRemoveBuffer.Clear();
         }
 
         public void RequestControlUpdate(RailEntityClient entity, RailStateDelta delta)
