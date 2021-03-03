@@ -95,7 +95,7 @@ namespace RailgunNet.Connection.Client
         [PublicAPI] public event Action<RailClientPeer> Disconnected;
 
         [PublicAPI]
-        public override void Update()
+        public void Update()
         {
             if (ServerPeer != null)
             {

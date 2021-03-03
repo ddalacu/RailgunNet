@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
@@ -35,42 +36,42 @@ namespace RailgunNet.Connection.Server
         ///     All client controllers involved in this room.
         ///     Does not include the server's controller.
         /// </summary>
-        private readonly HashSet<RailPeer> clients;
-
-        /// <summary>
-        ///     The local Railgun server.
-        /// </summary>
-        private readonly RailServer server;
+        private readonly HashSet<RailServerPeer> clients;
 
         /// <summary>
         ///     Used for creating new entities and assigning them unique ids.
         /// </summary>
         private EntityId nextEntityId = EntityId.START;
 
+        private List<RailEntityServer> removeBuffer;// Pre-allocated removal list
+
+        private List<RailEntityServer> updateBuffer; // Pre-allocated update list
+
+        /// <summary>
+        ///     Entities that have been removed or are about to be.
+        /// </summary>
+        private readonly List<RailEntityServer> removedEntities = new List<RailEntityServer>();
+
         public RailServerRoom(RailResource resource, RailServer server) : base(resource, server)
         {
-            ToUpdate = new List<RailEntityServer>();
-            ToRemove = new List<RailEntityServer>();
+            updateBuffer = new List<RailEntityServer>();
+            removeBuffer = new List<RailEntityServer>();
 
-            clients = new HashSet<RailPeer>();
-            this.server = server;
+            clients = new HashSet<RailServerPeer>();
         }
-
-        private List<RailEntityServer> ToRemove { get; } // Pre-allocated removal list
-        private List<RailEntityServer> ToUpdate { get; } // Pre-allocated update list
 
         /// <summary>
         ///     Fired when a controller has been added (i.e. player join).
         ///     The controller has control of no entities at this point.
         /// </summary>
-        public event Action<RailController> ClientJoined;
+        public event Action<RailServerPeer> ClientJoined;
 
         /// <summary>
         ///     Fired when a controller has been removed (i.e. player leave).
         ///     This event fires before the controller has control of its entities
         ///     revoked (this is done immediately afterwards).
         /// </summary>
-        public event Action<RailController> ClientLeft;
+        public event Action<RailServerPeer> ClientLeft;
 
         /// <summary>
         ///     Adds an entity to the room. Cannot be done during the update pass.
@@ -113,7 +114,8 @@ namespace RailgunNet.Connection.Server
                 }
 
                 serverEntity.MarkForRemoval();
-                server.LogRemovedEntity(serverEntity);
+
+                removedEntities.Add(serverEntity);
             }
         }
 
@@ -143,16 +145,20 @@ namespace RailgunNet.Connection.Server
             }
         }
 
-        public void AddClient(RailPeer client)
+        public void AddClient(RailServerPeer client)
         {
-            clients.Add(client);
-            OnClientJoined(client);
+            if (clients.Add(client))
+            {
+                ClientJoined?.Invoke(client);
+            }
         }
 
-        public void RemoveClient(RailPeer client)
+        public void RemoveClient(RailServerPeer client)
         {
-            clients.Remove(client);
-            OnClientLeft(client);
+            if (clients.Remove(client))
+            {
+                ClientLeft?.Invoke(client);
+            }
         }
 
         public void ServerUpdate()
@@ -164,34 +170,34 @@ namespace RailgunNet.Connection.Server
             // separate them out for either update or removal
             foreach (var railEntityBase in Entities)
             {
-                var entity = (RailEntityServer) railEntityBase;
+                var entity = (RailEntityServer)railEntityBase;
 
                 if (entity.ShouldRemove)
                 {
-                    ToRemove.Add(entity);
+                    removeBuffer.Add(entity);
                 }
                 else
                 {
-                    ToUpdate.Add(entity);
+                    updateBuffer.Add(entity);
                 }
             }
 
             // Wave 0: Remove all sunsetted entities
 
-            foreach (var railEntityServer in ToRemove) 
+            foreach (var railEntityServer in removeBuffer)
                 RemoveEntity(railEntityServer);
 
             // Wave 1: Start/initialize all entities
-            ToUpdate.ForEach(e => e.PreUpdate());
+            updateBuffer.ForEach(e => e.PreUpdate());
 
             // Wave 2: Update all entities
-            ToUpdate.ForEach(e => e.ServerUpdate());
+            updateBuffer.ForEach(e => e.ServerUpdate());
 
             // Wave 3: Post-update all entities
-            ToUpdate.ForEach(e => e.PostUpdate());
+            updateBuffer.ForEach(e => e.PostUpdate());
 
-            ToRemove.Clear();
-            ToUpdate.Clear();
+            removeBuffer.Clear();
+            updateBuffer.Clear();
             OnPostRoomUpdate(Tick);
         }
 
@@ -212,14 +218,59 @@ namespace RailgunNet.Connection.Server
             return entity;
         }
 
-        private void OnClientJoined(RailController client)
+        /// <summary>
+        ///     Cleans out any removed entities from the removed list
+        ///     if they have been acked by all clients.
+        /// </summary>
+        public void CleanRemovedEntities()
         {
-            ClientJoined?.Invoke(client);
+            // TODO: Retire the Id in all of the views as well?
+            for (var index = 0; index < removedEntities.Count; index++)
+            {
+                var entity = removedEntities[index];
+                bool canRemove = true;
+
+                var id = entity.Id;
+
+                foreach (RailServerPeer peer in clients)
+                {
+                    Tick lastSent = peer.Scope.GetLastSent(id);
+                    if (lastSent.IsValid == false) continue; // Was never sent in the first place
+
+                    Tick lastAcked = peer.Scope.GetLastAckedByClient(id);
+                    if (lastAcked.IsValid && lastAcked >= entity.RemovedTick)
+                    {
+                        continue; // Remove tick was acked by the client
+                    }
+
+                    // Otherwise, not safe to remove
+                    canRemove = false;
+                    break;
+                }
+
+                if (canRemove)
+                {
+                    var lastIndex = removedEntities.Count - 1;
+                    var lastElement = removedEntities[lastIndex];
+                    removedEntities[lastIndex] = removedEntities[index];
+                    removedEntities[index] = lastElement;
+
+                    removedEntities.RemoveAt(lastIndex);
+                    index--;//remain at same index which is now the last item
+                }
+            }
         }
 
-        private void OnClientLeft(RailController client)
+
+        /// <summary>
+        ///     Packs and sends a server-to-client packet to each peer.
+        /// </summary>
+        public void BroadcastPackets()
         {
-            ClientLeft?.Invoke(client);
+            foreach (var clientPeer in clients)
+            {
+                clientPeer.SendPacket(Tick, Entities.Select(e => e as RailEntityServer), removedEntities);
+            }
         }
     }
 }

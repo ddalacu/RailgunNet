@@ -51,8 +51,6 @@ namespace RailgunNet.Connection
 
         [PublicAPI] public event Action Started;
 
-        public abstract void Update();
-
         protected void SetRoom(RailRoom room, Tick startTick)
         {
             Room = room;

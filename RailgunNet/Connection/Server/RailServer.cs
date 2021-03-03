@@ -20,7 +20,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
@@ -50,13 +49,6 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         [PublicAPI] [NotNull] public IReadOnlyCollection<RailServerPeer> ConnectedClients => clients.Values;
 
-        /// <summary>
-        ///     Entities that have been removed or are about to be.
-        /// </summary>
-        private readonly Dictionary<EntityId, RailEntityServer> removedEntities = new Dictionary<EntityId, RailEntityServer>();
-
-        private readonly List<RailEntityServer> toRemove = new List<RailEntityServer>(); // Pre-allocated list for reuse
-
         public RailServer(RailRegistry registry) : base(registry)
         {
         }
@@ -83,7 +75,7 @@ namespace RailgunNet.Connection.Server
         ///     from the network API wrapper.
         /// </summary>
         [PublicAPI]
-        public bool AddClient(IRailNetPeer netPeer, string identifier,out RailServerPeer client)
+        public bool AddClient(IRailNetPeer netPeer, string identifier, out RailServerPeer client)
         {
             if (clients.ContainsKey(netPeer) == false)
             {
@@ -131,7 +123,7 @@ namespace RailgunNet.Connection.Server
         ///     FixedUpdate pass).
         /// </summary>
         [PublicAPI]
-        public override void Update()
+        public void Update()
         {
             DoStart();
 
@@ -141,69 +133,14 @@ namespace RailgunNet.Connection.Server
             }
 
             Room.ServerUpdate();
+
             if (Room.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE))
             {
                 Room.StoreStates();
-                BroadcastPackets();
+                Room.BroadcastPackets();
             }
 
-            CleanRemovedEntities();
-        }
-
-        public void LogRemovedEntity(RailEntityServer entity)
-        {
-            removedEntities.Add(entity.Id, entity);
-        }
-
-        /// <summary>
-        ///     Cleans out any removed entities from the removed list
-        ///     if they have been acked by all clients.
-        /// </summary>
-        private void CleanRemovedEntities()
-        {
-            // TODO: Retire the Id in all of the views as well?
-
-            foreach (KeyValuePair<EntityId, RailEntityServer> kvp in removedEntities)
-            {
-                bool canRemove = true;
-                EntityId id = kvp.Key;
-                RailEntityServer entity = kvp.Value;
-
-                foreach (RailServerPeer peer in clients.Values)
-                {
-                    Tick lastSent = peer.Scope.GetLastSent(id);
-                    if (lastSent.IsValid == false) continue; // Was never sent in the first place
-
-                    Tick lastAcked = peer.Scope.GetLastAckedByClient(id);
-                    if (lastAcked.IsValid && lastAcked >= entity.RemovedTick)
-                    {
-                        continue; // Remove tick was acked by the client
-                    }
-
-                    // Otherwise, not safe to remove
-                    canRemove = false;
-                    break;
-                }
-
-                if (canRemove) toRemove.Add(entity);
-            }
-
-            toRemove.ForEach(entityToRemove => removedEntities.Remove(entityToRemove.Id));
-            toRemove.Clear();
-        }
-
-        /// <summary>
-        ///     Packs and sends a server-to-client packet to each peer.
-        /// </summary>
-        private void BroadcastPackets()
-        {
-            foreach (RailServerPeer clientPeer in clients.Values)
-            {
-                clientPeer.SendPacket(
-                    Room.Tick,
-                    Room.Entities.Select(e => e as RailEntityServer),
-                    removedEntities.Values);
-            }
+            Room.CleanRemovedEntities();
         }
 
         #region Packet Receive
