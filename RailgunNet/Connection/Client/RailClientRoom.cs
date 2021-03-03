@@ -105,7 +105,7 @@ namespace RailgunNet.Connection.Client
         {
             Tick = estimatedServerTick;
             UpdatePendingEntities(estimatedServerTick);
-            OnPreRoomUpdate(Tick);
+            OnPreRoomUpdate(estimatedServerTick);
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
@@ -123,7 +123,11 @@ namespace RailgunNet.Connection.Client
             }
 
             // Wave 0: Remove all sunsetted entities
-            ToRemove.ForEach(RemoveEntity);
+            foreach (var railEntityClient in ToRemove)
+            {
+                if (RemoveEntity(railEntityClient))
+                    knownEntities.Remove(railEntityClient.Id);
+            }
 
             // Wave 1: Start/initialize all entities
             ToUpdate.ForEach(e => e.PreUpdate());
@@ -136,7 +140,7 @@ namespace RailgunNet.Connection.Client
 
             ToRemove.Clear();
             ToUpdate.Clear();
-            OnPostRoomUpdate(Tick);
+            OnPostRoomUpdate(estimatedServerTick);
         }
 
         /// <summary>

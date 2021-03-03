@@ -162,9 +162,10 @@ namespace RailgunNet.Connection.Server
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntityBase railEntityBase in Entities)
+            foreach (var railEntityBase in Entities)
             {
-                RailEntityServer entity = (RailEntityServer) railEntityBase;
+                var entity = (RailEntityServer) railEntityBase;
+
                 if (entity.ShouldRemove)
                 {
                     ToRemove.Add(entity);
@@ -176,7 +177,9 @@ namespace RailgunNet.Connection.Server
             }
 
             // Wave 0: Remove all sunsetted entities
-            ToRemove.ForEach(RemoveEntity);
+
+            foreach (var railEntityServer in ToRemove) 
+                RemoveEntity(railEntityServer);
 
             // Wave 1: Start/initialize all entities
             ToUpdate.ForEach(e => e.PreUpdate());

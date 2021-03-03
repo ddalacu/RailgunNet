@@ -20,7 +20,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using RailgunNet.Connection;
 using RailgunNet.Factory;
 using RailgunNet.System.Types;
@@ -70,10 +69,6 @@ namespace RailgunNet.Logic
         /// </summary>
         public event Action<RailEntityBase> EntityRemoved;
 
-        protected virtual void HandleRemovedEntity(EntityId entityId)
-        {
-        }
-
         public bool TryGet<T>(EntityId id, out T value)
             where T : RailEntityBase
         {
@@ -109,7 +104,7 @@ namespace RailgunNet.Logic
             entity.Added();
         }
 
-        protected void RemoveEntity(RailEntityBase entity)
+        protected bool RemoveEntity(RailEntityBase entity)
         {
             if (entities.ContainsKey(entity.Id))
             {
@@ -118,9 +113,11 @@ namespace RailgunNet.Logic
                 entity.Removed();
                 // TODO: Pooling entities?
 
-                HandleRemovedEntity(entity.Id);
                 EntityRemoved?.Invoke(entity);
+                return true;
             }
+
+            return false;
         }
     }
 }
