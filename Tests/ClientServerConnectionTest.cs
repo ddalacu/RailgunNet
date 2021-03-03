@@ -108,7 +108,7 @@ namespace Tests.Example
             Assert.Single(serverRoom.Entities);
 
             // Clients representation of the entity is identical to the server
-            RailEntityBase entityProxy = clientRoom.Entities.First();
+            RailEntityBase entityProxy = clientRoom.Entities.Values.First();
             Assert.IsType<EntityClient>(entityProxy);
             EntityClient entityClientSide = entityProxy as EntityClient;
             Assert.NotNull(entityClientSide);

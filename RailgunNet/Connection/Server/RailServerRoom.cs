@@ -164,6 +164,14 @@ namespace RailgunNet.Connection.Server
             }
         }
 
+        public void UpdateClients()
+        {
+            foreach (RailServerPeer client in clients)
+            {
+                client.Update(Tick);
+            }
+        }
+
         public void ServerUpdate()
         {
             Tick = Tick.GetNext();
@@ -171,7 +179,7 @@ namespace RailgunNet.Connection.Server
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (var railEntityBase in Entities)
+            foreach (var railEntityBase in Entities.Values)
             {
                 var entity = (RailEntityServer)railEntityBase;
 
@@ -212,7 +220,7 @@ namespace RailgunNet.Connection.Server
 
         public void StoreStates()
         {
-            foreach (RailEntityServer entity in Entities)
+            foreach (RailEntityServer entity in Entities.Values)
             {
                 entity.StoreRecord(Resource);
             }
@@ -278,7 +286,7 @@ namespace RailgunNet.Connection.Server
         {
             foreach (var clientPeer in clients)
             {
-                clientPeer.SendPacket(Tick, Entities.Select(e => e as RailEntityServer), removedEntities);
+                clientPeer.SendPacket(Tick, Entities.Values.Select(e => e as RailEntityServer), removedEntities);
             }
         }
     }

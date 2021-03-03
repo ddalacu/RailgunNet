@@ -215,8 +215,13 @@ namespace RailgunNet.Logic
         #region Lifecycle and Loop
         public virtual void PreUpdate()
         {
-            if (HasStarted == false) OnPreUpdate();
-            HasStarted = true;
+            if (HasStarted == false)
+            {
+                OnAdded();
+                HasStarted = true;
+            }
+
+            OnPreUpdate();
             NotifyControllerChanged();
         }
 
@@ -229,11 +234,6 @@ namespace RailgunNet.Logic
         {
             RailDebug.Assert(HasStarted);
             OnRemoved();
-        }
-
-        public virtual void Added()
-        {
-            OnAdded();
         }
         #endregion
     }

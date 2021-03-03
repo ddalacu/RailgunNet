@@ -127,10 +127,7 @@ namespace RailgunNet.Connection.Server
         {
             DoStart();
 
-            foreach (RailServerPeer client in clients.Values)
-            {
-                client.Update(Room.Tick);
-            }
+            Room.UpdateClients();
 
             Room.ServerUpdate();
 

@@ -104,7 +104,7 @@ namespace RailgunNet.Connection.Client
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntityBase railEntityBase in Entities)
+            foreach (RailEntityBase railEntityBase in Entities.Values)
             {
                 RailEntityClient entity = (RailEntityClient)railEntityBase;
                 if (entity.ShouldRemove)
@@ -128,7 +128,7 @@ namespace RailgunNet.Connection.Client
 
             // Wave 1: Start/initialize all entities
             int updateCount = toUpdateBuffer.Count;
-            for (var index = 0; index < updateCount; index++) 
+            for (var index = 0; index < updateCount; index++)
                 toUpdateBuffer[index].PreUpdate();
 
             // Wave 2: Update all entities

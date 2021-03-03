@@ -52,7 +52,7 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     All of the entities currently added to this room.
         /// </summary>
-        public Dictionary<EntityId, RailEntityBase>.ValueCollection Entities => entities.Values;
+        public IReadOnlyDictionary<EntityId, RailEntityBase> Entities => entities;
 
         /// <summary>
         ///     Fired before all entities have updated, for updating global logic.
@@ -101,7 +101,6 @@ namespace RailgunNet.Logic
         {
             entities.Add(entity.Id, entity);
             entity.RoomBase = this;
-            entity.Added();
         }
 
         protected bool RemoveEntity(RailEntityBase entity)
@@ -109,8 +108,8 @@ namespace RailgunNet.Logic
             if (entities.ContainsKey(entity.Id))
             {
                 entities.Remove(entity.Id);
-                entity.RoomBase = null;
                 entity.Removed();
+                entity.RoomBase = null;
                 // TODO: Pooling entities?
 
                 EntityRemoved?.Invoke(entity);
