@@ -77,11 +77,6 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         public IEnumerable<RailEntityBase> LocalEntities => localPeer.ControlledEntities;
 
-        protected override void HandleRemovedEntity(EntityId entityId)
-        {
-            knownEntities.Remove(entityId);
-        }
-
         /// <summary>
         ///     Queues an event to broadcast to the server with a number of retries.
         /// </summary>
