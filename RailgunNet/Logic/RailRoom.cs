@@ -19,7 +19,7 @@ namespace RailgunNet.Logic
             Tick = Tick.INVALID;
         }
 
-        protected RailResource Resource { get; }
+        public RailResource Resource { get; }
 
         public object UserData { get; set; }
 
