@@ -1,24 +1,4 @@
-﻿/*
- *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
- *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
- *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, subject to the following restrictions:
- *  
- *  1. The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  2. Altered source versions must be plainly marked as such, and must not be
- *     misrepresented as being the original software.
- *  3. This notice may not be removed or altered from any source distribution.
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
@@ -36,9 +16,11 @@ namespace RailgunNet.Connection.Server
     ///     managing connection contexts and payload I/O.
     /// </summary>
     [PublicAPI]
-    [OnlyIn(Component.Server)]
     public class RailServer : RailConnection
     {
+        private readonly uint remoteSendRate;
+        private readonly uint sendRate;
+
         /// <summary>
         ///     Collection of all participating clients.
         /// </summary>
@@ -49,8 +31,10 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         [PublicAPI] [NotNull] public IReadOnlyCollection<RailServerPeer> ConnectedClients => clients.Values;
 
-        public RailServer(RailRegistry registry) : base(registry)
+        public RailServer(RailRegistry<RailEntityServer> registry, uint remoteSendRate, uint sendRate) : base(registry)
         {
+            this.remoteSendRate = remoteSendRate;
+            this.sendRate = sendRate;
         }
 
         /// <summary>
@@ -79,7 +63,7 @@ namespace RailgunNet.Connection.Server
         {
             if (clients.ContainsKey(netPeer) == false)
             {
-                client = new RailServerPeer(Resource, netPeer, Interpreter)
+                client = new RailServerPeer(Resource, netPeer, remoteSendRate, Interpreter)
                 {
                     Identifier = identifier
                 };
@@ -131,7 +115,7 @@ namespace RailgunNet.Connection.Server
 
             Room.ServerUpdate();
 
-            if (Room.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE))
+            if (Room.Tick.IsSendTick(sendRate))
             {
                 Room.StoreStates();
                 Room.BroadcastPackets();

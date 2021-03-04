@@ -17,7 +17,6 @@ namespace RailgunNet.Connection.Server
     ///     Packet from the client received by the server. Corresponding packet on client
     ///     side is RailPacketToServer.
     /// </summary>
-    [OnlyIn(Component.Server)]
     public class RailPacketFromClient : RailPacketIncoming, IRailClientPacket
     {
         private readonly RailPackedListIncoming<RailCommandUpdate> commandUpdates;

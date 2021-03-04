@@ -29,8 +29,8 @@ namespace RailgunNet.Logic
 {
     public enum RailPolicy
     {
-        [OnlyIn(Component.Server)] NoProxy,
-        [OnlyIn(Component.Client)] NoFrozen
+        NoProxy,
+        NoFrozen
     }
 
     /// <summary>

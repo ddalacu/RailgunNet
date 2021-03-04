@@ -2,14 +2,12 @@
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
-using RailgunNet.Util;
 
 namespace RailgunNet.Connection.Client
 {
     /// <summary>
     ///     Packet sent from server to client.
     /// </summary>
-    [OnlyIn(Component.Client)]
     public sealed class RailPacketFromServer : RailPacketIncoming
     {
         private readonly RailPackedListIncoming<RailStateDelta> deltas;

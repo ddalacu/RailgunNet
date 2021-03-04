@@ -62,7 +62,6 @@ namespace RailgunNet.Logic
             DataSerializer.ResetData();
         }
 
-        [OnlyIn(Component.Client)]
         public void Encode(RailBitBuffer buffer)
         {
             // Write: [SenderTick]
@@ -72,7 +71,6 @@ namespace RailgunNet.Logic
             DataSerializer.EncodeData(buffer);
         }
 
-        [OnlyIn(Component.Server)]
         public static RailCommand Decode(
             IRailCommandConstruction commandCreator,
             RailBitBuffer buffer)

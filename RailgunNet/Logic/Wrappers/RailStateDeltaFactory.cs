@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 
 namespace RailgunNet.Logic.Wrappers
 {
@@ -15,7 +14,6 @@ namespace RailgunNet.Logic.Wrappers
         ///     to false, this function will return null if there is no change between
         ///     the current and basis.
         /// </summary>
-        [OnlyIn(Component.Server)]
         public static RailStateDelta Create(
             IRailStateConstruction stateCreator,
             EntityId entityId,

@@ -2,13 +2,11 @@
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 
 namespace RailgunNet.Logic.Wrappers
 {
     public static class RailStateDeltaSerializer
     {
-        [OnlyIn(Component.Server)]
         public static void EncodeDelta(
             IRailStateConstruction stateCreator,
             RailBitBuffer buffer,
@@ -64,7 +62,6 @@ namespace RailgunNet.Logic.Wrappers
             }
         }
 
-        [OnlyIn(Component.Client)]
         public static RailStateDelta DecodeDelta(
             IRailStateConstruction stateCreator,
             RailBitBuffer buffer,

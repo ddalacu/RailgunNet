@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Moq;
-using RailgunNet;
 using RailgunNet.Connection.Client;
 using RailgunNet.Connection.Server;
 using RailgunNet.Factory;
@@ -27,27 +26,31 @@ namespace Tests.Example
             peerServerSide.Object.OnSendPayload += peerClientSide.Object.ReceivePayload;
         }
 
-        private readonly RailClient client = new RailClient(Registry.Get(Component.Client));
-        private readonly RailServer server = new RailServer(Registry.Get(Component.Server));
+        private const int ServerSendRate = 3;
+
+        private const int ClientSendRate = 3;
+
+
+        private readonly RailClient client = new RailClient(Registry.GetClient(), ServerSendRate, ClientSendRate);
+        private readonly RailServer server = new RailServer(Registry.GetServer(), ClientSendRate, ServerSendRate);
 
         private readonly Mock<InMemoryNetPeerWrapper> peerClientSide;
         private readonly Mock<InMemoryNetPeerWrapper> peerServerSide;
 
         private static class Registry
         {
-            public static RailRegistry Get(Component eComponent)
+            public static RailRegistry<RailEntityServer> GetServer()
             {
-                RailRegistry registry = new RailRegistry(eComponent);
-                switch (eComponent)
-                {
-                    case Component.Server:
-                        registry.AddEntityType<EntityServer, EntityState>();
-                        break;
-                    case Component.Client:
-                        registry.AddEntityType<EntityClient, EntityState>();
-                        break;
-                }
+                var registry = new RailRegistry<RailEntityServer>();
+                registry.AddEntityType<EntityServer, EntityState>();
+                registry.SetCommandType<Command>();
+                return registry;
+            }
 
+            public static RailRegistry<RailEntityClient> GetClient()
+            {
+                var registry = new RailRegistry<RailEntityClient>();
+                registry.AddEntityType<EntityClient, EntityState>();
                 registry.SetCommandType<Command>();
                 return registry;
             }
@@ -95,7 +98,7 @@ namespace Tests.Example
             Assert.Single(serverRoom.Entities);
 
             // Let the server send its update to the client
-            for (int i = 0; i < RailConfig.SERVER_SEND_RATE + RailConfig.CLIENT_SEND_RATE + 1; ++i)
+            for (int i = 0; i < ServerSendRate + ClientSendRate + 1; ++i)
             {
                 peerServerSide.Object.PollEvents();
                 server.Update();
@@ -124,11 +127,11 @@ namespace Tests.Example
 
             // Let the server detect the change and send the packet
             server.Update();
-            bool bWasSendTick = serverRoom.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE);
+            bool bWasSendTick = serverRoom.Tick.IsSendTick(ServerSendRate);
             while (!bWasSendTick)
             {
                 server.Update();
-                bWasSendTick = serverRoom.Tick.IsSendTick(RailConfig.SERVER_SEND_RATE);
+                bWasSendTick = serverRoom.Tick.IsSendTick(ServerSendRate);
             }
 
             // Let the client receive & process the packet. We need to bring the client up to the same tick as the server to see the result.

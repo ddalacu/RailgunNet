@@ -20,24 +20,8 @@
 
 namespace RailgunNet
 {
-    public enum Component
-    {
-        Client,
-        Server
-    }
-
     public static class RailConfig
     {
-        /// <summary>
-        ///     Network send rate in ticks/packet.
-        /// </summary>
-        public const int SERVER_SEND_RATE = 1;
-
-        /// <summary>
-        ///     Network send rate in ticks/packet.
-        /// </summary>
-        public const int CLIENT_SEND_RATE = 1;
-
         /// <summary>
         ///     Number of outgoing commands to send per packet.
         /// </summary>

@@ -1,30 +1,9 @@
-﻿/*
- *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
- *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
- *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, subject to the following restrictions:
- *  
- *  1. The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  2. Altered source versions must be plainly marked as such, and must not be
- *     misrepresented as being the original software.
- *  3. This notice may not be removed or altered from any source distribution.
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding.Compressors;
-using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Factory
@@ -43,7 +22,6 @@ namespace RailgunNet.Factory
         private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
         private readonly Dictionary<Type, int> eventTypeToKey;
 
-        [OnlyIn(Component.Server)]
         [CanBeNull]
         private readonly IRailMemoryPool<RailStateRecord> recordPool;
 
@@ -69,10 +47,9 @@ namespace RailgunNet.Factory
             commandUpdatePool =
                 new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 
-            if (registry.Component == Component.Server)
+            if (registry is RailRegistry<RailEntityServer>)
             {
-                recordPool =
-                    new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
+                recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
             }
         }
 
@@ -143,7 +120,7 @@ namespace RailgunNet.Factory
         public T CreateEvent<T>()
             where T : RailEvent
         {
-            return (T) CreateEvent(eventTypeToKey[typeof(T)]);
+            return (T)CreateEvent(eventTypeToKey[typeof(T)]);
         }
 
         public RailStateDelta CreateDelta()
@@ -156,7 +133,6 @@ namespace RailgunNet.Factory
             return commandUpdatePool.Allocate();
         }
 
-        [OnlyIn(Component.Server)]
         public RailStateRecord CreateRecord()
         {
             return recordPool?.Allocate();

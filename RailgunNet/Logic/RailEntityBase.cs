@@ -70,7 +70,7 @@ namespace RailgunNet.Logic
         public RailController Controller { get; private set; }
 
         // Synchronization info
-        public EntityId Id { get; private set; }
+        public EntityId Id { get; protected set; }
 
         protected virtual void Reset()
         {
@@ -86,11 +86,6 @@ namespace RailgunNet.Logic
 
             // We always notify a controller change at start
             deferNotifyControllerChanged = true;
-        }
-
-        public void AssignId(EntityId id)
-        {
-            Id = id;
         }
 
         public void AssignController(RailController controller)

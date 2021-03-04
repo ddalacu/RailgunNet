@@ -81,6 +81,11 @@ namespace RailgunNet.Logic
 
         [PublicAPI] protected RailServerRoom Room { get; private set; }
 
+        public void Initialize(EntityId id)
+        {
+            this.Id = id;
+        }
+
         public void MarkForRemoval()
         {
             // We'll remove on the next tick since we're probably 

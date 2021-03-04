@@ -270,7 +270,7 @@ namespace RailgunNet.System.Types
             return "Tick:" + (tickValue - 1);
         }
 
-        public bool IsSendTick(int tickRate)
+        public bool IsSendTick(uint tickRate)
         {
             if (IsValid) return RawValue % tickRate == 0;
             return false;

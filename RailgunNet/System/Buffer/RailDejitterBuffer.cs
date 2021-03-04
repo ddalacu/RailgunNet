@@ -36,12 +36,14 @@ namespace RailgunNet.System.Buffer
         // Used for converting a key to an index. For example, the server may only
         // send a snapshot every two ticks, so we would divide the tick number
         // key by 2 so as to avoid wasting space in the frame buffer
-        private readonly int divisor;
+        private readonly uint divisor;
         private readonly List<T> returnList; // A reusable list for returning results
         private readonly Comparer<Tick> tickComparer;
         private int latestIdx;
 
-        public RailDejitterBuffer(int capacity, int divisor = 1)
+        public uint Divisor => divisor;
+
+        public RailDejitterBuffer(int capacity, uint divisor = 1)
         {
             returnList = new List<T>();
             this.divisor = divisor;

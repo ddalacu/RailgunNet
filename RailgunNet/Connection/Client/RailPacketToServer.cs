@@ -31,7 +31,6 @@ namespace RailgunNet.Connection.Client
     /// <summary>
     ///     Packet sent from client to server.
     /// </summary>
-    [OnlyIn(Component.Client)]
     public sealed class RailPacketToServer : RailPacketOutgoing
     {
         private readonly RailPackedListOutgoing<RailCommandUpdate> commandUpdates;

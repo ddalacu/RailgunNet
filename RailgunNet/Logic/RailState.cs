@@ -80,7 +80,6 @@ namespace RailgunNet.Logic
             HasImmutableData = source.HasImmutableData;
         }
 
-        [OnlyIn(Component.Client)]
         public void ApplyDelta(RailStateDelta delta)
         {
             RailState deltaState = delta.State;

@@ -133,7 +133,7 @@ namespace RailgunNet.Logic
 
     public abstract class RailEntityClient : RailEntityBase
     {
-        private readonly RailDejitterBuffer<RailStateDelta> incomingStates;
+        private RailDejitterBuffer<RailStateDelta> incomingStates;
         private readonly Queue<RailCommand> outgoingCommands;
 
         private Tick authTick;
@@ -142,11 +142,7 @@ namespace RailgunNet.Logic
 
         protected RailEntityClient()
         {
-            incomingStates = new RailDejitterBuffer<RailStateDelta>(
-                RailConfig.DEJITTER_BUFFER_LENGTH,
-                RailConfig.SERVER_SEND_RATE);
             outgoingCommands = new Queue<RailCommand>();
-
             Reset();
         }
 
@@ -191,6 +187,22 @@ namespace RailgunNet.Logic
         ///     Note that this does not take client-side prediction into account.
         /// </summary>
         public int TicksAhead => RoomBase.Tick - authTick;
+
+        public void Initialize(EntityId id, uint serverSendRate)
+        {
+            Id = id;
+
+            if (incomingStates == null)
+            {
+                incomingStates = new RailDejitterBuffer<RailStateDelta>(
+                    RailConfig.DEJITTER_BUFFER_LENGTH,
+                    serverSendRate);
+            }
+            else
+            {
+                RailDebug.Assert(incomingStates.Divisor == serverSendRate);
+            }
+        }
 
         public float ComputeInterpolation(float tickDeltaTime, float timeSinceTick)
         {
@@ -311,7 +323,8 @@ namespace RailgunNet.Logic
             IsFrozen = true; // Entities start frozen on client
             shouldBeFrozen = true;
 
-            incomingStates.Clear();
+            if (incomingStates != null)
+                incomingStates.Clear();
             RailPool.DrainQueue(outgoingCommands);
 
             authTick = Tick.START;
@@ -501,5 +514,6 @@ namespace RailgunNet.Logic
         {
         }
         #endregion
+
     }
 }

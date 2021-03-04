@@ -25,16 +25,17 @@ using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Connection.Client
 {
     [PublicAPI]
-    [OnlyIn(Component.Client)]
     public class RailClient : RailConnection
     {
+        private readonly uint remoteSendRate;
+        private readonly uint sendRate;
+
         /// <summary>
         ///     The local simulation tick, used for commands
         /// </summary>
@@ -45,8 +46,10 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         [PublicAPI] [CanBeNull] public RailClientPeer ServerPeer { get; private set; }
 
-        public RailClient(RailRegistry registry) : base(registry)
+        public RailClient(RailRegistry<RailEntityClient> registry, uint remoteSendRate,uint sendRate) : base(registry)
         {
+            this.remoteSendRate = remoteSendRate;
+            this.sendRate = sendRate;
             ServerPeer = null;
             localTick = Tick.START;
             Room = null;
@@ -84,7 +87,7 @@ namespace RailgunNet.Connection.Client
             else
             {
                 RailDebug.Assert(ServerPeer == null, "Overwriting peer");
-                ServerPeer = new RailClientPeer(Resource, netPeer, Interpreter);
+                ServerPeer = new RailClientPeer(Resource, netPeer, remoteSendRate, Interpreter);
                 ServerPeer.PacketReceived += OnPacketReceived;
                 ServerPeer.EventReceived += OnEventReceived;
                 Connected?.Invoke(ServerPeer);
@@ -106,7 +109,6 @@ namespace RailgunNet.Connection.Client
                 {
                     Room.ClientUpdate(localTick, ServerPeer.EstimatedRemoteTick);
 
-                    int sendRate = RailConfig.CLIENT_SEND_RATE;
                     if (localTick.IsSendTick(sendRate))
                     {
                         ServerPeer.SendPacket(localTick, Room.LocalEntities);
