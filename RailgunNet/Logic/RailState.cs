@@ -44,9 +44,21 @@ namespace RailgunNet.Logic
     {
         private const uint FLAGS_ALL = 0xFFFFFFFF; // All values different
 
+        /// <summary>
+        /// Used to map the state type
+        /// </summary>
         public int FactoryType { get; set; }
+
+        /// <summary>
+        /// Tells which mutable fields changed by using one bit for each mutable field
+        /// </summary>
         public uint Flags { get; set; } // Synchronized
+
         public bool HasControllerData { get; set; } // Synchronized
+
+        /// <summary>
+        /// Tells if state contains immutable fields datas
+        /// </summary>
         public bool HasImmutableData { get; set; } // Synchronized
 
         public RailStateDataSerializer DataSerializer { get; private set; }
