@@ -27,10 +27,11 @@ namespace RailgunNet.Logic.Wrappers
             Tick removedTick,
             bool forceAllMutable)
         {
-            bool shouldReturn = forceAllMutable ||
+            bool forceSend = forceAllMutable ||
                                 includeControllerData && current.HasControllerData ||
                                 includeImmutableData ||
-                                removedTick.IsValid;
+                                removedTick.IsValid ||
+                                commandAck.IsValid;
 
             // We don't know what the client has and hasn't received from us since
             // the acked state. As a result, we'll build diff flags across all 
@@ -50,7 +51,9 @@ namespace RailgunNet.Logic.Wrappers
                 flags = FLAGS_ALL;
             }
 
-            if (flags == FLAGS_NONE && !shouldReturn) return null;
+            if (flags == FLAGS_NONE && 
+                forceSend == false)
+                return null;
 
             RailState deltaState = stateCreator.CreateState(current.FactoryType);
 
