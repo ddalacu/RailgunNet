@@ -411,7 +411,8 @@ namespace RailgunNet.Logic
             }
 
             if (lastAppliedDelta != null) FreeCommandsUpTo(lastAppliedDelta.CommandAck);
-            // TODO: Revert();
+
+            Revert(lastAppliedDelta.CommandAck.GetNext());
 
             // Forward-simulate
             foreach (RailCommand command in outgoingCommands)
@@ -463,9 +464,7 @@ namespace RailgunNet.Logic
         ///     Called on client controller.
         /// </summary>
         [PublicAPI]
-        [Obsolete(
-            "Don't understand yet what this is actually supposed to do. There might be some interaction with another callback that i have not understood.")]
-        protected virtual void Revert()
+        protected virtual void Revert(Tick tick)
         {
         }
 
