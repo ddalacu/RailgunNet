@@ -127,12 +127,22 @@ namespace RailgunNet.Logic
 
         public void StoreRecord(IRailStateConstruction stateCreator)
         {
-            RailStateRecord record = RailStateRecordFactory.Create(
-                stateCreator,
-                RoomBase.Tick,
-                StateBase,
-                outgoingStates.Latest);
-            if (record != null) outgoingStates.Store(record);
+            if (outgoingStates.Latest != null)
+            {
+                var latest = outgoingStates.Latest.State;
+
+                var dataChanged =
+                    StateBase.DataSerializer.CompareMutableData(latest.DataSerializer) > 0 ||
+                    StateBase.DataSerializer.IsControllerDataEqual(latest.DataSerializer) == false;
+
+                if (dataChanged == false)
+                    return;
+            }
+
+            var record = stateCreator.CreateRecord();
+            record.Overwrite(stateCreator, RoomBase.Tick, StateBase);
+
+            outgoingStates.Store(record);
         }
 
         public RailStateDelta ProduceDelta(
