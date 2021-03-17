@@ -8,93 +8,10 @@ using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
+using UnityEngine;
 
 namespace RailgunNet.Logic
 {
-    /// <summary>
-    ///     Handy shortcut class for auto-casting the state.
-    /// </summary>
-    public class RailEntityClient<TState> : RailEntityClient
-        where TState : RailState
-    {
-        private TState authState;
-        private TState nextState;
-
-        public RailEntityClient()
-        {
-            ProducesCommands = false;
-        }
-
-        protected override RailState StateBase
-        {
-            get => State;
-            set => State = (TState)value;
-        }
-
-        protected override RailState AuthStateBase
-        {
-            get => authState;
-            set => authState = (TState)value;
-        }
-
-        protected override RailState NextAuthStateBase
-        {
-            get => nextState;
-            set => nextState = (TState)value;
-        }
-
-        #region Public API
-        /// <summary>
-        ///     Returns the current local state.
-        /// </summary>
-        [PublicAPI]
-        public TState State { get; private set; }
-
-        /// <summary>
-        ///     Returns the current dejittered authoritative state from the server.
-        ///     Will return null if the entity is locally controlled (use State).
-        /// </summary>
-        [PublicAPI]
-        public TState AuthState
-        {
-            get
-            {
-                // Not valid if we're controlling
-                if (IsControlled)
-                {
-                    return null;
-                }
-
-                return authState;
-            }
-        }
-
-        /// <summary>
-        ///     Returns the next dejittered authoritative state from the server. Will
-        ///     return null if none is available or if the entity is locally controlled.
-        /// </summary>
-        [PublicAPI]
-        public TState NextState
-        {
-            get
-            {
-                // Not valid if we're controlling
-                if (IsControlled)
-                {
-                    return null;
-                }
-
-                // Only return if we have a valid next state assigned
-                if (NextTick.IsValid)
-                {
-                    return nextState;
-                }
-
-                return null;
-            }
-        }
-        #endregion
-    }
 
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
@@ -131,35 +48,74 @@ namespace RailgunNet.Logic
 
     }
 
-    public abstract class RailEntityClient : RailEntityBase
+
+    public interface IPreTickUpdateListener
     {
+        void PreTickUpdate(Tick tick);
+    }
+
+    public interface ITickUpdateListener
+    {
+        void TickUpdate(Tick tick);
+    }
+
+    public interface IPostTickUpdateListener
+    {
+        void PostTickUpdate(Tick tick);
+    }
+
+    public interface IProduceCommands : IClientEntity
+    {
+        Tick LastSentCommandTick { get; set; }
+        IEnumerable<RailCommand> OutgoingCommands { get; }
+    }
+
+    public static class ClientEntityExtensions
+    {
+        public static bool IsRemoving(this IClientEntity entity)
+        {
+            return entity.RemovedTick.IsValid;
+        }
+
+        public static void RaiseEvent<T>(this IClientEntity entity, Action<T> initializer, ushort attempts = 3)
+            where T : RailEvent
+        {
+            entity.Room.RaiseEvent(initializer, entity.Id, attempts);
+        }
+    }
+
+    public abstract class RailEntityClient<TState> : IProduceCommands, IPreTickUpdateListener, ITickUpdateListener
+        where TState : RailState, IRailPoolable<RailState>, new()
+    {
+
+        protected IRailCommandConstruction CommandCreator { get; private set; }
+
+        protected IRailEventConstruction EventCreator { get; private set; }
+
+        /// <summary>
+        ///     The current local state.
+        /// </summary>
+        public Tick RemovedTick { get; protected set; } = Tick.INVALID;
+
+        public bool IsFrozen { get; protected set; } = true;
+
+        public EntityId Id { get; protected set; } = EntityId.INVALID;
+
+        /// <summary>
+        ///     The current local state.
+        /// </summary>
+        protected TState State { get; set; }
+
         private RailDejitterBuffer<RailStateDelta> incomingStates;
         private readonly Queue<RailCommand> outgoingCommands;
 
-        private Tick authTick;
-        private Tick nextTick;
-        private bool shouldBeFrozen;
+        public Tick authTick = Tick.START;
 
-        protected RailEntityClient()
-        {
-            outgoingCommands = new Queue<RailCommand>();
-            Reset();
-        }
+        private bool shouldBeFrozen = true;
 
-        public override RailRoom RoomBase
-        {
-            get => Room;
-            set => Room = (RailClientRoom)value;
-        }
+        public bool IsControlling { get; set; }
+        public RailClientRoom Room { get; private set; }
 
-        [PublicAPI] protected RailClientRoom Room { get; private set; }
-
-        /// <summary>
-        ///     The authoritative state
-        /// </summary>
-        protected abstract RailState AuthStateBase { get; set; }
-
-        protected abstract RailState NextAuthStateBase { get; set; }
         public IEnumerable<RailCommand> OutgoingCommands => outgoingCommands;
 
         public Tick
@@ -169,26 +125,100 @@ namespace RailgunNet.Logic
             set;
         } // The last local tick we sent our commands to the server
 
-        public bool ProducesCommands { get; protected set; } = true;
-        public bool IsControlled => Controller != null;
+        public bool ProducesCommands { get; protected set; } = false;
+
+        public Tick nextTick { get; private set; }
+
+
+        private TState _authState;
+
+        private TState _nextState;
 
         /// <summary>
-        ///     The tick of the last authoritative state.
+        ///     Returns the current dejittered authoritative state from the server.
+        ///     Will return null if the entity is locally controlled (use State).
         /// </summary>
-        public Tick AuthTick => authTick;
+        public TState AuthState
+        {
+            get
+            {
+                // Not valid if we're controlling
+                if (IsControlling)
+                    return null;
+                return _authState;
+            }
+        }
+
 
         /// <summary>
-        ///     The tick of the next authoritative state. May be invalid.
+        ///     Returns the current dejittered authoritative state from the server.
+        ///     Will return null if the entity is locally controlled (use State).
         /// </summary>
-        public Tick NextTick => nextTick;
+        public TState NextAuthState
+        {
+            get
+            {
+                // Not valid if we're controlling
+                if (IsControlling)
+                    return null;
+
+                return _nextState;
+            }
+        }
+
+
+        protected RailEntityClient()
+        {
+            outgoingCommands = new Queue<RailCommand>();
+            State = new TState();
+            _authState = new TState();
+            _nextState = new TState();
+        }
+
+        #region Pooling
+
+        IRailMemoryPool<IEntity> IRailPoolable<IEntity>.OwnerPool { get; set; }
+
+
+        public virtual void Reset()
+        {
+            CommandCreator = null;
+            Id = EntityId.INVALID;
+
+            Room = null;
+            LastSentCommandTick = Tick.START;
+            IsFrozen = true; // Entities start frozen on client
+            shouldBeFrozen = true;
+
+            if (incomingStates != null)
+                incomingStates.Clear();
+            RailPool.DrainQueue(outgoingCommands);
+
+            authTick = Tick.START;
+
+            State.Reset();
+            _authState.Reset();
+            _nextState.Reset();
+        }
+
+        void IRailPoolable<IEntity>.Allocated()
+        {
+        }
+
+        #endregion
+
 
         /// <summary>
-        ///     Returns the number of ticks ahead we are, for extrapolation.
-        ///     Note that this does not take client-side prediction into account.
+        ///     Applies a command to this instance.
+        ///     Called on controller and server.
         /// </summary>
-        public int TicksAhead => RoomBase.Tick - authTick;
+        /// <param name="toApply"></param>
+        protected virtual void ApplyControlGeneric(RailCommand toApply)
+        {
+        }
 
-        public void Initialize(EntityId id, uint serverSendRate)
+
+        public void Initialize(EntityId id, RailClient client)
         {
             Id = id;
 
@@ -196,15 +226,15 @@ namespace RailgunNet.Logic
             {
                 incomingStates = new RailDejitterBuffer<RailStateDelta>(
                     RailConfig.DEJITTER_BUFFER_LENGTH,
-                    serverSendRate);
+                    client.RemoteSendRate);
             }
             else
             {
-                RailDebug.Assert(incomingStates.Divisor == serverSendRate);
+                RailDebug.Assert(incomingStates.Divisor == client.RemoteSendRate);
             }
         }
 
-        public float ComputeInterpolation(float tickDeltaTime, float timeSinceTick)
+        public float ComputeInterpolation(Tick tick, float tickDeltaTime, float timeSinceTick)
         {
             if (nextTick == Tick.INVALID)
             {
@@ -213,7 +243,7 @@ namespace RailgunNet.Logic
 
             float curTime = authTick.ToTime(tickDeltaTime);
             float nextTime = nextTick.ToTime(tickDeltaTime);
-            float showTime = RoomBase.Tick.ToTime(tickDeltaTime) + timeSinceTick;
+            float showTime = (tick).ToTime(tickDeltaTime) + timeSinceTick;
 
             float progress = showTime - curTime;
             float span = nextTime - curTime;
@@ -221,7 +251,7 @@ namespace RailgunNet.Logic
             return progress / span;
         }
 
-        public void ClientUpdate(Tick localTick)
+        public void TickUpdate(Tick localTick)
         {
             SetFreeze(shouldBeFrozen);
             if (IsFrozen)
@@ -230,13 +260,12 @@ namespace RailgunNet.Logic
             }
             else
             {
-                if (Controller == null)
+                if (IsControlling == false)
                 {
-                    UpdateProxy();
+                    UpdateProxy(localTick);
                 }
                 else if (ProducesCommands)
                 {
-                    nextTick = Tick.INVALID;
                     UpdateControlled(localTick);
                     UpdatePredicted();
                 }
@@ -256,8 +285,12 @@ namespace RailgunNet.Logic
             RailDebug.Assert(delta.IsFrozen == false);
             RailDebug.Assert(delta.IsRemoving == false);
             RailDebug.Assert(delta.HasImmutableData);
-            AuthStateBase.ApplyDelta(delta);
+            _authState.ApplyDelta(delta);
+            State.OverwriteFrom(_authState);
         }
+
+        private Tick _latestDeltaTick;
+
 
         /// <summary>
         ///     Returns true iff we stored the delta. False if it will leak.
@@ -271,7 +304,13 @@ namespace RailgunNet.Logic
                 return incomingStates.Store(delta);
             }
 
-            if (delta.IsRemoving) RemovedTick = delta.RemovedTick;
+            if (delta.IsRemoving)
+                RemovedTick = delta.RemovedTick;
+
+            //delta.Tick += 7;//change this
+
+            _latestDeltaTick = delta.Tick;
+
             return incomingStates.Store(delta);
         }
 
@@ -293,7 +332,8 @@ namespace RailgunNet.Logic
 
         private void UpdateControlled(Tick localTick)
         {
-            RailDebug.Assert(Controller != null);
+            RailDebug.Assert(IsControlling);
+
             if (outgoingCommands.Count < RailConfig.COMMAND_BUFFER_COUNT)
             {
                 RailCommand command = CommandCreator.CreateCommand();
@@ -306,83 +346,88 @@ namespace RailgunNet.Logic
             }
         }
 
-        protected sealed override void InitState(
-            IRailStateConstruction creator,
-            RailState initialState)
+        public void InitState(RailResource resource)
         {
-            base.InitState(creator, initialState);
-            AuthStateBase = StateBase.Clone(creator);
-            NextAuthStateBase = StateBase.Clone(creator);
+            CommandCreator = resource;
+            EventCreator = resource;
         }
 
-        protected sealed override void Reset()
-        {
-            base.Reset();
 
-            LastSentCommandTick = Tick.START;
-            IsFrozen = true; // Entities start frozen on client
-            shouldBeFrozen = true;
-
-            if (incomingStates != null)
-                incomingStates.Clear();
-            RailPool.DrainQueue(outgoingCommands);
-
-            authTick = Tick.START;
-            nextTick = Tick.INVALID;
-
-            ResetStates();
-            OnReset();
-        }
-
-        private void ResetStates()
-        {
-            if (StateBase != null) RailPool.Free(StateBase);
-            if (AuthStateBase != null) RailPool.Free(AuthStateBase);
-            if (NextAuthStateBase != null) RailPool.Free(NextAuthStateBase);
-
-            StateBase = null;
-            AuthStateBase = null;
-            NextAuthStateBase = null;
-        }
-
-        protected override void ClearCommands()
+        protected void ClearCommands()
         {
             outgoingCommands.Clear();
             LastSentCommandTick = Tick.START;
         }
 
+
+        public void CheckIfControlling(RailStateDelta delta)
+        {
+            // Can't infer anything if the delta is an empty frozen update
+            if (delta.IsFrozen)
+                return;
+
+            if (delta.IsRemoving)
+            {
+                IsControlling = false;
+                Room.ControlledEntities.Remove(this);
+            }
+            else
+            if (delta.HasControllerData)
+            {
+                if (IsControlling == false)
+                {
+                    IsControlling = true;
+                    Room.ControlledEntities.Add(this);
+                }
+            }
+            else
+            {
+                if (IsControlling)
+                {
+                    IsControlling = false;
+                    Room.ControlledEntities.Remove(this);
+                }
+            }
+        }
+
         /// <summary>
         ///     Updates the local instance of the authoritative state.
         /// </summary>
-        private void UpdateAuthoritativeState()
+        private void UpdateAuthoritativeState(Tick localTick)
         {
             // Apply all un-applied deltas to the auth state
-            IEnumerable<RailStateDelta> toApply = incomingStates.GetRangeAndNext(
+            var toApply = incomingStates.GetRangeAndNext(
                 authTick,
-                IsRemoving ? RemovedTick : Room.Tick,
+                this.IsRemoving() ? RemovedTick : localTick,
                 out RailStateDelta next);
+
+            //Debug.Log(next);
 
             RailStateDelta lastDelta = null;
             foreach (RailStateDelta delta in toApply)
             {
-                if (!delta.IsFrozen) AuthStateBase.ApplyDelta(delta);
+                if (delta.IsFrozen == false)
+                    _authState.ApplyDelta(delta);
+
                 shouldBeFrozen = delta.IsFrozen;
                 authTick = delta.Tick;
                 lastDelta = delta;
             }
 
-            if (!IsRemoving && lastDelta != null)
+            if (this.IsRemoving() == false &&
+                lastDelta != null)
             {
                 // Update the control status based on the most recent delta
-                Room.RequestControlUpdate(this, lastDelta);
+                CheckIfControlling(lastDelta);
             }
 
-            // If there was a next state, update the next state
+            //If there was a next state, update the next state
             bool canGetNext = shouldBeFrozen == false;
-            if (canGetNext && next != null && next.IsFrozen == false)
+            if (canGetNext && next != null &&
+                next.IsFrozen == false)
             {
-                NextAuthStateBase.OverwriteFrom(AuthStateBase);
-                NextAuthStateBase.ApplyDelta(next);
+                _nextState.OverwriteFrom(_authState);
+                _nextState.ApplyDelta(next);
                 nextTick = next.Tick;
             }
             else
@@ -397,7 +442,7 @@ namespace RailgunNet.Logic
         private void UpdatePredicted()
         {
             // Bring the main state up to the latest (apply all deltas)
-            IList<RailStateDelta> deltas = incomingStates.GetRangeStartingFrom(authTick);
+            var deltas = incomingStates.GetRangeStartingFrom(authTick);
 
             RailStateDelta lastAppliedDelta = null;
             foreach (RailStateDelta delta in deltas)
@@ -406,13 +451,16 @@ namespace RailgunNet.Logic
                 // and then immediately went out of scope of the entity
                 if (delta.State == null) break;
                 if (delta.HasControllerData == false) break;
-                StateBase.ApplyDelta(delta);
+                State.ApplyDelta(delta);
                 lastAppliedDelta = delta;
             }
 
-            if (lastAppliedDelta != null) FreeCommandsUpTo(lastAppliedDelta.CommandAck);
+            if (lastAppliedDelta != null)
+            {
+                FreeCommandsUpTo(lastAppliedDelta.CommandAck);
 
-            Revert(lastAppliedDelta.CommandAck.GetNext());
+                Revert(lastAppliedDelta.CommandAck);
+            }
 
             // Forward-simulate
             foreach (RailCommand command in outgoingCommands)
@@ -434,28 +482,37 @@ namespace RailgunNet.Logic
         }
 
         #region Lifecycle and Loop
-        public override void PreUpdate()
+        public void PreTickUpdate(Tick localTick)
         {
-            UpdateAuthoritativeState();
-            StateBase.OverwriteFrom(AuthStateBase);
-            base.PreUpdate();
+            UpdateAuthoritativeState(localTick);
+            State.OverwriteFrom(_authState);
         }
 
-        public override void PostUpdate()
+        public void Removed()
         {
-            if (IsFrozen == false) base.PostUpdate();
-        }
-
-        public override void Removed()
-        {
-            RailDebug.Assert(HasStarted);
-
             // Set the final auth state before removing
-            UpdateAuthoritativeState();
-            StateBase.OverwriteFrom(AuthStateBase);
-
-            base.Removed();
+            UpdateAuthoritativeState(RemovedTick);
+            State.OverwriteFrom(_authState);
+            OnRemoved();
+            Room = null;
         }
+
+        /// <summary>
+        ///     When the entity was added to a room.
+        ///     Called on all.
+        /// </summary>
+        protected virtual void OnAdded()
+        {
+        }
+
+        /// <summary>
+        ///     When the entity was removed from a room.
+        ///     Called on all.
+        /// </summary>
+        protected virtual void OnRemoved()
+        {
+        }
+
         #endregion
 
         #region Override Functions
@@ -463,8 +520,7 @@ namespace RailgunNet.Logic
         ///     Called during UpdatePredicted after updating the StateBase.
         ///     Called on client controller.
         /// </summary>
-        [PublicAPI]
-        protected virtual void Revert(Tick tick)
+        protected virtual void Revert(Tick ackTick)
         {
         }
 
@@ -481,7 +537,6 @@ namespace RailgunNet.Logic
         ///     Called on every tick for frozen entities.
         ///     Called on client for all client entities.
         /// </summary>
-        [PublicAPI]
         protected virtual void UpdateFrozen()
         {
         }
@@ -490,8 +545,7 @@ namespace RailgunNet.Logic
         ///     Update for non-controlled entities.
         ///     Called on non-controller client.
         /// </summary>
-        [PublicAPI]
-        protected virtual void UpdateProxy()
+        protected virtual void UpdateProxy(Tick localTick)
         {
         }
 
@@ -499,7 +553,6 @@ namespace RailgunNet.Logic
         ///     When an entity is frozen.
         ///     Called on client.
         /// </summary>
-        [PublicAPI]
         protected virtual void OnFrozen()
         {
         }
@@ -508,11 +561,27 @@ namespace RailgunNet.Logic
         ///     When an entity is unfrozen.
         ///     Called on client.
         /// </summary>
-        [PublicAPI]
         protected virtual void OnUnfrozen()
         {
         }
+
+        public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3)
+            where T : RailEvent
+        {
+            Room.RaiseEvent<T>(initializer, Id, attempts);
+        }
+
         #endregion
 
+        public virtual void HandleEvent(RailEvent @event)
+        {
+
+        }
+
+        public void Added(RailClientRoom room)
+        {
+            Room = room;
+            OnAdded();
+        }
     }
 }

@@ -3,57 +3,48 @@ using System.Collections.Generic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
 using RailgunNet.Util.Debug;
+using UnityEngine;
 
 namespace RailgunNet.Connection.Client
 {
-    public class RailClientRoom : RailRoom
+    public class RailClientRoom : RailRoom<IClientEntity>
     {
         /// <summary>
         ///     The local Railgun client.
         /// </summary>
-        private readonly RailClient client;
-
-        private readonly IRailEventConstruction eventCreator;
+        private readonly RailClient _client;
 
         /// <summary>
         ///     All known entities, either in-world or pending.
         /// </summary>
-        private readonly Dictionary<EntityId, RailEntityClient> knownEntities;
-
-        /// <summary>
-        ///     The local controller for predicting control and authority.
-        ///     This is a dummy peer that can't send or receive events.
-        /// </summary>
-        private readonly RailController localPeer;
+        private readonly Dictionary<EntityId, IClientEntity> _knownEntities;
 
         /// <summary>
         ///     Entities that are waiting to be added to the world.
         /// </summary>
-        private readonly Dictionary<EntityId, RailEntityClient> pendingEntities;
+        private readonly Dictionary<EntityId, IClientEntity> _pendingEntities;
 
-        private List<RailEntityClient> toRemoveBuffer; // Pre-allocated removal list
-        private List<RailEntityClient> toUpdateBuffer; // Pre-allocated update list
 
-        public RailClientRoom(RailResource resource, RailClient client) : base(resource, client)
+        public HashSet<IClientEntity> _controlledEntities = new HashSet<IClientEntity>();
+
+        public RailClient Client => _client;
+
+        public RailResource Resource { get; }
+
+        public ISet<IClientEntity> ControlledEntities => _controlledEntities;
+
+
+        public RailClientRoom(RailResource resource, RailClient client) : base()
         {
-            eventCreator = resource;
-            toUpdateBuffer = new List<RailEntityClient>();
-            toRemoveBuffer = new List<RailEntityClient>();
+            Resource = resource;
 
-            IEqualityComparer<EntityId> entityIdComparer = EntityId.CreateEqualityComparer();
-
-            pendingEntities = new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
-            knownEntities = new Dictionary<EntityId, RailEntityClient>(entityIdComparer);
-            localPeer = new RailController(null);
-            this.client = client;
+            _pendingEntities = new Dictionary<EntityId, IClientEntity>(EntityId.ComparerInstance);
+            _knownEntities = new Dictionary<EntityId, IClientEntity>(EntityId.ComparerInstance);
+            _client = client;
         }
-
-        /// <summary>
-        ///     Returns all locally-controlled entities in the room.
-        /// </summary>
-        public IEnumerable<RailEntityBase> LocalEntities => localPeer.ControlledEntities;
 
         /// <summary>
         ///     Queues an event to broadcast to the server with a number of retries.
@@ -61,12 +52,19 @@ namespace RailgunNet.Connection.Client
         public void RaiseEvent<T>(Action<T> initializer, ushort attempts = 3)
             where T : RailEvent
         {
-            RailDebug.Assert(client.ServerPeer != null);
-            if (client.ServerPeer != null)
+            RaiseEvent<T>(initializer, EntityId.INVALID, attempts);
+        }
+
+        public void RaiseEvent<T>(Action<T> initializer, EntityId entityId, ushort attempts = 3)
+            where T : RailEvent
+        {
+            RailDebug.Assert(_client.ServerPeer != null);
+            if (_client.ServerPeer != null)
             {
-                T evnt = eventCreator.CreateEvent<T>();
+                var evnt = Resource.CreateEvent<T>();
                 initializer(evnt);
-                client.ServerPeer.SendEvent(evnt, attempts, false);
+                evnt.TargetEntity = entityId;
+                _client.ServerPeer.SendEvent(evnt, attempts);
             }
         }
 
@@ -74,81 +72,89 @@ namespace RailgunNet.Connection.Client
         ///     Updates the room a number of ticks. If we have entities waiting to be
         ///     added, this function will check them and add them if applicable.
         /// </summary>
-        public void ClientUpdate(Tick localTick, Tick estimatedServerTick)
+        public void ClientUpdate(Tick localTick)
         {
-            Tick = estimatedServerTick;
-            UpdatePendingEntities(estimatedServerTick);
-            OnPreRoomUpdate(estimatedServerTick);
+            UpdatePendingEntities(localTick);
+            CallPreRoomUpdate(localTick);
+
+            using var toRemove = TempRefList<IClientEntity>.Get();
+            using var toUpdate = TempRefList<IClientEntity>.Get();
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (RailEntityBase railEntityBase in Entities.Values)
+            foreach (var entity in Entities.Values)
             {
-                RailEntityClient entity = (RailEntityClient)railEntityBase;
-                if (entity.ShouldRemove)
+                if (entity.ShouldRemove(localTick))
                 {
-                    toRemoveBuffer.Add(entity);
+                    toRemove.Add(entity);
                 }
                 else
                 {
-                    toUpdateBuffer.Add(entity);
+                    toUpdate.Add(entity);
                 }
             }
 
             // Wave 0: Remove all sunsetted entities
-            foreach (var railEntityClient in toRemoveBuffer)
+            var toRemoveCount = toRemove.Count;
+
+            for (int i = 0; i < toRemoveCount; i++)
             {
+                var railEntityClient = toRemove[i];
                 if (RemoveEntity(railEntityClient))
-                    knownEntities.Remove(railEntityClient.Id);
+                    _knownEntities.Remove(railEntityClient.Id);
             }
 
-            toRemoveBuffer.Clear();
-
             // Wave 1: Start/initialize all entities
-            int updateCount = toUpdateBuffer.Count;
+            int updateCount = toUpdate.Count;
             for (var index = 0; index < updateCount; index++)
-                toUpdateBuffer[index].PreUpdate();
+            {
+                if (toUpdate[index] is IPreTickUpdateListener preTickUpdateListener)
+                    preTickUpdateListener.PreTickUpdate(localTick);
+            }
 
             // Wave 2: Update all entities
             for (var index = 0; index < updateCount; index++)
-                toUpdateBuffer[index].ClientUpdate(localTick);
+                if (toUpdate[index] is ITickUpdateListener tickUpdateListener)
+                    tickUpdateListener.TickUpdate(localTick);
 
             // Wave 3: Post-update all entities
             for (var index = 0; index < updateCount; index++)
-                toUpdateBuffer[index].PostUpdate();
+                if (toUpdate[index] is IPostTickUpdateListener postTickUpdateListener)
+                    postTickUpdateListener.PostTickUpdate(localTick);
 
-            toUpdateBuffer.Clear();
-            OnPostRoomUpdate(estimatedServerTick);
+            CallPostRoomUpdate(localTick);
         }
 
         /// <summary>
-        ///     Returns true iff we stored the delta.
+        ///     Returns true if we stored the delta.
         /// </summary>
         public bool ProcessDelta(RailStateDelta delta)
         {
-            if (knownEntities.TryGetValue(delta.EntityId, out RailEntityClient entity) == false)
+            if (_knownEntities.TryGetValue(delta.EntityId, out var entity) == false)
             {
                 RailDebug.Assert(delta.IsFrozen == false, "Frozen unknown entity");
                 if (delta.IsFrozen || delta.IsRemoving) return false;
 
-                entity = delta.ProduceEntity(Resource) as RailEntityClient;
+                var type = Resource.GetEntityType(delta.State);
+                entity = (IClientEntity)Resource.CreateEntity(type);
+
                 if (entity == null)
                 {
                     throw new TypeAccessException(
                         "Got unexpected instance from RailResource. Internal error in type RailRegistry and/or RailResource.");
                 }
 
-                var serverSendRate = client.ServerPeer.RemoteSendRate;
-                entity.Initialize(delta.EntityId, serverSendRate);
+                entity.Initialize(delta.EntityId, _client);
 
                 entity.PrimeState(delta);
-                pendingEntities.Add(entity.Id, entity);
-                knownEntities.Add(entity.Id, entity);
+                _pendingEntities.Add(entity.Id, entity);
+                _knownEntities.Add(entity.Id, entity);
             }
 
             // If we're already removing the entity, we don't care about other deltas
             bool stored = false;
-            if (entity.IsRemoving == false) stored = entity.ReceiveDelta(delta);
+            if (entity.IsRemoving() == false)
+                stored = entity.ReceiveDelta(delta);
             return stored;
         }
 
@@ -158,18 +164,21 @@ namespace RailgunNet.Connection.Client
         /// </summary>
         private void UpdatePendingEntities(Tick serverTick)
         {
-            foreach (RailEntityClient entity in pendingEntities.Values)
+            using var toRemove = TempRefList<IClientEntity>.Get();
+
+            foreach (var entity in _pendingEntities.Values)
             {
-                if (!entity.HasReadyState(serverTick)) continue;
+                if (!entity.HasReadyState(serverTick))
+                    continue;
 
                 // Note: We're using ToRemove here to remove from the *pending* list
-                toRemoveBuffer.Add(entity);
+                toRemove.Add(entity);
 
                 // If the entity was removed while pending, forget about it
                 Tick removeTick = entity.RemovedTick; // Can't use ShouldRemove
                 if (removeTick.IsValid && removeTick <= serverTick)
                 {
-                    knownEntities.Remove(entity.Id);
+                    _knownEntities.Remove(entity.Id);
                 }
                 else
                 {
@@ -177,31 +186,47 @@ namespace RailgunNet.Connection.Client
                 }
             }
 
-            foreach (RailEntityClient entity in toRemoveBuffer)
+            var toRemoveCount = toRemove.Count;
+            for (var i = 0; i < toRemoveCount; i++)
             {
-                pendingEntities.Remove(entity.Id);
+                var entity = toRemove[i];
+                _pendingEntities.Remove(entity.Id);
             }
-
-            toRemoveBuffer.Clear();
         }
 
-        public void RequestControlUpdate(RailEntityClient entity, RailStateDelta delta)
-        {
-            // Can't infer anything if the delta is an empty frozen update
-            if (delta.IsFrozen) return;
 
-            if (delta.IsRemoving)
+        protected void RegisterEntity(IClientEntity entity)
+        {
+            _entities.Add(entity.Id, entity);
+            entity.Added(this);
+            CallAddedEntity(entity);
+        }
+
+        protected bool RemoveEntity(IClientEntity entity)
+        {
+            if (_entities.ContainsKey(entity.Id))
             {
-                if (entity.Controller != null) localPeer.RevokeControlInternal(entity);
+                _entities.Remove(entity.Id);
+                entity.Removed();
+                // TODO: Pooling entities?
+                CallRemovedEntity(entity);
+                return true;
             }
-            else if (delta.HasControllerData)
+
+            return false;
+        }
+
+        public void HandleEvent(RailEvent @event)
+        {
+            if (@event.TargetEntity.IsValid)
             {
-                if (entity.Controller == null) localPeer.GrantControlInternal(entity);
+                if (Entities.TryGetValue(@event.TargetEntity, out var entity))
+                {
+                    entity.HandleEvent(@event);
+                }
             }
-            else
-            {
-                if (entity.Controller != null) localPeer.RevokeControlInternal(entity);
-            }
+
+            //todo send room event
         }
     }
 }

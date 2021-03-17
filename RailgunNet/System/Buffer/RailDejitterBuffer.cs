@@ -49,7 +49,7 @@ namespace RailgunNet.System.Buffer
             this.divisor = divisor;
             data = new T[capacity / divisor];
             latestIdx = -1;
-            tickComparer = Tick.CreateComparer();
+            tickComparer = Tick.DefaultComparer;
         }
 
         /// <summary>

@@ -22,13 +22,16 @@ namespace RailgunNet.Logic.Wrappers
             {
                 // Write: [FactoryType]
                 RailState state = delta.State;
-                buffer.WriteInt(stateCreator.EntityTypeCompressor, state.FactoryType);
+
+                var entityType = stateCreator.GetEntityType(state);
+
+                buffer.WriteInt(stateCreator.EntityTypeCompressor, (int)entityType);
 
                 // Write: [IsRemoved]
                 buffer.WriteBool(delta.RemovedTick.IsValid);
 
                 if (delta.RemovedTick.IsValid)
-                    // Write: [RemovedTick]
+                // Write: [RemovedTick]
                 {
                     buffer.WriteTick(delta.RemovedTick);
                 }
@@ -40,7 +43,7 @@ namespace RailgunNet.Logic.Wrappers
                 buffer.WriteBool(state.HasImmutableData);
 
                 if (state.HasImmutableData)
-                    // Write: [Immutable Data]
+                // Write: [Immutable Data]
                 {
                     state.DataSerializer.EncodeImmutableData(buffer);
                 }
@@ -70,8 +73,8 @@ namespace RailgunNet.Logic.Wrappers
             RailStateDelta delta = stateCreator.CreateDelta();
             RailState state = null;
 
-            Tick commandAck = Tick.INVALID;
             Tick removedTick = Tick.INVALID;
+            Tick commandAck = Tick.INVALID;
 
             // Read: [EntityId]
             EntityId entityId = buffer.ReadEntityId();
@@ -83,13 +86,13 @@ namespace RailgunNet.Logic.Wrappers
             {
                 // Read: [FactoryType]
                 int factoryType = buffer.ReadInt(stateCreator.EntityTypeCompressor);
-                state = stateCreator.CreateState(factoryType);
+                state = stateCreator.CreateState((EntityType)factoryType);
 
                 // Read: [IsRemoved]
                 bool isRemoved = buffer.ReadBool();
 
                 if (isRemoved)
-                    // Read: [RemovedTick]
+                // Read: [RemovedTick]
                 {
                     removedTick = buffer.ReadTick();
                 }
@@ -101,7 +104,7 @@ namespace RailgunNet.Logic.Wrappers
                 state.HasImmutableData = buffer.ReadBool();
 
                 if (state.HasImmutableData)
-                    // Read: [Immutable Data]
+                // Read: [Immutable Data]
                 {
                     state.DataSerializer.DecodeImmutableData(buffer);
                 }
@@ -122,7 +125,7 @@ namespace RailgunNet.Logic.Wrappers
                 }
             }
 
-            delta.Initialize(packetTick, entityId, state, removedTick, commandAck, isFrozen);
+            delta.Initialize(packetTick, entityId, state, commandAck, removedTick, isFrozen);
             return delta;
         }
     }

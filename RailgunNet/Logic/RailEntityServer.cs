@@ -4,31 +4,11 @@ using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
-using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
+using UnityEngine;
 
 namespace RailgunNet.Logic
 {
-    /// <summary>
-    ///     Handy shortcut class for auto-casting the state.
-    /// </summary>
-    public class RailEntityServer<TState> : RailEntityServer
-        where TState : RailState
-    {
-        #region Public API
-        /// <summary>
-        ///     Returns the current local state.
-        /// </summary>
-        [PublicAPI]
-        public TState State { get; private set; }
-        #endregion
-
-        protected override RailState StateBase
-        {
-            get => State;
-            set => State = (TState)value;
-        }
-    }
 
     /// <summary>
     ///     Handy shortcut class for auto-casting the state and command.
@@ -51,35 +31,86 @@ namespace RailgunNet.Logic
         }
     }
 
-    public abstract class RailEntityServer : RailEntityBase
-    {
-        private readonly RailDejitterBuffer<RailCommand> incomingCommands;
-        private readonly RailQueueBuffer<RailStateRecord> outgoingStates;
 
-        // The remote (client) tick of the last command we processed
-        private Tick commandAck;
+    public abstract class RailEntityServer<TState> : IServerCommandedEntity, IPreTickUpdateListener, ITickUpdateListener
+        where TState : RailState, IRailPoolable<RailState>, new()
+    {
+        private readonly RailDejitterBuffer<RailCommand> _incomingCommands;
+        private readonly RailQueueBuffer<RailStateRecord> _outgoingStates;
 
         // The controller at the time of entity removal
-        private RailController priorController;
+        private RailServerPeer priorController;
+
+        public RailServerRoom Room { get; private set; }
+
+        public RailServerPeer Controller { get; private set; }
+
+        private bool deferNotifyControllerChanged = true;
+
+        protected IRailCommandConstruction CommandCreator { get; private set; }
+
+        protected IRailEventConstruction EventCreator { get; private set; }
+
+        /// <summary>
+        ///     The current local state.
+        /// </summary>
+        protected TState State { get; set; }
+
+        public Tick RemovedTick { get; protected set; }
+
+        public bool IsFrozen { get; protected set; } = false;
+
+        public EntityId Id { get; protected set; } = EntityId.INVALID;
+
 
         public RailEntityServer()
         {
             // We use no divisor for storing commands because commands are sent in
             // batches that we can use to fill in the holes between send ticks
-            incomingCommands =
-                new RailDejitterBuffer<RailCommand>(RailConfig.DEJITTER_BUFFER_LENGTH);
-            outgoingStates =
-                new RailQueueBuffer<RailStateRecord>(RailConfig.DEJITTER_BUFFER_LENGTH);
-            Reset();
+            _incomingCommands = new RailDejitterBuffer<RailCommand>(RailConfig.DEJITTER_BUFFER_LENGTH);
+            _outgoingStates = new RailQueueBuffer<RailStateRecord>(RailConfig.DEJITTER_BUFFER_LENGTH);
+            State = new TState();
         }
 
-        public override RailRoom RoomBase
+        #region Pooling
+
+        IRailMemoryPool<IEntity> IRailPoolable<IEntity>.OwnerPool { get; set; }
+
+        public virtual void Reset()
         {
-            get => Room;
-            set => Room = (RailServerRoom)value;
+            IsFrozen = false;
+            CommandCreator = null;
+            Id = EntityId.INVALID;
+
+            Room = null;
+            Controller = null;
+            deferNotifyControllerChanged = true; // We always notify a controller change at start
+
+            _outgoingStates.Clear();
+            _incomingCommands.Clear();
+
+            State.Reset();
         }
 
-        [PublicAPI] protected RailServerRoom Room { get; private set; }
+        void IRailPoolable<IEntity>.Allocated()
+        {
+        }
+        #endregion
+
+        public virtual void InitState(RailResource resource)
+        {
+            CommandCreator = resource;
+            EventCreator = resource;
+        }
+
+        /// <summary>
+        ///     Applies a command to this instance.
+        ///     Called on controller and server.
+        /// </summary>
+        /// <param name="toApply"></param>
+        protected virtual void ApplyControlGeneric(RailCommand toApply)
+        {
+        }
 
         public void Initialize(EntityId id)
         {
@@ -90,65 +121,80 @@ namespace RailgunNet.Logic
         {
             // We'll remove on the next tick since we're probably 
             // already mid-way through evaluating this tick
-            RemovedTick = RoomBase.Tick + 1;
+            RemovedTick = Room.Tick + 1;
 
             // Notify our inheritors that we are being removed next tick
             OnSunset();
         }
 
-        public void ServerUpdate()
+
+        public virtual void TickUpdate(Tick tick)
         {
             UpdateAuthoritative();
 
-            RailCommand latest = GetLatestCommand();
-            if (latest != null)
+            if (Controller != null)
             {
-                ApplyControlGeneric(latest);
-                latest.IsNewCommand = false;
+                var latest = GetLatestCommand(tick);
 
-                // Use the remote tick rather than the last applied tick
-                // because we might be skipping some commands to keep up
-                UpdateCommandAck(Controller.EstimatedRemoteTick);
-            }
-            else if (Controller != null)
-            {
-                // We have no command to work from but might still want to
-                // do an update in the command sequence (if we have a controller)
-                CommandMissing();
+                if (latest != null)
+                {
+                    var remaining = _latestTick - latest.ClientTick;
+
+                    //Debug.Log("Remaining " + remaining);
+
+                    // Debug.Log(tick);
+                    //Debug.Log(latest.ClientTick);
+
+
+                    // Debug.Assert(tick == latest.ClientTick);
+                    Debug.Assert(latest.IsNewCommand);
+
+                    ApplyControlGeneric(latest);
+                    latest.IsNewCommand = false;
+                }
+                else
+                {
+                    var command = CommandCreator.CreateCommand();
+                    command.ClientTick = tick;
+                    command.IsNewCommand = false;
+
+                    ApplyControlGeneric(command);
+                    Debug.LogError("No command!");
+                }
             }
         }
 
-        public static T Create<T>(RailResource resource)
-            where T : RailEntityServer
+        public virtual void BeforeStore()
         {
-            int factoryType = resource.GetEntityFactoryType<T>();
-            return (T)Create(resource, factoryType);
+
         }
 
         public void StoreRecord(IRailStateConstruction stateCreator)
         {
-            if (outgoingStates.Latest != null)
+            BeforeStore();
+
+            if (_outgoingStates.Latest != null)
             {
-                var latest = outgoingStates.Latest.State;
+                var latest = _outgoingStates.Latest.State;
 
                 var dataChanged =
-                    StateBase.DataSerializer.CompareMutableData(latest.DataSerializer) > 0 ||
-                    StateBase.DataSerializer.IsControllerDataEqual(latest.DataSerializer) == false;
+                    State.DataSerializer.CompareMutableData(latest.DataSerializer) > 0 ||
+                    State.DataSerializer.IsControllerDataEqual(latest.DataSerializer) == false;
 
                 if (dataChanged == false)
                     return;
             }
 
             var record = stateCreator.CreateRecord();
-            record.Overwrite(stateCreator, RoomBase.Tick, StateBase);
+            record.Overwrite(stateCreator, Room.Tick, State);
 
-            outgoingStates.Store(record);
+            _outgoingStates.Store(record);
         }
 
         public RailStateDelta ProduceDelta(
             IRailStateConstruction stateCreator,
             Tick basisTick,
-            RailController destination,
+            RailServerPeer destination,
             bool forceAllMutable)
         {
             // Flags for special data modes
@@ -159,20 +205,17 @@ namespace RailgunNet.Logic
             return RailStateDeltaFactory.Create(
                 stateCreator,
                 Id,
-                StateBase,
-                outgoingStates.LatestFrom(basisTick),
+                State,
+                _outgoingStates.LatestFrom(basisTick),
                 includeControllerData,
                 includeImmutableData,
-                commandAck,
+                Room.Tick,
                 RemovedTick,
                 forceAllMutable);
         }
 
-        #region Lifecycle and Loop
-        public sealed override void Removed()
+        public void Removed()
         {
-            RailDebug.Assert(HasStarted);
-
             // Automatically revoke control but keep a history for 
             // sending the final controller data to the client.
             if (Controller != null)
@@ -182,37 +225,80 @@ namespace RailgunNet.Logic
                 NotifyControllerChanged();
             }
 
-            base.Removed();
+            OnRemoved();
+            Room = null;
         }
-        #endregion
 
-        protected sealed override void Reset()
+        public void Added(RailServerRoom room)
         {
-            base.Reset();
-            outgoingStates.Clear();
-            incomingCommands.Clear();
-
-            ResetStates();
-            OnReset();
+            Room = room;
+            OnAdded();
         }
 
-        private void ResetStates()
+        /// <summary>
+        ///     When the entity was added to a room.
+        ///     Called on all.
+        /// </summary>
+        protected virtual void OnAdded()
         {
-            if (StateBase != null) RailPool.Free(StateBase);
-
-            StateBase = null;
         }
 
-        protected sealed override void ClearCommands()
+        /// <summary>
+        ///     When the entity was removed from a room.
+        ///     Called on all.
+        /// </summary>
+        protected virtual void OnRemoved()
         {
-            incomingCommands.Clear();
-            commandAck = Tick.INVALID;
         }
+
+
+
+        public void AssignController(RailServerPeer controller)
+        {
+            if (Controller != controller)
+            {
+                Controller = controller;
+                ClearCommands();
+                deferNotifyControllerChanged = true;
+            }
+        }
+
+        protected void NotifyControllerChanged()
+        {
+            if (deferNotifyControllerChanged)
+                OnControllerChanged();
+            deferNotifyControllerChanged = false;
+        }
+
+        protected virtual void OnControllerChanged()
+        {
+
+        }
+
+        public virtual void PreTickUpdate(Tick localTick)
+        {
+            NotifyControllerChanged();
+        }
+
+
+        protected void ClearCommands()
+        {
+            _incomingCommands.Clear();
+        }
+
+        private Tick _latestTick;
 
         public void ReceiveCommand(RailCommand command)
         {
-            if (incomingCommands.Store(command))
+
+            if (_incomingCommands.Store(command))
             {
+                if (_latestTick == Tick.INVALID)
+                    _latestTick = command.ClientTick;
+                else
+                if (command.ClientTick > _latestTick)
+                    _latestTick = command.ClientTick;
+
                 command.IsNewCommand = true;
             }
             else
@@ -221,30 +307,15 @@ namespace RailgunNet.Logic
             }
         }
 
-        private RailCommand GetLatestCommand()
+        private RailCommand GetLatestCommand(Tick tick)
         {
+            if (tick.IsValid == false)
+                return null;
+
             if (Controller != null)
-            {
-                return incomingCommands.GetLatestAt(Controller.EstimatedRemoteTick);
-            }
+                return _incomingCommands.GetLatestAt(tick);
 
             return null;
-        }
-
-        private void UpdateCommandAck(Tick latestCommandTick)
-        {
-            bool shouldAck = commandAck.IsValid == false || latestCommandTick > commandAck;
-            if (shouldAck) commandAck = latestCommandTick;
-        }
-
-        #region Override Functions
-        /// <summary>
-        ///     Called if the entity had no pending command this tick.
-        ///     Called on server.
-        /// </summary>
-        [PublicAPI]
-        protected virtual void CommandMissing()
-        {
         }
 
         /// <summary>
@@ -252,7 +323,6 @@ namespace RailgunNet.Logic
         ///     to this state for all non-controlled entities.
         ///     Called on server.
         /// </summary>
-        [PublicAPI]
         protected virtual void UpdateAuthoritative()
         {
         }
@@ -261,10 +331,15 @@ namespace RailgunNet.Logic
         ///     When the entity will be removed on the next tick.
         ///     Called on server.
         /// </summary>
-        [PublicAPI]
         protected virtual void OnSunset()
         {
         } // Called on server
-        #endregion
+
+
+        public virtual void HandleEvent(RailEvent railEvent, RailServerPeer senderPeer)
+        {
+
+        }
+
     }
 }

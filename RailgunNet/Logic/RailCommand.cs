@@ -1,28 +1,7 @@
-﻿/*
- *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
- *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
- *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, subject to the following restrictions:
- *  
- *  1. The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  2. Altered source versions must be plainly marked as such, and must not be
- *     misrepresented as being the original software.
- *  3. This notice may not be removed or altered from any source distribution.
- */
-
-using RailgunNet.Factory;
+﻿using RailgunNet.Factory;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Logic
@@ -38,11 +17,18 @@ namespace RailgunNet.Logic
         public Tick ClientTick { get; set; } // Synchronized
 
         public bool IsNewCommand { get; set; }
-        private RailCommandDataSerializer DataSerializer { get; set; }
+
+        private readonly RailCommandDataSerializer _dataSerializer;
+
         Tick IRailTimedValue.Tick => ClientTick;
 
+        protected RailCommand()
+        {
+            _dataSerializer = new RailCommandDataSerializer(this);
+        }
+
         #region Implementation: IRailPoolable
-        IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.Pool { get; set; }
+        IRailMemoryPool<RailCommand> IRailPoolable<RailCommand>.OwnerPool { get; set; }
 
         void IRailPoolable<RailCommand>.Reset()
         {
@@ -51,15 +37,14 @@ namespace RailgunNet.Logic
 
         void IRailPoolable<RailCommand>.Allocated()
         {
-            DataSerializer = new RailCommandDataSerializer(this);
+
         }
         #endregion
 
-        #region Encode/Decode/internals
         private void Reset()
         {
             ClientTick = Tick.INVALID;
-            DataSerializer.ResetData();
+            _dataSerializer.ResetData();
         }
 
         public void Encode(RailBitBuffer buffer)
@@ -68,23 +53,16 @@ namespace RailgunNet.Logic
             buffer.WriteTick(ClientTick);
 
             // Write: [Command Data]
-            DataSerializer.EncodeData(buffer);
+            _dataSerializer.EncodeData(buffer);
         }
 
-        public static RailCommand Decode(
-            IRailCommandConstruction commandCreator,
-            RailBitBuffer buffer)
+        public void Decode(RailBitBuffer buffer)
         {
-            RailCommand command = commandCreator.CreateCommand();
-
             // Read: [SenderTick]
-            command.ClientTick = buffer.ReadTick();
+            ClientTick = buffer.ReadTick();
 
             // Read: [Command Data]
-            command.DataSerializer.DecodeData(buffer);
-
-            return command;
+            _dataSerializer.DecodeData(buffer);
         }
-        #endregion
     }
 }

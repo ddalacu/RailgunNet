@@ -27,7 +27,7 @@ namespace RailgunNet.Factory
                     $"Cannot create a factory for an abstract type {typeToCreate}.");
             }
 
-            if (typeToCreate != typeof(T) && !typeToCreate.IsSubclassOf(typeof(T)))
+            if (typeof(T).IsAssignableFrom(typeToCreate)==false)
             {
                 throw new ArgumentException(
                     $"{typeToCreate} is not derived from {typeof(T)}.",

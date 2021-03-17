@@ -43,7 +43,7 @@ namespace RailgunNet
 
         public RailClock(
             uint remoteSendRate,
-            EDesiredDelay eDelay = EDesiredDelay.Minimal,
+            EDesiredDelay eDelay = EDesiredDelay.Midpoint,
             uint delayMin = DELAY_MIN,
             uint delayMax = DELAY_MAX)
         {

@@ -13,18 +13,19 @@ namespace RailgunNet.Logic.Scope
         private readonly List<RailStateDelta> activeList = new List<RailStateDelta>();
 
         // Pre-allocated reusable fill lists
-        private readonly List<KeyValuePair<float, RailEntityBase>> entryList =
-            new List<KeyValuePair<float, RailEntityBase>>();
+        private readonly List<KeyValuePair<float, IServerEntity>> entryList =
+            new List<KeyValuePair<float, IServerEntity>>();
 
         private readonly List<RailStateDelta> frozenList = new List<RailStateDelta>();
         private readonly RailView lastSent = new RailView();
 
-        private readonly RailController owner;
         private readonly EntityPriorityComparer priorityComparer = new EntityPriorityComparer();
         private readonly List<RailStateDelta> removedList = new List<RailStateDelta>();
         private readonly IRailStateConstruction stateCreator;
 
-        public RailScope(RailController owner, IRailStateConstruction stateCreator)
+        private RailServerPeer owner;
+
+        public RailScope(RailServerPeer owner, IRailStateConstruction stateCreator)
         {
             Evaluator = new RailScopeEvaluator();
             this.owner = owner;
@@ -41,8 +42,8 @@ namespace RailgunNet.Logic.Scope
         public void PopulateDeltas(
             Tick serverTick,
             RailPacketToClient packetToClient,
-            IEnumerable<RailEntityServer> activeEntities,
-            IEnumerable<RailEntityServer> removedEntities)
+            IEnumerable<IServerEntity> activeEntities,
+            IEnumerable<IServerEntity> removedEntities)
         {
             ProduceScoped(serverTick, activeEntities);
             ProduceRemoved(owner, removedEntities);
@@ -56,16 +57,16 @@ namespace RailgunNet.Logic.Scope
 
         public void IntegrateAcked(RailView packetView)
         {
-            ackedByClient.Integrate(packetView);
+            ackedByClient.CopyFrom(packetView);
         }
 
         public void RegisterSent(EntityId entityId, Tick tick, bool isFrozen)
         {
             // We don't care about the local tick on the server side
-            lastSent.RecordUpdate(entityId, tick, Tick.INVALID, isFrozen);
+            lastSent.RecordUpdate(entityId, tick, isFrozen);
         }
 
-        private bool GetPriority(RailEntityBase entity, Tick current, out float priority)
+        private bool GetPriority(IServerEntity entity, Tick current, out float priority)
         {
             RailViewEntry lastSent = this.lastSent.GetLatest(entity.Id);
             RailViewEntry lastAcked = ackedByClient.GetLatest(entity.Id);
@@ -86,26 +87,27 @@ namespace RailgunNet.Logic.Scope
         ///     Otherwise, if an entity is in scope we will add it to the sorted
         ///     active delta list.
         /// </summary>
-        private void ProduceScoped(Tick serverTick, IEnumerable<RailEntityServer> activeEntities)
+        private void ProduceScoped(Tick serverTick, IEnumerable<IServerEntity> activeEntities)
         {
             // TODO: should be doable without the copy using a LINQ expression.
             entryList.Clear();
 
-            foreach (RailEntityServer entity in activeEntities)
+            foreach (var entity in activeEntities)
             {
-                if (entity.IsRemoving)
+                if (entity.IsRemoving())
                 {
                 }
                 // Controlled entities are always in scope to their controller
                 else if (entity.Controller == owner)
                 {
-                    entryList.Add(new KeyValuePair<float, RailEntityBase>(float.MinValue, entity));
+                    entryList.Add(new KeyValuePair<float, IServerEntity>(float.MinValue, entity));
                 }
                 else if (GetPriority(entity, serverTick, out float priority))
                 {
-                    entryList.Add(new KeyValuePair<float, RailEntityBase>(priority, entity));
+                    entryList.Add(new KeyValuePair<float, IServerEntity>(priority, entity));
                 }
-                else if (RailEntityBase.CanFreeze)
+                //else 
+                //if (RailEntityBase.CanFreeze)
                 {
                     // We only want to send a freeze state if we aren't already frozen
                     RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
@@ -118,10 +120,10 @@ namespace RailgunNet.Logic.Scope
             }
 
             entryList.Sort(priorityComparer);
-            foreach (KeyValuePair<float, RailEntityBase> entry in entryList)
+            foreach (var entry in entryList)
             {
                 RailViewEntry latest = ackedByClient.GetLatest(entry.Value.Id);
-                RailEntityServer entity = entry.Value as RailEntityServer;
+                var entity = entry.Value;
 
                 // Force a complete update if the entity is frozen so it unfreezes
                 // TODO: Currently if we're unfreezing we force the server to send a
@@ -130,7 +132,7 @@ namespace RailgunNet.Logic.Scope
                 //       what tick they last received a non-frozen packetToClient on.
                 //       However, this would cause some tedious tick comparison.
                 //       Should investigate a smarter way to handle this later.
-                RailStateDelta delta = entity.ProduceDelta(
+                var delta = entity.ProduceDelta(
                     stateCreator,
                     latest.LastReceivedTick,
                     owner,
@@ -144,10 +146,10 @@ namespace RailgunNet.Logic.Scope
         ///     Produces deltas for all non-acked removed entities.
         /// </summary>
         private void ProduceRemoved(
-            RailController target,
-            IEnumerable<RailEntityServer> removedEntities)
+            RailServerPeer target,
+            IEnumerable<IServerEntity> removedEntities)
         {
-            foreach (RailEntityServer entity in removedEntities)
+            foreach (var entity in removedEntities)
             {
                 RailViewEntry latest = ackedByClient.GetLatest(entity.Id);
 
@@ -161,7 +163,7 @@ namespace RailgunNet.Logic.Scope
         }
 
         private bool EvaluateEntity(
-            RailEntityBase entity,
+            IServerEntity entity,
             int ticksSinceSend,
             int ticksSinceAck,
             out float priority)
@@ -185,20 +187,20 @@ namespace RailgunNet.Logic.Scope
             return GetLastAckedByClient(entityId).IsValid;
         }
 
-        private class EntityPriorityComparer : Comparer<KeyValuePair<float, RailEntityBase>>
+        private class EntityPriorityComparer : Comparer<KeyValuePair<float, IServerEntity>>
         {
-            private readonly Comparer<float> floatComparer;
+            private readonly Comparer<float> _floatComparer;
 
             public EntityPriorityComparer()
             {
-                floatComparer = Comparer<float>.Default;
+                _floatComparer = Comparer<float>.Default;
             }
 
             public override int Compare(
-                KeyValuePair<float, RailEntityBase> x,
-                KeyValuePair<float, RailEntityBase> y)
+                KeyValuePair<float, IServerEntity> x,
+                KeyValuePair<float, IServerEntity> y)
             {
-                return floatComparer.Compare(x.Key, y.Key);
+                return _floatComparer.Compare(x.Key, y.Key);
             }
         }
     }

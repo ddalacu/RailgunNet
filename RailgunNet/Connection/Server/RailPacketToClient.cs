@@ -3,6 +3,7 @@ using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
+using UnityEngine;
 
 
 namespace RailgunNet.Connection.Server
@@ -14,6 +15,8 @@ namespace RailgunNet.Connection.Server
     public sealed class RailPacketToClient : RailPacketOutgoing
     {
         private readonly RailPackedListOutgoing<RailStateDelta> deltas;
+
+        public double PingProcessDelay { get; set; }
 
         public RailPacketToClient()
         {
@@ -46,6 +49,17 @@ namespace RailgunNet.Connection.Server
             Tick localTick,
             int reservedBytes)
         {
+            const double maxValue = 500;
+            if (PingProcessDelay < 0)
+                PingProcessDelay = 0;
+            if (PingProcessDelay > maxValue)
+                PingProcessDelay = maxValue;
+
+
+            var remap = PingProcessDelay / maxValue;
+            var ush = (ushort)(remap * ushort.MaxValue);
+            buffer.Write(16, ush);
+
             // Write: [Deltas]
             EncodeDeltas(stateCreator, buffer, reservedBytes);
         }
@@ -59,7 +73,10 @@ namespace RailgunNet.Connection.Server
                 buffer,
                 RailConfig.PACKCAP_MESSAGE_TOTAL - reservedBytes,
                 RailConfig.MAXSIZE_ENTITY,
-                (delta, buf) => RailStateDeltaSerializer.EncodeDelta(stateCreator, buf, delta));
+                (delta, buf) =>
+                {
+                    RailStateDeltaSerializer.EncodeDelta(stateCreator, buf, delta);
+                });
         }
         #endregion
     }

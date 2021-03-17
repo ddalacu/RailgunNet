@@ -56,7 +56,7 @@ namespace RailgunNet.Logic.Wrappers
         }
 
         #region Pooling
-        IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.Pool { get; set; }
+        IRailMemoryPool<RailStateRecord> IRailPoolable<RailStateRecord>.OwnerPool { get; set; }
 
         void IRailPoolable<RailStateRecord>.Reset()
         {

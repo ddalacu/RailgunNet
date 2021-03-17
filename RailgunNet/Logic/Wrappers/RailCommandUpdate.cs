@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.System.Buffer;
 using RailgunNet.System.Encoding;
@@ -22,8 +21,7 @@ namespace RailgunNet.Logic.Wrappers
             EntityId = EntityId.INVALID;
             commands = new RailRollingBuffer<RailCommand>(BUFFER_CAPACITY);
         }
-
-        [CanBeNull] public RailEntityClient Entity { get; private set; }
+        public IProduceCommands Entity { get; private set; }
 
         public EntityId EntityId { get; private set; }
 
@@ -31,10 +29,10 @@ namespace RailgunNet.Logic.Wrappers
 
         public static RailCommandUpdate Create(
             IRailCommandConstruction commandCreator,
-            RailEntityClient entity,
+            IProduceCommands entity,
             IEnumerable<RailCommand> commands)
         {
-            RailCommandUpdate update = commandCreator.CreateCommandUpdate();
+            var update = commandCreator.CreateCommandUpdate();
             update.Initialize(entity.Id, commands);
             update.Entity = entity;
             return update;
@@ -64,9 +62,7 @@ namespace RailgunNet.Logic.Wrappers
 
             // Write: [Commands]
             foreach (RailCommand command in commands.GetValues())
-            {
                 command.Encode(buffer);
-            }
         }
 
         public static RailCommandUpdate Decode(
@@ -84,14 +80,17 @@ namespace RailgunNet.Logic.Wrappers
             // Read: [Commands]
             for (int i = 0; i < count; i++)
             {
-                update.commands.Store(RailCommand.Decode(commandCreator, buffer));
+                var command = commandCreator.CreateCommand();
+                command.Decode(buffer);
+
+                update.commands.Store(command);
             }
 
             return update;
         }
 
         #region Pooling
-        IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.Pool { get; set; }
+        IRailMemoryPool<RailCommandUpdate> IRailPoolable<RailCommandUpdate>.OwnerPool { get; set; }
 
         void IRailPoolable<RailCommandUpdate>.Reset()
         {

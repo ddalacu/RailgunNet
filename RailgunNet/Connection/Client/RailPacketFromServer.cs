@@ -2,6 +2,7 @@
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding;
+using UnityEngine;
 
 namespace RailgunNet.Connection.Client
 {
@@ -11,6 +12,8 @@ namespace RailgunNet.Connection.Client
     public sealed class RailPacketFromServer : RailPacketIncoming
     {
         private readonly RailPackedListIncoming<RailStateDelta> deltas;
+
+        public double PingProcessDelay { get; set; }
 
         public RailPacketFromServer()
         {
@@ -32,6 +35,11 @@ namespace RailgunNet.Connection.Client
             IRailStateConstruction stateCreator,
             RailBitBuffer buffer)
         {
+            const double maxValue = 500d;
+            var encoded= (ushort)buffer.Read(16);
+            var map = ((double)encoded / ushort.MaxValue);
+            PingProcessDelay = (map * maxValue);
+
             // Read: [Deltas]
             DecodeDeltas(stateCreator, buffer);
         }

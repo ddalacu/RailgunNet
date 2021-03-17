@@ -31,7 +31,7 @@ namespace RailgunNet.Connection.Traffic
         /// </summary>
         object PlayerData { get; set; }
 
-        float? Ping { get; }
+       // float? Ping { get; }
         event RailNetPeerEvent PayloadReceived;
 
         void SendPayload(ArraySegment<byte> buffer);

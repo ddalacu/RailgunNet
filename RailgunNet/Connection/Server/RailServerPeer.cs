@@ -1,64 +1,76 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Scope;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Types;
+using RailgunNet.Util.Debug;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace RailgunNet.Connection.Server
 {
     /// <summary>
     ///     A peer created by the server representing a connected client.
     /// </summary>
-    public class RailServerPeer : RailPeer<RailPacketFromClient, RailPacketToClient>
+    public class RailServerPeer : RailPeer
     {
         public RailScope Scope { get; }
 
-        public RailServerPeer(
-            RailResource resource,
-            IRailNetPeer netPeer,
-            uint remoteSendRate,
-            RailInterpreter interpreter) : base(
-            resource,
-            netPeer,
-            remoteSendRate,
-            interpreter)
+        /// <summary>
+        ///     The entities controlled by this controller.
+        /// </summary>
+        private readonly HashSet<IServerEntity> controlledEntities = new HashSet<IServerEntity>();
+
+        public delegate void ProcessCommandUpdateDelegate(RailServerPeer peer, RailCommandUpdate update);
+
+        public event ProcessCommandUpdateDelegate ProcessCommandUpdate;
+
+        public RailServerPeer(RailResource resource) : base()
         {
             Scope = new RailScope(this, resource);
         }
 
-        /// <summary>
-        ///     A connection identifier string. (TODO: Temporary)
-        /// </summary>
-        public string Identifier { get; set; }
-
-        public event Action<RailServerPeer, IRailClientPacket> PacketReceived;
-
         public void SendPacket(
+            RailPacketToClient packetToClient,
             Tick localTick,
-            IEnumerable<RailEntityServer> active,
-            IEnumerable<RailEntityServer> removed)
+            IEnumerable<IServerEntity> active,
+            IEnumerable<IServerEntity> removed)
         {
-            RailPacketToClient packetToClient = PrepareSend<RailPacketToClient>(localTick);
-            Scope.PopulateDeltas(localTick, packetToClient, active, removed);
-            base.SendPacket(packetToClient);
+            PrepareSend(packetToClient, localTick);
 
-            foreach (RailStateDelta delta in packetToClient.Sent)
+            //var tickDelta = _sincronizer.GetDelta();
+            //Debug.Log("Delta "+tickDelta);
+
+            Scope.PopulateDeltas(localTick, packetToClient, active, removed);
+
+            foreach (var delta in packetToClient.Sent)
             {
                 Scope.RegisterSent(delta.EntityId, localTick, delta.IsFrozen);
             }
         }
 
-        protected override void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
-        {
-            base.ProcessPacket(packetBase, localTick);
 
-            RailPacketFromClient clientPacket = (RailPacketFromClient)packetBase;
+        public override void ProcessPacket(Tick localTick, RailPacketIncoming packetBase)
+        {
+            base.ProcessPacket(localTick, packetBase);
+
+            var clientPacket = (RailPacketFromClient)packetBase;
+
+            //Sincronizer.Add(localTick, clientPacket.SenderTick, clientPacket.TickEdit);
+
             Scope.IntegrateAcked(clientPacket.View);
-            PacketReceived?.Invoke(this, clientPacket);
+
+            foreach (RailCommandUpdate update in clientPacket.CommandUpdated.Received)
+            {
+                ProcessCommandUpdate?.Invoke(this, update);
+            }
+
         }
+
 
         public override bool ShouldSendEvent(RailEvent railEvent)
         {
@@ -69,14 +81,58 @@ namespace RailgunNet.Connection.Server
             return true;
         }
 
-        public void GrantControl(RailEntityServer entity)
+        public void GrantControl(IServerEntity entity)
         {
             GrantControlInternal(entity);
         }
 
-        public void RevokeControl(RailEntityServer entity)
+        public void RevokeControl(IServerEntity entity)
         {
             RevokeControlInternal(entity);
+        }
+
+        public void Shutdown()
+        {
+            foreach (var entity in controlledEntities)
+            {
+                entity.AssignController(null);
+            }
+
+            controlledEntities.Clear();
+        }
+
+        /// <summary>
+        ///     Adds an entity to be controlled by this peer.
+        /// </summary>
+        private void GrantControlInternal(IServerEntity entity)
+        {
+            if (entity.Controller == this) return;
+            RailDebug.Assert(entity.Controller == null);
+
+            controlledEntities.Add(entity);
+            entity.AssignController(this);
+        }
+
+        /// <summary>
+        ///     Remove an entity from being controlled by this peer.
+        /// </summary>
+        internal void RevokeControlInternal(IServerEntity entity)
+        {
+            RailDebug.Assert(entity.Controller == this);
+
+            controlledEntities.Remove(entity);
+            entity.AssignController(null);
+        }
+
+
+        public delegate void EventReceivedDelegate(RailEvent evnt, RailServerPeer sender);
+
+
+        public event EventReceivedDelegate EventReceived;
+
+        public override void HandleEventReceived(RailEvent @event)
+        {
+            EventReceived?.Invoke(@event, this);
         }
     }
 }

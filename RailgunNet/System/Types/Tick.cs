@@ -115,15 +115,7 @@ namespace RailgunNet.System.Types
             }
         }
 
-        public static Comparer<Tick> CreateComparer()
-        {
-            return new TickComparer();
-        }
-
-        public static IEqualityComparer<Tick> CreateEqualityComparer()
-        {
-            return new TickComparer();
-        }
+        public static Comparer<Tick> DefaultComparer = new TickComparer();
 
         public static Tick Subtract(Tick a, uint b, bool warnClamp = false)
         {

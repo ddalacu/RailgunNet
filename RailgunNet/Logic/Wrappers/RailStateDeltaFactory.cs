@@ -28,8 +28,7 @@ namespace RailgunNet.Logic.Wrappers
             bool forceSend = forceAllMutable ||
                                 includeControllerData && current.HasControllerData ||
                                 includeImmutableData ||
-                                removedTick.IsValid ||
-                                commandAck.IsValid;
+                                removedTick.IsValid;
 
             // We don't know what the client has and hasn't received from us since
             // the acked state. As a result, we'll build diff flags across all 
@@ -49,11 +48,13 @@ namespace RailgunNet.Logic.Wrappers
                 flags = FLAGS_ALL;
             }
 
-            if (flags == FLAGS_NONE && 
-                forceSend == false)
-                return null;
+            //if (flags == FLAGS_NONE && 
+            //    forceSend == false)
+            //    return null;
 
-            RailState deltaState = stateCreator.CreateState(current.FactoryType);
+            var type = stateCreator.GetEntityType(current);
+
+            RailState deltaState = stateCreator.CreateState(type);
 
             deltaState.HasImmutableData = includeImmutableData;
             if (includeImmutableData)
@@ -72,7 +73,7 @@ namespace RailgunNet.Logic.Wrappers
 
             // We don't need to include a tick when sending -- it's in the packet
             RailStateDelta delta = stateCreator.CreateDelta();
-            delta.Initialize(Tick.INVALID, entityId, deltaState, removedTick, commandAck, false);
+            delta.Initialize(Tick.INVALID, entityId, deltaState, commandAck, removedTick, false);
             return delta;
         }
     }

@@ -108,31 +108,46 @@ namespace RailgunNet.Logic
 
         public void ResetAllData()
         {
-            immutable.ForEach(c => c.Reset());
-            mutable.ForEach(c => c.Reset());
-            controller.ForEach(c => c.Reset());
+            var immutableCount = immutable.Count;
+            for (var index = 0; index < immutableCount; index++)
+                immutable[index].Reset();
+
+            var mutableCount = mutable.Count;
+            for (var index = 0; index < mutableCount; index++)
+                mutable[index].Reset();
+
+            var controllerCount = controller.Count;
+            for (var index = 0; index < controllerCount; index++)
+                controller[index].Reset();
         }
 
         public void ResetControllerData()
         {
-            controller.ForEach(c => c.Reset());
+            var controllerCount = controller.Count;
+            for (var index = 0; index < controllerCount; index++)
+                controller[index].Reset();
         }
         #endregion
 
         #region Encode & Decode
         public void DecodeControllerData(RailBitBuffer buffer)
         {
-            controller.ForEach(c => c.ReadFrom(buffer));
+            var controllerCount = controller.Count;
+            for (var index = 0; index < controllerCount; index++)
+                controller[index].ReadFrom(buffer);
         }
 
         public void DecodeImmutableData(RailBitBuffer buffer)
         {
-            immutable.ForEach(i => i.ReadFrom(buffer));
+            var immutableCount = immutable.Count;
+            for (var index = 0; index < immutableCount; index++)
+                immutable[index].ReadFrom(buffer);
         }
 
         public void DecodeMutableData(RailBitBuffer buffer, uint flags)
         {
-            for (int i = 0; i < mutable.Count; ++i)
+            var mutableCount = mutable.Count;
+            for (int i = 0; i < mutableCount; ++i)
             {
                 if ((flags & ToFlag(i)) == ToFlag(i))
                 {
@@ -143,17 +158,22 @@ namespace RailgunNet.Logic
 
         public void EncodeControllerData(RailBitBuffer buffer)
         {
-            controller.ForEach(c => c.WriteTo(buffer));
+            var controllerCount = controller.Count;
+            for (var index = 0; index < controllerCount; index++)
+                controller[index].WriteTo(buffer);
         }
 
         public void EncodeImmutableData(RailBitBuffer buffer)
         {
-            immutable.ForEach(i => i.WriteTo(buffer));
+            var immutableCount = immutable.Count;
+            for (var index = 0; index < immutableCount; index++)
+                immutable[index].WriteTo(buffer);
         }
 
         public void EncodeMutableData(RailBitBuffer buffer, uint flags)
         {
-            for (int i = 0; i < mutable.Count; ++i)
+            var mutableCount = mutable.Count;
+            for (int i = 0; i < mutableCount; ++i)
             {
                 if ((flags & ToFlag(i)) == ToFlag(i))
                 {

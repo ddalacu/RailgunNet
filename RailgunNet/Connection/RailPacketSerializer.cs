@@ -116,8 +116,7 @@ namespace RailgunNet.Connection
                 packet.GetNextEvents(),
                 (evnt, buf) => evnt.Encode(
                     eventCreator.EventTypeCompressor,
-                    buf,
-                    packet.SenderTick),
+                    buf),
                 evnt => evnt.RegisterSent());
         }
 
@@ -126,12 +125,12 @@ namespace RailgunNet.Connection
             IRailEventConstruction eventCreator,
             RailBitBuffer buffer)
         {
-            IEnumerable<RailEvent> decoded = buffer.UnpackAll(
+            var decoded = buffer.UnpackAll(
                 buf => RailEvent.Decode(
                     eventCreator,
                     eventCreator.EventTypeCompressor,
-                    buf,
-                    packet.SenderTick));
+                    buf));
+
             foreach (RailEvent evnt in decoded)
             {
                 packet.Events.Add(evnt);

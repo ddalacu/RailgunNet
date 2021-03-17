@@ -22,6 +22,7 @@ using System;
 using RailgunNet.Factory;
 using RailgunNet.System.Encoding;
 using RailgunNet.Util.Debug;
+using UnityEngine;
 
 namespace RailgunNet.Connection.Traffic
 {
@@ -39,13 +40,18 @@ namespace RailgunNet.Connection.Traffic
             bitBuffer = new RailBitBuffer();
         }
 
-        public void SendPacket(RailResource resource, IRailNetPeer peer, RailPacketOutgoing packet)
+        public ArraySegment<byte> SendPacket(RailResource resource, RailPacketOutgoing packet)
         {
             bitBuffer.Clear();
             packet.Encode(resource, bitBuffer);
+
             int length = bitBuffer.Store(bytes);
             RailDebug.Assert(length <= RailConfig.PACKCAP_MESSAGE_TOTAL);
-            peer.SendPayload(new ArraySegment<byte>(bytes, 0, length));
+            //peer.SendPayload(new ArraySegment<byte>(bytes, 0, length))
+
+            //Debug.Log($"Send {length}");
+
+            return new ArraySegment<byte>(bytes, 0, length);
         }
 
         public RailBitBuffer LoadData(ArraySegment<byte> buffer)

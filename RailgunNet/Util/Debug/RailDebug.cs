@@ -33,17 +33,23 @@ namespace RailgunNet.Util.Debug
         public static void LogWarning(object message)
         {
             Console.WriteLine("WARNING: {0} [Railgun]", message);
+            UnityEngine.Debug.LogWarning(message);
         }
 
         public static void LogError(object message)
         {
             Console.Error.WriteLine("ERROR: {0} [Railgun]\n {1}", message, Environment.StackTrace);
+            UnityEngine.Debug.LogError(message);
         }
 
         [Conditional("DEBUG")]
         public static void Assert(bool condition, string message = null)
         {
-            if (condition == false) LogError("Assert Failed: " + message);
+            if (condition == false)
+            {
+                LogError("Assert Failed: " + message);
+                UnityEngine.Debug.Log(message);
+            }
         }
     }
 }

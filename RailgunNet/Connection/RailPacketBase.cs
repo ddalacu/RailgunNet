@@ -117,7 +117,7 @@ namespace RailgunNet.Connection
         #endregion
 
         #region Pooling
-        IRailMemoryPool<RailPacketBase> IRailPoolable<RailPacketBase>.Pool { get; set; }
+        IRailMemoryPool<RailPacketBase> IRailPoolable<RailPacketBase>.OwnerPool { get; set; }
 
         void IRailPoolable<RailPacketBase>.Reset()
         {

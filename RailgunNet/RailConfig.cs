@@ -5,12 +5,12 @@
         /// <summary>
         ///     Number of outgoing commands to send per packet.
         /// </summary>
-        public const int COMMAND_SEND_COUNT = 32;
+        public const int COMMAND_SEND_COUNT = 40;
 
         /// <summary>
         ///     Number of commands to buffer for prediction.
         /// </summary>
-        public const int COMMAND_BUFFER_COUNT = 32;
+        public const int COMMAND_BUFFER_COUNT = 40;
 
         /// <summary>
         ///     Number of entries to store in a dejitter buffer.

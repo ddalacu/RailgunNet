@@ -63,7 +63,7 @@ namespace RailgunNet.Factory
         }
     }
 
-    public class RailRegistry<TEntityBase> : RailRegistry where TEntityBase : RailEntityBase
+    public class RailRegistry<TEntityBase> : RailRegistry where TEntityBase : IEntity
     {
         /// <summary>
         ///     Adds an entity type with its corresponding state to the registry.

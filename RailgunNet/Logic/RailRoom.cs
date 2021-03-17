@@ -1,38 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using RailgunNet.Connection;
 using RailgunNet.Factory;
 using RailgunNet.System.Types;
 
 namespace RailgunNet.Logic
 {
-    public abstract class RailRoom
+    public abstract class RailRoom<T> where T : IEntity
     {
-        private readonly RailConnection connection;
-        private readonly Dictionary<EntityId, RailEntityBase> entities;
-
-        protected RailRoom(RailResource resource, RailConnection connection)
-        {
-            Resource = resource;
-            this.connection = connection;
-            entities = new Dictionary<EntityId, RailEntityBase>(EntityId.CreateEqualityComparer());
-            Tick = Tick.INVALID;
-        }
-
-        public RailResource Resource { get; }
-
-        public object UserData { get; set; }
-
-        /// <summary>
-        ///     The current synchronized tick. On clients this will be the predicted
-        ///     server tick. On the server this will be the authoritative tick.
-        /// </summary>
-        public Tick Tick { get; protected set; }
+        protected readonly Dictionary<EntityId, T> _entities = new Dictionary<EntityId, T>(EntityId.ComparerInstance);
 
         /// <summary>
         ///     All of the entities currently added to this room.
         /// </summary>
-        public IReadOnlyDictionary<EntityId, RailEntityBase> Entities => entities;
+        public IReadOnlyDictionary<EntityId, T> Entities => _entities;
 
         /// <summary>
         ///     Fired before all entities have updated, for updating global logic.
@@ -47,19 +27,18 @@ namespace RailgunNet.Logic
         /// <summary>
         ///     Notifies that we removed an entity.
         /// </summary>
-        public event Action<RailEntityBase> EntityRemoved;
+        public event Action<T> EntityRemoved;
 
         /// <summary>
         ///     Notifies that we removed an entity.
         /// </summary>
-        public event Action<RailEntityBase> EntityAdded;
+        public event Action<T> EntityAdded;
 
-        public bool TryGet<T>(EntityId id, out T value)
-            where T : RailEntityBase
+        public bool TryGet<TEntity>(EntityId id, out TEntity value) where TEntity : class, T
         {
-            if (entities.TryGetValue(id, out RailEntityBase entity))
+            if (_entities.TryGetValue(id, out var entity))
             {
-                value = entity as T;
+                value = entity as TEntity;
                 return true;
             }
 
@@ -67,41 +46,44 @@ namespace RailgunNet.Logic
             return false;
         }
 
-        public void Initialize(Tick tick)
-        {
-            Tick = tick;
-        }
-
-        protected void OnPreRoomUpdate(Tick tick)
+        protected void CallPreRoomUpdate(Tick tick)
         {
             PreRoomUpdate?.Invoke(tick);
         }
 
-        protected void OnPostRoomUpdate(Tick tick)
+        protected void CallPostRoomUpdate(Tick tick)
         {
             PostRoomUpdate?.Invoke(tick);
         }
 
-        protected void RegisterEntity(RailEntityBase entity)
+        protected void CallAddedEntity(T entity)
         {
-            entities.Add(entity.Id, entity);
-            entity.RoomBase = this;
             EntityAdded?.Invoke(entity);
         }
 
-        protected bool RemoveEntity(RailEntityBase entity)
+        protected void CallRemovedEntity(T entity)
         {
-            if (entities.ContainsKey(entity.Id))
-            {
-                entities.Remove(entity.Id);
-                entity.Removed();
-                entity.RoomBase = null;
-                // TODO: Pooling entities?
+            EntityRemoved?.Invoke(entity);
+        }
 
-                EntityRemoved?.Invoke(entity);
-                return true;
+    }
+
+    public static class RailRoomExtensions
+    {
+        public static bool TryGetFirstEntityOfType<TRoomBase, T>(this RailRoom<TRoomBase> room, out T result)
+            where T : IEntity
+            where TRoomBase : IEntity
+        {
+            foreach (var roomEntity in room.Entities.Values)
+            {
+                if (roomEntity is T casted)
+                {
+                    result = casted;
+                    return true;
+                }
             }
 
+            result = default;
             return false;
         }
     }

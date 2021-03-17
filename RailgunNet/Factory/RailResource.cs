@@ -5,20 +5,32 @@ using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System.Encoding.Compressors;
 using RailgunNet.Util.Pooling;
+using UnityEngine;
 
 namespace RailgunNet.Factory
 {
-    public class RailResource
-        : IRailCommandConstruction, IRailEventConstruction, IRailStateConstruction
+    public enum EntityType : int
+    {
+
+    }
+    public enum EventType : int
+    {
+
+    }
+
+
+    public class RailResource : IRailCommandConstruction, IRailEventConstruction, IRailStateConstruction
     {
         [CanBeNull] private readonly IRailMemoryPool<RailCommand> commandPool;
 
         private readonly IRailMemoryPool<RailCommandUpdate> commandUpdatePool;
 
         private readonly IRailMemoryPool<RailStateDelta> deltaPool;
-        private readonly Dictionary<int, IRailMemoryPool<RailEntityBase>> entityPools;
+        private readonly Dictionary<int, IRailMemoryPool<IEntity>> entityPools;
 
         private readonly Dictionary<Type, int> entityTypeToKey;
+        private readonly Dictionary<Type, int> stateTypeToKey;
+
         private readonly Dictionary<int, IRailMemoryPool<RailEvent>> eventPools;
         private readonly Dictionary<Type, int> eventTypeToKey;
 
@@ -31,9 +43,10 @@ namespace RailgunNet.Factory
         {
             entityTypeToKey = new Dictionary<Type, int>();
             eventTypeToKey = new Dictionary<Type, int>();
+            stateTypeToKey = new Dictionary<Type, int>();
 
             commandPool = CreateCommandPool(registry);
-            entityPools = new Dictionary<int, IRailMemoryPool<RailEntityBase>>();
+            entityPools = new Dictionary<int, IRailMemoryPool<IEntity>>();
             statePools = new Dictionary<int, IRailMemoryPool<RailState>>();
             eventPools = new Dictionary<int, IRailMemoryPool<RailEvent>>();
 
@@ -47,13 +60,19 @@ namespace RailgunNet.Factory
             commandUpdatePool =
                 new RailMemoryPool<RailCommandUpdate>(new RailFactory<RailCommandUpdate>());
 
-            if (registry is RailRegistry<RailEntityServer>)
+            if (registry is RailRegistry<IServerEntity>)
             {
                 recordPool = new RailMemoryPool<RailStateRecord>(new RailFactory<RailStateRecord>());
             }
         }
 
         public RailIntCompressor EventTypeCompressor { get; }
+
+        public EntityType GetEntityType(RailState state)
+        {
+            return (EntityType)stateTypeToKey[state.GetType()];
+        }
+
         public RailIntCompressor EntityTypeCompressor { get; }
 
         private static IRailMemoryPool<RailCommand> CreateCommandPool(RailRegistry registry)
@@ -82,13 +101,16 @@ namespace RailgunNet.Factory
             {
                 IRailMemoryPool<RailState> statePool = new RailMemoryPool<RailState>(
                     new RailFactory<RailState>(pair.State));
-                IRailMemoryPool<RailEntityBase> entityPool = new RailMemoryPool<RailEntityBase>(
-                    new RailFactory<RailEntityBase>(pair.Entity, pair.ConstructorParamsEntity));
+                IRailMemoryPool<IEntity> entityPool = new RailMemoryPool<IEntity>(
+                    new RailFactory<IEntity>(pair.Entity, pair.ConstructorParamsEntity));
 
                 int typeKey = statePools.Count + 1; // 0 is an invalid type
+
                 statePools.Add(typeKey, statePool);
                 entityPools.Add(typeKey, entityPool);
+
                 entityTypeToKey.Add(pair.Entity, typeKey);
+                stateTypeToKey.Add(pair.State, typeKey);
             }
         }
 
@@ -98,21 +120,31 @@ namespace RailgunNet.Factory
             return commandPool.Allocate();
         }
 
-        public RailEntityBase CreateEntity(int factoryType)
+        public IEntity CreateEntity(EntityType factoryType)
         {
-            return entityPools[factoryType].Allocate();
+            var allocate = entityPools[(int)factoryType].Allocate();
+            allocate.InitState(this);
+            return allocate;
         }
 
-        public RailState CreateState(int factoryType)
+        public T CreateEntity<T>() where T : IEntity
         {
-            RailState state = statePools[factoryType].Allocate();
-            state.FactoryType = factoryType;
+            var factoryType = GetEntityFactoryType<T>();
+
+            var allocate = entityPools[(int)factoryType].Allocate();
+            allocate.InitState(this);
+            return (T)allocate;
+        }
+
+        public RailState CreateState(EntityType factoryType)
+        {
+            RailState state = statePools[(int)factoryType].Allocate();
             return state;
         }
 
-        public RailEvent CreateEvent(int factoryType)
+        public RailEvent CreateEvent(EventType factoryType)
         {
-            RailEvent instance = eventPools[factoryType].Allocate();
+            RailEvent instance = eventPools[(int)factoryType].Allocate();
             instance.FactoryType = factoryType;
             return instance;
         }
@@ -120,7 +152,7 @@ namespace RailgunNet.Factory
         public T CreateEvent<T>()
             where T : RailEvent
         {
-            return (T)CreateEvent(eventTypeToKey[typeof(T)]);
+            return (T)CreateEvent((EventType)eventTypeToKey[typeof(T)]);
         }
 
         public RailStateDelta CreateDelta()
@@ -139,10 +171,10 @@ namespace RailgunNet.Factory
         }
 
         #region Typed
-        public int GetEntityFactoryType<T>()
-            where T : RailEntityBase
+        public EntityType GetEntityFactoryType<T>()
+            where T : IEntity
         {
-            return entityTypeToKey[typeof(T)];
+            return (EntityType)entityTypeToKey[typeof(T)];
         }
 
         public int GetEventFactoryType<T>()

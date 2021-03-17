@@ -1,44 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
+using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
+using UnityEngine;
 
 namespace RailgunNet.Connection.Server
 {
 
-    public class RailServerRoom : RailRoom
+    public class RailServerRoom : RailRoom<IServerEntity>
     {
         /// <summary>
         ///     All client controllers involved in this room.
         ///     Does not include the server's controller.
         /// </summary>
-        private readonly List<RailServerPeer> clients;
+        private readonly List<RailServerPeer> _clients;
 
         /// <summary>
         ///     Used for creating new entities and assigning them unique ids.
         /// </summary>
-        private EntityId nextEntityId = EntityId.START;
-
-        private List<RailEntityServer> removeBuffer;// Pre-allocated removal list
-
-        private List<RailEntityServer> updateBuffer; // Pre-allocated update list
+        private EntityId _entityCounter = EntityId.START;
 
         /// <summary>
         ///     Entities that have been removed or are about to be.
         /// </summary>
-        private readonly List<RailEntityServer> removedEntities = new List<RailEntityServer>();
+        private readonly List<IServerEntity> removedEntities = new List<IServerEntity>();
 
-        public IReadOnlyList<RailServerPeer> Clients => clients;
+        public IReadOnlyList<RailServerPeer> Clients => _clients;
 
-        public RailServerRoom(RailResource resource, RailServer server) : base(resource, server)
+        public IReadOnlyList<IServerEntity> RemovedEntities => removedEntities;
+
+        public Tick Tick { get; private set; }
+
+        public RailResource Resource { get; }
+
+        public RailServerRoom(RailResource resource)
         {
-            updateBuffer = new List<RailEntityServer>();
-            removeBuffer = new List<RailEntityServer>();
-
-            clients = new List<RailServerPeer>();
+            Resource = resource;
+            _clients = new List<RailServerPeer>();
+            Tick = Tick.START;
         }
 
         /// <summary>
@@ -58,7 +60,7 @@ namespace RailgunNet.Connection.Server
         ///     Adds an entity to the room. Cannot be done during the update pass.
         /// </summary>
         public T AddNewEntity<T>(Action<T> initializer = null)
-            where T : RailEntityServer
+            where T : IServerEntity
         {
             T entity = CreateEntity<T>();
             initializer?.Invoke(entity);
@@ -72,7 +74,7 @@ namespace RailgunNet.Connection.Server
         /// </summary>
         public void MarkForRemoval(EntityId id)
         {
-            if (TryGet(id, out RailEntityBase entity))
+            if (TryGet<IServerEntity>(id, out var entity))
             {
                 MarkForRemoval(entity);
             }
@@ -82,137 +84,121 @@ namespace RailgunNet.Connection.Server
         ///     Marks an entity for removal from the room and presumably destruction.
         ///     This is deferred until the next frame.
         /// </summary>
-        public void MarkForRemoval(RailEntityBase entity)
+        public void MarkForRemoval(IServerEntity entity)
         {
-            if (entity.IsRemoving == false)
+            if (entity.IsRemoving() == false)
             {
-                RailEntityServer serverEntity = entity as RailEntityServer;
-                if (serverEntity == null)
-                {
-                    throw new ArgumentNullException(
-                        nameof(entity),
-                        $"unexpected type of entity to remove: {entity}");
-                }
-
-                serverEntity.MarkForRemoval();
-
-                removedEntities.Add(serverEntity);
+                entity.MarkForRemoval();
+                removedEntities.Add(entity);
             }
         }
 
         /// <summary>
         ///     Queues an event to broadcast to all present clients.
         ///     Notice that due to the internal object pooling, the event will be cloned and managed
-        ///     internally in each client peer. The <paramref name="evnt" /> will be freed if
-        ///     <paramref name="freeWhenDone" /> is true, otherwise the caller is responsible to
-        ///     free the memory.
+        ///     internally in each client peer. The <paramref name="evnt" /> will not be freed
         /// </summary>
         /// <param name="evnt"></param>
         /// <param name="attempts"></param>
-        /// <param name="freeWhenDone"></param>
         public void BroadcastEvent(
             [NotNull] RailEvent evnt,
-            ushort attempts = 3,
-            bool freeWhenDone = true)
+            ushort attempts = 3)
         {
-            foreach (RailPeer client in clients)
+            foreach (var client in _clients)
             {
-                client.SendEvent(evnt, attempts, true);
-            }
-
-            if (freeWhenDone)
-            {
-                evnt.Free();
+                var toSend = evnt.Clone(Resource);
+                client.SendEvent(toSend, attempts);
             }
         }
 
         public void AddClient(RailServerPeer client)
         {
-            var index = clients.IndexOf(client);
+            var index = _clients.IndexOf(client);
 
             if (index == -1)
             {
-                clients.Add(client);
+                _clients.Add(client);
                 ClientJoined?.Invoke(client);
             }
         }
 
-        public void RemoveClient(RailServerPeer client)
+        public bool RemoveClient(RailServerPeer client)
         {
-            if (clients.Remove(client))
+            if (_clients.Remove(client))
             {
                 ClientLeft?.Invoke(client);
+                return true;
             }
+
+            return false;
         }
 
-        public void UpdateClients()
-        {
-            foreach (RailServerPeer client in clients)
-            {
-                client.Update(Tick);
-            }
-        }
-
-        public void ServerUpdate()
+        public void TickUpdate()
         {
             Tick = Tick.GetNext();
-            OnPreRoomUpdate(Tick);
+            CallPreRoomUpdate(Tick);
+
+            using var toRemove = TempRefList<IServerEntity>.Get();
+            using var toUpdate = TempRefList<IServerEntity>.Get();
 
             // Collect the entities in the priority order and
             // separate them out for either update or removal
-            foreach (var railEntityBase in Entities.Values)
+            foreach (var entity in Entities.Values)
             {
-                var entity = (RailEntityServer)railEntityBase;
-
-                if (entity.ShouldRemove)
+                if (entity.ShouldRemove(Tick))
                 {
-                    removeBuffer.Add(entity);
+                    toRemove.Add(entity);
                 }
                 else
                 {
-                    updateBuffer.Add(entity);
+                    toUpdate.Add(entity);
                 }
             }
 
             // Wave 0: Remove all sunsetted entities
+            var removeCount = toRemove.Count;
+            for (var i = 0; i < removeCount; i++)
+                RemoveEntity(toRemove[i]);
 
-            foreach (var railEntityServer in removeBuffer)
-                RemoveEntity(railEntityServer);
-            removeBuffer.Clear();
-
-            int updateBufferCount = updateBuffer.Count;
+            int updateBufferCount = toUpdate.Count;
 
             // Wave 1: Start/initialize all entities
             for (var index = 0; index < updateBufferCount; index++)
-                updateBuffer[index].PreUpdate();
+            {
+                if (toUpdate[index] is IPreTickUpdateListener preTickUpdateListener)
+                    preTickUpdateListener.PreTickUpdate(Tick);
+            }
 
             // Wave 2: Update all entities
             for (var index = 0; index < updateBufferCount; index++)
-                updateBuffer[index].ServerUpdate();
+            {
+                if (toUpdate[index] is ITickUpdateListener tickUpdateListener)
+                    tickUpdateListener.TickUpdate(Tick);
+            }
 
             // Wave 3: Post-update all entities
             for (var index = 0; index < updateBufferCount; index++)
-                updateBuffer[index].PostUpdate();
+            {
+                if (toUpdate[index] is IPostTickUpdateListener postTickUpdateListener)
+                    postTickUpdateListener.PostTickUpdate(Tick);
+            }
 
-            updateBuffer.Clear();
-
-            OnPostRoomUpdate(Tick);
+            CallPostRoomUpdate(Tick);
         }
 
         public void StoreStates()
         {
-            foreach (RailEntityServer entity in Entities.Values)
+            foreach (var entity in Entities.Values)
             {
                 entity.StoreRecord(Resource);
             }
         }
 
-        private T CreateEntity<T>()
-            where T : RailEntityServer
+        private T CreateEntity<T>() where T : IServerEntity
         {
-            T entity = RailEntityServer.Create<T>(Resource);
-            entity.Initialize(nextEntityId);
-            nextEntityId = nextEntityId.GetNext();
+            var entity = Resource.CreateEntity<T>();
+            entity.Initialize(_entityCounter);
+            _entityCounter = _entityCounter.GetNext();
             return entity;
         }
 
@@ -230,7 +216,7 @@ namespace RailgunNet.Connection.Server
 
                 var id = entity.Id;
 
-                foreach (RailServerPeer peer in clients)
+                foreach (RailServerPeer peer in _clients)
                 {
                     Tick lastSent = peer.Scope.GetLastSent(id);
                     if (lastSent.IsValid == false) continue; // Was never sent in the first place
@@ -260,15 +246,44 @@ namespace RailgunNet.Connection.Server
         }
 
 
-        /// <summary>
-        ///     Packs and sends a server-to-client packet to each peer.
-        /// </summary>
-        public void BroadcastPackets()
+        public void HandleEvent(RailEvent @event, RailServerPeer railServerPeer)
         {
-            foreach (var clientPeer in clients)
+            if (@event.TargetEntity.IsValid)
             {
-                clientPeer.SendPacket(Tick, Entities.Values.Select(e => e as RailEntityServer), removedEntities);
+                if (Entities.TryGetValue(@event.TargetEntity, out var entity))
+                {
+                    entity.HandleEvent(@event, railServerPeer);
+                }
+                else
+                {
+                    Debug.LogError($"Could not find entity for {@event} {@event.TargetEntity}");
+                }
             }
+
+            //todo send room event
         }
+
+        protected void RegisterEntity(IServerEntity entity)
+        {
+            _entities.Add(entity.Id, entity);
+            entity.Added(this);
+            CallAddedEntity(entity);
+        }
+
+        protected bool RemoveEntity(IServerEntity entity)
+        {
+            if (_entities.ContainsKey(entity.Id))
+            {
+                _entities.Remove(entity.Id);
+                entity.Removed();
+                // TODO: Pooling entities?
+
+                CallRemovedEntity(entity);
+                return true;
+            }
+
+            return false;
+        }
+
     }
 }

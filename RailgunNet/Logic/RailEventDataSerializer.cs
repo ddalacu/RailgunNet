@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Reflection;
 using RailgunNet.System.Encoding;
-using RailgunNet.System.Types;
 
 namespace RailgunNet.Logic
 {
@@ -19,7 +18,7 @@ namespace RailgunNet.Logic
             }
 
             eventInstance = instance;
-            foreach (PropertyInfo prop in instance
+            foreach (var prop in instance
                                           .GetType()
                                           .GetProperties(
                                               BindingFlags.Instance |
@@ -42,27 +41,30 @@ namespace RailgunNet.Logic
                     nameof(other));
             }
 
-            for (int i = 0; i < members.Count; ++i)
-            {
+            var membersCount = members.Count;
+            for (var i = 0; i < membersCount; ++i)
                 members[i].ApplyFrom(other.members[i]);
-            }
         }
 
-        public void WriteData(RailBitBuffer buffer, Tick _)
+        public void WriteData(RailBitBuffer buffer)
         {
-            // TODO: forward packetTick?
-            members.ForEach(m => m.WriteTo(buffer));
+            var membersCount = members.Count;
+            for (var i = 0; i < membersCount; ++i)
+                members[i].WriteTo(buffer);
         }
 
-        public void ReadData(RailBitBuffer buffer, Tick _)
+        public void ReadData(RailBitBuffer buffer)
         {
-            // TODO: forward packetTick?
-            members.ForEach(m => m.ReadFrom(buffer));
+            var membersCount = members.Count;
+            for (var i = 0; i < membersCount; ++i)
+                members[i].ReadFrom(buffer);
         }
 
         public void ResetData()
         {
-            members.ForEach(m => m.Reset());
+            var membersCount = members.Count;
+            for (var i = 0; i < membersCount; ++i)
+                members[i].Reset();
         }
     }
 }

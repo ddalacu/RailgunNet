@@ -1,16 +1,63 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 using JetBrains.Annotations;
 using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
 using RailgunNet.Logic.Wrappers;
+using RailgunNet.System.Buffer;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
+using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
+using Debug = UnityEngine.Debug;
 
 namespace RailgunNet.Connection.Server
 {
+    public class TickSincronizer
+    {
+        private IntMovingAverage _deltaAverage = new IntMovingAverage(32);
+
+        private Tick _latestReceivedTick;
+
+        private byte _lastTickEdit;
+
+        public byte LastTickEdit => _lastTickEdit;
+
+        public double GetDelta()
+        {
+            if (_deltaAverage.IsFull)
+            {
+                return _deltaAverage.Average + 3;
+            }
+
+            return 0;
+        }
+
+        public void Add(Tick targetTick, Tick tick, byte tickEdit)
+        {
+
+            if (tickEdit != _lastTickEdit)
+            {
+                _deltaAverage.Clear();
+                Debug.Log("Client updated tick!");
+            }
+
+            _lastTickEdit = tickEdit;
+
+            if (_latestReceivedTick.IsValid == false)
+                _latestReceivedTick = tick;
+            else
+            if (tick > _latestReceivedTick)
+                _latestReceivedTick = tick;
+
+            var delta = targetTick - _latestReceivedTick;
+            _deltaAverage.ComputeAverage(delta);
+        }
+    }
+
+    public delegate void ServerSendDataDelegate(RailServerPeer railServerPeer, ArraySegment<byte> segment);
+
     /// <summary>
     ///     Server is the core executing class on the server. It is responsible for
     ///     managing connection contexts and payload I/O.
@@ -18,21 +65,14 @@ namespace RailgunNet.Connection.Server
     [PublicAPI]
     public class RailServer : RailConnection
     {
+        private readonly ServerSendDataDelegate _serverSendData;
+
         private readonly uint remoteSendRate;
         private readonly uint sendRate;
 
-        /// <summary>
-        ///     Collection of all participating clients.
-        /// </summary>
-        private readonly Dictionary<IRailNetPeer, RailServerPeer> clients = new Dictionary<IRailNetPeer, RailServerPeer>();
-
-        /// <summary>
-        ///     Collection of all participating clients.
-        /// </summary>
-        [PublicAPI] [NotNull] public IReadOnlyCollection<RailServerPeer> ConnectedClients => clients.Values;
-
-        public RailServer(RailRegistry<RailEntityServer> registry, uint remoteSendRate, uint sendRate) : base(registry)
+        public RailServer(ServerSendDataDelegate serverSendData, RailRegistry<IServerEntity> registry, uint remoteSendRate, uint sendRate) : base(registry)
         {
+            _serverSendData = serverSendData;
             this.remoteSendRate = remoteSendRate;
             this.sendRate = sendRate;
         }
@@ -49,8 +89,7 @@ namespace RailgunNet.Connection.Server
         [PublicAPI]
         public RailServerRoom StartRoom()
         {
-            Room = new RailServerRoom(Resource, this);
-            SetRoom(Room, Tick.START);
+            Room = new RailServerRoom(Resource);
             return Room;
         }
 
@@ -59,47 +98,47 @@ namespace RailgunNet.Connection.Server
         ///     from the network API wrapper.
         /// </summary>
         [PublicAPI]
-        public bool AddClient(IRailNetPeer netPeer, string identifier, out RailServerPeer client)
+        public RailServerPeer AddClient()
         {
-            if (clients.ContainsKey(netPeer) == false)
-            {
-                client = new RailServerPeer(Resource, netPeer, remoteSendRate, Interpreter)
-                {
-                    Identifier = identifier
-                };
-                client.EventReceived += OnEventReceived;
-                client.PacketReceived += OnPacketReceived;
-                clients.Add(netPeer, client);
-                Room.AddClient(client);
-                ClientAdded?.Invoke(client);
-                return true;
-            }
+            var client = new RailServerPeer(Resource);
+            client.EventReceived += OnEventReceived;
+            client.ProcessCommandUpdate += ProcessCommandUpdate;
 
-            client = default;
-            return false;
+            Room.AddClient(client);
+            ClientAdded?.Invoke(client);
+            return client;
         }
+
+
+        protected void OnEventReceived(RailEvent evnt, RailServerPeer sender)
+        {
+            Room.HandleEvent(evnt, sender);
+        }
+
 
         [PublicAPI] public event Action<RailServerPeer> ClientAdded;
 
         /// <summary>
         ///     Wraps an incoming connection in a peer and stores it.
         /// </summary>
-        [PublicAPI]
-        public void RemoveClient(IRailNetPeer netClient)
+        public void RemoveClient(RailServerPeer toRemove)
         {
-            if (clients.ContainsKey(netClient))
+            if (Room.RemoveClient(toRemove))
             {
-                RailServerPeer client = clients[netClient];
-                clients.Remove(netClient);
-                Room.RemoveClient(client);
-
                 // Revoke control of all the entities controlled by that client
-                client.Shutdown();
-                ClientRemoved?.Invoke(client);
+                toRemove.Shutdown();
+                ClientRemoved?.Invoke(toRemove);
             }
         }
 
         [PublicAPI] public event Action<RailServerPeer> ClientRemoved;
+
+
+        private RailPacketToClient _packetToClient = new RailPacketToClient();
+
+        private RailInterpreter _interpreter = new RailInterpreter();
+
+        private RailPacketFromClient _packetFromClient = new RailPacketFromClient();
 
         /// <summary>
         ///     Updates all entities and dispatches a snapshot if applicable. Should
@@ -109,39 +148,58 @@ namespace RailgunNet.Connection.Server
         [PublicAPI]
         public void Update()
         {
+            _stopWatch.Restart();
+
             DoStart();
-
-            Room.UpdateClients();
-
-            Room.ServerUpdate();
+            Room.TickUpdate();
 
             if (Room.Tick.IsSendTick(sendRate))
             {
                 Room.StoreStates();
-                Room.BroadcastPackets();
+
+                var clientsCount = Room.Clients.Count;
+
+                for (var index = 0; index < clientsCount; index++)
+                {
+                    var clientPeer = Room.Clients[index];
+
+                    _packetToClient.Reset();
+
+                    clientPeer.SendPacket(_packetToClient, Room.Tick, Room.Entities.Values, Room.RemovedEntities);
+
+                    //if (_stopWatch.IsRunning &&
+                       // clientPeer.LatestRemote.IsValid)
+                    {
+
+                        _packetToClient.PingProcessDelay = _stopWatch.Elapsed.TotalMilliseconds;
+                        //_stopWatch.Stop();
+                    }
+                    //else
+                    {
+                       // _packetToClient.PingProcessDelay = 0;
+                    }
+
+                    var toSend = Interpreter.SendPacket(Resource, _packetToClient);
+                    _serverSendData(clientPeer, toSend);
+                }
             }
 
             Room.CleanRemovedEntities();
         }
 
         #region Packet Receive
-        private void OnPacketReceived(RailServerPeer peer, IRailClientPacket packet)
-        {
-            foreach (RailCommandUpdate update in packet.CommandUpdates)
-            {
-                ProcessCommandUpdate(peer, update);
-            }
-        }
+
 
         private void ProcessCommandUpdate(RailServerPeer peer, RailCommandUpdate update)
         {
-            if (Room.TryGet(update.EntityId, out RailEntityServer entity))
+            if (Room.TryGet(update.EntityId, out IServerCommandedEntity entity))
             {
-                bool canReceive = entity.Controller == peer && entity.IsRemoving == false;
+                bool canReceive = entity.Controller == peer &&
+                                  entity.IsRemoving() == false;
 
                 if (canReceive)
                 {
-                    foreach (RailCommand command in update.Commands)
+                    foreach (var command in update.Commands)
                     {
                         entity.ReceiveCommand(command);
                     }
@@ -156,5 +214,36 @@ namespace RailgunNet.Connection.Server
             }
         }
         #endregion
+
+        private Stopwatch _stopWatch = new Stopwatch();
+        private double _latestProcess;
+
+
+        public void ProcessPeerData(RailServerPeer peer, ArraySegment<byte> segment, Stopwatch recieve)
+        {
+            try
+            {
+                var bitBuffer = _interpreter.LoadData(segment);
+
+                _packetFromClient.Reset();
+                _packetFromClient.Decode(Resource, bitBuffer);
+
+                if (bitBuffer.IsFinished)
+                {
+                    _stopWatch.Restart();
+                    _latestProcess = recieve.Elapsed.TotalMilliseconds;
+
+                    peer.ProcessPacket(Room.Tick, _packetFromClient);
+                }
+                else
+                {
+                    RailDebug.LogError("Bad packet read, discarding...");
+                }
+            }
+            catch (Exception e)
+            {
+                RailDebug.LogError("Error during packet read: " + e);
+            }
+        }
     }
 }

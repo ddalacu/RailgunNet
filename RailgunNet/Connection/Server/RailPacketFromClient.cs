@@ -1,25 +1,25 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using RailgunNet.Factory;
 using RailgunNet.Logic.Wrappers;
 using RailgunNet.System;
 using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
 using RailgunNet.Util;
+using UnityEngine;
 
 namespace RailgunNet.Connection.Server
 {
-    public interface IRailClientPacket
-    {
-        IEnumerable<RailCommandUpdate> CommandUpdates { get; }
-    }
 
     /// <summary>
     ///     Packet from the client received by the server. Corresponding packet on client
     ///     side is RailPacketToServer.
     /// </summary>
-    public class RailPacketFromClient : RailPacketIncoming, IRailClientPacket
+    public class RailPacketFromClient : RailPacketIncoming
     {
         private readonly RailPackedListIncoming<RailCommandUpdate> commandUpdates;
+
+        public RailPackedListIncoming<RailCommandUpdate> CommandUpdated => commandUpdates;
 
         public RailPacketFromClient()
         {
@@ -29,9 +29,6 @@ namespace RailgunNet.Connection.Server
 
         public RailView View { get; }
 
-        #region Interface
-        IEnumerable<RailCommandUpdate> IRailClientPacket.CommandUpdates => commandUpdates.Received;
-        #endregion
 
         public override void Reset()
         {
@@ -67,7 +64,7 @@ namespace RailgunNet.Connection.Server
                     var tick = buf.ReadTick(); // Read: [Tick] 
                     var isFrozen = buf.ReadBool();// Read: [IsFrozen]
 
-                    var railViewEntry = new RailViewEntry(tick, Tick.INVALID, isFrozen);
+                    var railViewEntry = new RailViewEntry(tick, isFrozen);
 
                     return new KeyValuePair<EntityId, RailViewEntry>(entityId, railViewEntry);
                 }

@@ -1,150 +1,51 @@
-﻿/*
- *  RailgunNet - A Client/Server Network State-Synchronization Layer for Games
- *  Copyright (c) 2016-2018 - Alexander Shoulson - http://ashoulson.com
- *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, subject to the following restrictions:
- *  
- *  1. The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  2. Altered source versions must be plainly marked as such, and must not be
- *     misrepresented as being the original software.
- *  3. This notice may not be removed or altered from any source distribution.
- */
-
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using JetBrains.Annotations;
-using RailgunNet.Connection.Traffic;
 using RailgunNet.Factory;
 using RailgunNet.Logic;
-using RailgunNet.Logic.Scope;
 using RailgunNet.System;
-using RailgunNet.System.Encoding;
 using RailgunNet.System.Types;
-using RailgunNet.Util;
 using RailgunNet.Util.Debug;
 using RailgunNet.Util.Pooling;
 
 namespace RailgunNet.Connection
 {
-    public delegate void EventReceived(RailEvent evnt, RailPeer sender);
 
-    public abstract class RailPeer : RailController
+    public abstract class RailPeer
     {
-        /// <summary>
-        ///     Interpreter for converting byte input to a BitBuffer.
-        /// </summary>
-        private readonly RailInterpreter interpreter;
 
-        private readonly RailPacketIncoming reusableIncoming;
-        private readonly RailPacketOutgoing reusableOutgoing;
-
-        protected RailPeer(
-            RailResource resource,
-            IRailNetPeer netPeer,
-            uint remoteSendRate,
-            RailInterpreter interpreter,
-            RailPacketIncoming reusableIncoming,
-            RailPacketOutgoing reusableOutgoing) : base(netPeer)
+        protected RailPeer()
         {
-            Resource = resource;
-            RemoteClock = new RailClock(remoteSendRate);
-            this.interpreter = interpreter;
-
-            outgoingEvents = new Queue<RailEvent>();
-            this.reusableIncoming = reusableIncoming;
-            this.reusableOutgoing = reusableOutgoing;
+            _outgoingEvents = new Queue<RailEvent>();
             lastQueuedEventId = SequenceId.Start.Next;
-            eventHistory = new RailHistory(RailConfig.HISTORY_CHUNKS);
-
-            LocalTick = Tick.START;
-            netPeer.PayloadReceived += OnPayloadReceived;
+            _eventHistory = new RailHistory(RailConfig.HISTORY_CHUNKS);
         }
 
-        /// <summary>
-        ///     An estimator for the remote peer's current tick.
-        /// </summary>
-        [PublicAPI]
-        [NotNull]
-        public RailClock RemoteClock { get; private set; }
-
-        /// <summary>
-        ///     Our local tick. Set during update.
-        /// </summary>
-        [PublicAPI]
-        public Tick LocalTick { get; private set; }
-
-        protected RailResource Resource { get; }
-
-        public override Tick EstimatedRemoteTick => RemoteClock.EstimatedRemote;
-
-        public event EventReceived EventReceived;
-
-        public virtual void Update(Tick localTick)
-        {
-            RemoteClock.Update();
-            LocalTick = localTick;
-        }
-
-        protected void SendPacket(RailPacketOutgoing packet)
-        {
-            interpreter.SendPacket(Resource, NetPeer, packet);
-        }
-
-        private void OnPayloadReceived(IRailNetPeer peer, ArraySegment<byte> buffer)
-        {
-            try
-            {
-                RailBitBuffer bitBuffer = interpreter.LoadData(buffer);
-                reusableIncoming.Reset();
-                reusableIncoming.Decode(Resource, bitBuffer);
-
-                if (bitBuffer.IsFinished)
-                {
-                    ProcessPacket(reusableIncoming, LocalTick);
-                }
-                else
-                {
-                    RailDebug.LogError("Bad packet read, discarding...");
-                }
-            }
-            catch (Exception e)
-            {
-                RailDebug.LogError("Error during packet read: " + e);
-            }
-        }
+        public Tick LatestRemote { get; private set; }
 
         /// <summary>
         ///     Allocates a packet and writes common boilerplate information to it.
         /// </summary>
-        protected T PrepareSend<T>(Tick localTick)
-            where T : RailPacketOutgoing
+        protected void PrepareSend(RailPacketOutgoing outgoing, Tick localTick)
         {
-            // It would be best to reset after rather than before, but that's
-            // error prone as it would require a second post-send function call.
-            reusableOutgoing.Reset();
-            reusableOutgoing.Initialize(
-                localTick,
-                RemoteClock.LatestRemote,
-                eventHistory.Latest,
-                FilterOutgoingEvents());
-            return (T)reusableOutgoing;
+            outgoing.Initialize(localTick, LatestRemote, _eventHistory.Latest, FilterOutgoingEvents());
         }
 
         /// <summary>
         ///     Records acknowledging information for the packet.
         /// </summary>
-        protected virtual void ProcessPacket(RailPacketIncoming packetBase, Tick localTick)
+        public virtual void ProcessPacket(Tick localTick, RailPacketIncoming packetBase)
         {
-            RemoteClock.UpdateLatest(packetBase.SenderTick);
-            foreach (RailEvent evnt in FilterIncomingEvents(packetBase.Events))
+            if (LatestRemote.IsValid == false)
+            {
+                LatestRemote = packetBase.SenderTick;
+            }
+            else
+            {
+                if (packetBase.SenderTick > LatestRemote)
+                    LatestRemote = packetBase.SenderTick;
+            }
+
+            foreach (var evnt in FilterIncomingEvents(packetBase.Events))
             {
                 ProcessEvent(evnt);
             }
@@ -161,28 +62,23 @@ namespace RailgunNet.Connection
         /// <summary>
         ///     A rolling queue for outgoing reliable events, in order.
         /// </summary>
-        private readonly Queue<RailEvent> outgoingEvents;
+        private readonly Queue<RailEvent> _outgoingEvents;
 
         /// <summary>
         ///     A history buffer of received events.
         /// </summary>
-        private readonly RailHistory eventHistory;
+        private readonly RailHistory _eventHistory;
 
         /// <summary>
         ///     Queues an event to send directly to this peer (used internally).
         /// </summary>
-        internal void SendEvent([NotNull] RailEvent evnt, ushort attempts, bool bMakeCopy)
+        internal void SendEvent([NotNull] RailEvent evnt, ushort attempts)
         {
             // TODO: Event scoping
-            RailEvent toSend = evnt;
-            if (bMakeCopy)
-            {
-                toSend = evnt.Clone(Resource);
-            }
-            toSend.EventId = lastQueuedEventId;
-            toSend.Attempts = attempts;
+            evnt.EventId = lastQueuedEventId;
+            evnt.Attempts = attempts;
 
-            outgoingEvents.Enqueue(toSend);
+            _outgoingEvents.Enqueue(evnt);
             lastQueuedEventId = lastQueuedEventId.Next;
         }
 
@@ -194,7 +90,7 @@ namespace RailgunNet.Connection
             if (ackedEventId.IsValid == false) return;
 
             // Stop attempting to send acked events
-            foreach (RailEvent evnt in outgoingEvents)
+            foreach (RailEvent evnt in _outgoingEvents)
             {
                 if (evnt.EventId <= ackedEventId)
                 {
@@ -203,10 +99,10 @@ namespace RailgunNet.Connection
             }
 
             // Clean out any events with zero attempts left
-            while (outgoingEvents.Count > 0)
+            while (_outgoingEvents.Count > 0)
             {
-                if (outgoingEvents.Peek().Attempts > 0) break;
-                RailPool.Free(outgoingEvents.Dequeue());
+                if (_outgoingEvents.Peek().Attempts > 0) break;
+                RailPool.Free(_outgoingEvents.Dequeue());
             }
         }
 
@@ -233,8 +129,8 @@ namespace RailgunNet.Connection
             // something is wrong with reliable event acking. You can always increase
             // the number of history chunks if this becomes an issue.
 
-            SequenceId firstId = SequenceId.Invalid;
-            foreach (RailEvent evnt in outgoingEvents)
+            var firstId = SequenceId.Invalid;
+            foreach (var evnt in _outgoingEvents)
             {
                 // Ignore dead events, they'll be cleaned up eventually
                 if (evnt.Attempts <= 0) continue;
@@ -248,7 +144,7 @@ namespace RailgunNet.Connection
                 if (firstId.IsValid == false) firstId = evnt.EventId;
                 RailDebug.Assert(firstId <= evnt.EventId);
 
-                if (eventHistory.AreInRange(firstId, evnt.EventId) == false)
+                if (_eventHistory.AreInRange(firstId, evnt.EventId) == false)
                 {
                     RailDebug.LogWarning("Throttling events due to lack of ack");
                     break;
@@ -263,9 +159,9 @@ namespace RailgunNet.Connection
         /// </summary>
         private IEnumerable<RailEvent> FilterIncomingEvents(IEnumerable<RailEvent> events)
         {
-            foreach (RailEvent evnt in events)
+            foreach (var evnt in events)
             {
-                if (eventHistory.IsNewId(evnt.EventId))
+                if (_eventHistory.IsNewId(evnt.EventId))
                 {
                     yield return evnt;
                 }
@@ -277,28 +173,13 @@ namespace RailgunNet.Connection
         /// </summary>
         private void ProcessEvent(RailEvent evnt)
         {
-            EventReceived?.Invoke(evnt, this);
-            eventHistory.Store(evnt.EventId);
+            HandleEventReceived(evnt);
+            _eventHistory.Store(evnt.EventId);
         }
+
+        public abstract void HandleEventReceived(RailEvent @event);
+
         #endregion
     }
 
-    public abstract class RailPeer<TIncoming, TOutgoing> : RailPeer
-        where TIncoming : RailPacketIncoming, new()
-        where TOutgoing : RailPacketOutgoing, new()
-    {
-        protected RailPeer(
-            RailResource resource,
-            IRailNetPeer netPeer,
-            uint remoteSendRate,
-            RailInterpreter interpreter) : base(
-            resource,
-            netPeer,
-            remoteSendRate,
-            interpreter,
-            new TIncoming(),
-            new TOutgoing())
-        {
-        }
-    }
 }

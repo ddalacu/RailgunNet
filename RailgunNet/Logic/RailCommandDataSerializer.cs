@@ -49,17 +49,24 @@ namespace RailgunNet.Logic
 
         public void EncodeData(RailBitBuffer buffer)
         {
-            members.ForEach(e => e.WriteTo(buffer));
+            var membersCount = members.Count;
+            for (var index = 0; index < membersCount; index++)
+                members[index].WriteTo(buffer);
         }
 
         public void DecodeData(RailBitBuffer buffer)
         {
-            members.ForEach(e => e.ReadFrom(buffer));
+            var membersCount = members.Count;
+            for (var index = 0; index < membersCount; index++)
+                members[index].ReadFrom(buffer);
+
         }
 
         public void ResetData()
         {
-            members.ForEach(m => m.Reset());
+            var membersCount = members.Count;
+            for (var index = 0; index < membersCount; index++)
+                members[index].Reset();
         }
     }
 }
